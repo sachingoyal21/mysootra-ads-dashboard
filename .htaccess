@@ -6,3 +6,4 @@ Header set X-Robots-Tag "noindex, nofollow"
 <Files "lib.php">
 Require all denied
 </Files>
+RedirectMatch 404 /\.git

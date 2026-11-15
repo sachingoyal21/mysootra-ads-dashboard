@@ -188,6 +188,12 @@ try {
     $adsDaily = [];
     foreach ($st as $r) $adsDaily[] = ['id' => (string)$r['ad_id'], 'date' => $r['day'], 'adset_id' => (string)$r['adset_id'], 'spend' => (float)$r['spend'], 'impressions' => (int)$r['impressions'], 'visits' => (int)$r['visits'], 'follows' => (int)$r['follows']];
 
+    // Longer history per ad, finished days only. The decision rules need it to know an ad's age and its own best run.
+    $st = db()->prepare('SELECT ad_id, day, spend, impressions, visits FROM ad_daily WHERE day >= ? AND day < ? AND spend > 0 ORDER BY day');
+    $st->execute([date('Y-m-d', strtotime('-45 days')), $today]);
+    $adsHist = [];
+    foreach ($st as $r) $adsHist[] = ['id' => (string)$r['ad_id'], 'date' => $r['day'], 'spend' => (float)$r['spend'], 'impressions' => (int)$r['impressions'], 'visits' => (int)$r['visits']];
+
     $st = db()->prepare('SELECT day, SUM(spend) AS spend, SUM(visits) AS visits, SUM(follows) AS follows, SUM(impressions) AS impressions FROM ad_daily WHERE day >= ? GROUP BY day ORDER BY day');
     $st->execute([$monthStart]);
     $monthDays = [];
@@ -215,6 +221,7 @@ try {
         'datasets' => [
             'ads_all' => $perAd(null),
             'ads_daily' => $adsDaily,
+            'ads_hist' => $adsHist,
             'ads_today' => array_map(fn($r) => ['id' => (string)$r['ad_id'], 'spend' => (float)$r['spend'], 'visits' => (int)$r['visits'], 'follows' => (int)$r['follows']], (function () use ($today) { $st = db()->prepare('SELECT ad_id, spend, visits, follows FROM ad_daily WHERE day = ?'); $st->execute([$today]); return $st->fetchAll(); })()),
             'ads_week' => kv_get('ads_week', []),
             'adsets' => $adsets,

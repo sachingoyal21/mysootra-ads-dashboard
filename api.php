@@ -69,7 +69,7 @@ try {
         json_out([
             'generated_at' => date('c'), 'today' => $today, 'last_pull' => last_pull(true), 'last_attempt' => last_pull(), 'has_token' => (bool)token(),
             'followers_now' => $f ? (int)$f['followers'] : null, 'username' => $f ? $f['username'] : null,
-            'goal' => 50000, 'launch' => '2026-12-01', 'plan' => cfg()['plan'],
+            'goal' => 50000, 'launch' => '2026-12-01', 'plan' => PLAN,
             'follows_reported_from' => $reportedFrom,
             'follower_counts' => array_map(fn($r) => ['date' => $r['day'], 'followers' => (int)$r['followers']], db()->query('SELECT day, followers FROM ig_followers ORDER BY day')->fetchAll()),
             'daily' => array_values($days), 'ig_account' => kv_get('ig_account', new stdClass()), 'media' => $media,
@@ -161,7 +161,7 @@ try {
     // Default: everything the dashboard needs, in the same row shape the page already understands.
     $today = date('Y-m-d');
     $monthStart = date('Y-m-01');
-    $plan = cfg()['plan'];
+    $plan = PLAN;
     $perAd = function (?string $from) {
         $where = $from ? 'WHERE day >= ?' : '';
         $q = "SELECT a.ad_id AS id, a.name, a.status, a.adset_id, COALESCE(s.name, t.adset_name, '') AS adset_name,

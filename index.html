@@ -145,7 +145,7 @@ body{margin:0;padding:24px 16px 48px;line-height:1.45}
 </div>
 </div>
 <div class='ms-last'>
-<h2 class='ms-h2' id='budget'>Budget plan, 13 to 30 November</h2>
+<h2 class='ms-h2' id='budget'>Budget plan for November</h2>
 <div class='ms-tiles'>
 <div class='ms-tile' id='tile-spent'><p class='ms-tile-label'>Spent of the budget</p><b class='ms-tile-num' data-draw='num' data-fmt='inr0' data-source='budget' data-field='spent' data-row='0'>—</b></div>
 <div class='ms-tile' id='tile-left'><p class='ms-tile-label'>Budget left</p><b class='ms-tile-num' data-draw='num' data-fmt='inr0' data-source='budget' data-field='left' data-row='0'>—</b></div>
@@ -260,7 +260,7 @@ body{margin:0;padding:24px 16px 48px;line-height:1.45}
 <details class='ms-rules' id='rules'>
 <summary>The rules behind the calls</summary>
 <ul>
-<li>Budget is <b data-draw='rule' data-rule='budget'>—</b> for 13 to 30 November.</li>
+<li>Budget is <b data-draw='rule' data-rule='budget'>—</b> for the whole of November.</li>
 <li>Volume ads aim for <b data-draw='rule' data-rule='volTarget'>—</b> per profile visit and stop above <b data-draw='rule' data-rule='volStop'>—</b>.</li>
 <li>Quality ads aim for <b data-draw='rule' data-rule='qualTarget'>—</b> and stop above <b data-draw='rule' data-rule='qualStop'>—</b>. An ad counts as Quality only when its ad name or ad set name contains the word Quality.</li>
 <li>An ad gets a call after 2 days with spend and <b data-draw='rule' data-rule='gateSpend'>—</b> spent or 150 profile visits. Before that it shows Wait.</li>
@@ -333,7 +333,7 @@ const dash = (() => {
   };
 })();
 
-const RULES = {budget: 15000, end: '2026-11-30', volume: {target: 1, stop: 1.5}, quality: {target: 2, stop: 3}, gateDays: 2, gateSpend: 300, gateVisits: 150, step: 0.2, capShare: 0.4, reserve: '₹100 to ₹150'};
+const RULES = {budget: 30000, end: '2026-11-30', volume: {target: 1, stop: 1.5}, quality: {target: 2, stop: 3}, gateDays: 2, gateSpend: 300, gateVisits: 150, step: 0.2, capShare: 0.4, reserve: '₹100 to ₹150'};
 const GOAL = 50000;
 
 dash.calc('decisions', {

@@ -179,7 +179,7 @@ td small{display:block;color:var(--muted)}
   <section class="view" id="v-overview">
     <div class="grid g-hero">
       <div class="card hero">
-        <h2>Road to 50,000 followers</h2>
+        <h2 id="goal-title">Road to the follower target</h2>
         <div class="goal-num" id="g-now">—</div>
         <div class="track"><i id="g-track" style="width:0"></i></div>
         <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
@@ -313,7 +313,7 @@ td small{display:block;color:var(--muted)}
 </div>
 
 <script>
-const RULES = {budget: 30000, end: '2026-11-30', volume: {target: 1, stop: 1.5}, quality: {target: 2, stop: 3}, gateDays: 2, gateSpend: 300, gateVisits: 150, step: 0.2, capShare: 0.4};
+const RULES = {budget: 25000, end: '2026-11-30', volume: {target: 1, stop: 1.5}, quality: {target: 2, stop: 3}, gateDays: 2, gateSpend: 300, gateVisits: 150, step: 0.2, capShare: 0.4};
 const $ = (id) => document.getElementById(id);
 const nf = new Intl.NumberFormat('en-IN');
 const num = (v) => v == null ? '—' : nf.format(Math.round(v));
@@ -578,6 +578,7 @@ function draw() {
   const daysTo = Math.max(0, Math.round((Date.parse(V2.launch) - Date.parse(today)) / 86400000));
   const need = daysTo > 0 ? left / daysTo : null;
   $('g-now').replaceChildren(document.createTextNode(num(now)), el('small', '', 'of ' + num(V2.goal)));
+  $('goal-title').textContent = 'Road to ' + num(V2.goal) + ' followers';
   $('g-track').style.width = Math.min(100, now / V2.goal * 100).toFixed(1) + '%';
   $('g-left').textContent = num(left); $('g-days').textContent = daysTo; $('g-need').textContent = num(need); $('g-pace').textContent = num(pace);
   $('g-pace-n').textContent = pace != null && need != null ? (pace >= need ? 'Current pace is enough to reach the goal by launch.' : 'Reaching the goal by launch needs ' + (need / pace).toFixed(1) + ' times the current pace. Pace is the average of the last 7 days Instagram has reported.') : '';

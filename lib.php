@@ -6,8 +6,10 @@ date_default_timezone_set('Asia/Kolkata');
 
 // Raise this number when the way numbers are read changes. The next pull then reloads all history.
 const COLLECTOR_VERSION = 2;
-// Ad budget plan. ₹30,000 for the whole of November 2026.
-const PLAN = ['start' => '2026-11-01', 'end' => '2026-11-30', 'budget' => 30000];
+// Ad budget plan. ₹25,000 for the whole of November 2026.
+const PLAN = ['start' => '2026-11-01', 'end' => '2026-11-30', 'budget' => 25000];
+// Follower target for launch day.
+const FOLLOWER_GOAL = 30000;
 // Extra Meta fields. results carries profile visits. instagram_profile_follow carries follows credited to ads.
 const OPTIONAL_FIELDS = ['results', 'instagram_profile_follow'];
 

@@ -69,7 +69,7 @@ try {
         json_out([
             'generated_at' => date('c'), 'today' => $today, 'last_pull' => last_pull(true), 'last_attempt' => last_pull(), 'has_token' => (bool)token(),
             'followers_now' => $f ? (int)$f['followers'] : null, 'username' => $f ? $f['username'] : null,
-            'goal' => 50000, 'launch' => '2026-12-01', 'plan' => PLAN,
+            'goal' => FOLLOWER_GOAL, 'launch' => '2026-12-01', 'plan' => PLAN,
             'follows_reported_from' => $reportedFrom,
             'follower_counts' => array_map(fn($r) => ['date' => $r['day'], 'followers' => (int)$r['followers']], db()->query('SELECT day, followers FROM ig_followers ORDER BY day')->fetchAll()),
             'daily' => array_values($days), 'ig_account' => kv_get('ig_account', new stdClass()), 'media' => $media,

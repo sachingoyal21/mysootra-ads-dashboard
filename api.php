@@ -11,36 +11,13 @@ try {
         if (!token()) { json_out(['error' => 'Setup is not finished.'], 409); exit; }
         $last = last_pull();
         $gap = cfg()['refresh_gap_minutes'] ?? 10;
-        if ($last && strtotime($last['started_at']) > time() - $gap * 60) {
+        $current = (int)kv_get('collector_version', 1) === COLLECTOR_VERSION;
+        if ($current && $last && strtotime($last['started_at']) > time() - $gap * 60) {
             json_out(['skipped' => true, 'message' => "Data was pulled less than $gap minutes ago.", 'last_pull' => $last]);
             exit;
         }
         $r = collect('button');
         json_out($r + ['last_pull' => last_pull()]);
-        exit;
-    }
-    if ($a === 'probe') {
-        // Checking tool. Asks Meta which field names it accepts for follows and shows the raw rows. Read only.
-        $lastProbe = (int)kv_get('probe_at', 0);
-        if ($lastProbe > time() - 60) { json_out(['error' => 'Wait a minute between checks.'], 429); exit; }
-        kv_set('probe_at', time());
-        $names = ['instagram_profile_follow_v2', 'instagram_profile_follows', 'instagram_profile_follow', 'instagram_follows', 'follows', 'ig_follows', 'instagram_profile_visits', 'conversions', 'cost_per_action_type'];
-        $out = [];
-        foreach ($names as $n) {
-            try {
-                $rows = insights('account', ['date_preset' => 'last_7d'], 'spend,' . $n);
-                $out[$n] = ['account_last_7d' => $rows[0] ?? null];
-            } catch (Throwable $e) {
-                $out[$n] = ['error' => $e->getMessage()];
-            }
-        }
-        try {
-            $rows = insights('ad', ['date_preset' => 'yesterday'], 'ad_id,spend,instagram_profile_follow_v2,results');
-            $out['ad_yesterday_sample'] = array_slice($rows, 0, 3);
-        } catch (Throwable $e) {
-            $out['ad_yesterday_sample'] = ['error' => $e->getMessage()];
-        }
-        json_out($out);
         exit;
     }
     if ($a === 'diag') {

@@ -4,6 +4,11 @@
 
 date_default_timezone_set('Asia/Kolkata');
 
+// Raise this number when the way numbers are read changes. The next pull then reloads all history.
+const COLLECTOR_VERSION = 2;
+// Extra Meta fields. results carries profile visits. instagram_profile_follow carries follows credited to ads.
+const OPTIONAL_FIELDS = ['results', 'instagram_profile_follow'];
+
 function cfg(): array {
     static $c = null;
     if ($c === null) {
@@ -229,12 +234,13 @@ function collect(string $source = 'cron'): array {
 
         // 2. Daily numbers per ad. First run loads all history, later runs refresh the last 7 days.
         $have = (int)$pdo->query('SELECT COUNT(*) FROM ad_daily')->fetchColumn();
-        $since = $have === 0 ? cfg()['history_start'] : date('Y-m-d', strtotime('-7 days'));
+        $full = $have === 0 || (int)kv_get('collector_version', 1) !== COLLECTOR_VERSION;
+        $since = $full ? cfg()['history_start'] : date('Y-m-d', strtotime('-7 days'));
         $chunks = [];
         for ($s = strtotime($since); $s <= strtotime($today); $s += 30 * 86400) {
             $chunks[] = [date('Y-m-d', $s), date('Y-m-d', min(strtotime($today), $s + 29 * 86400))];
         }
-        $optional = cfg()['optional_fields'] ?? [];
+        $optional = OPTIONAL_FIELDS;
         $fieldErrors = [];
         foreach ($chunks as [$a, $b]) {
             $p = ['time_increment' => 1, 'time_range' => range_param($a, $b)];
@@ -274,6 +280,7 @@ function collect(string $source = 'cron'): array {
             }
         }
         kv_set('field_errors', $fieldErrors);
+        if (!$fieldErrors) kv_set('collector_version', COLLECTOR_VERSION);
         if ($fieldErrors) $notes[] = 'Some optional Meta fields were not available: ' . implode(', ', array_keys($fieldErrors)) . '.';
 
         // 3. Numbers that cannot be added up from days (unique people).

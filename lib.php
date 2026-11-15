@@ -73,6 +73,13 @@ function migrate(): void {
         "CREATE TABLE IF NOT EXISTS pulls (
             id $auto, started_at DATETIME NOT NULL, finished_at DATETIME, ok INT NOT NULL DEFAULT 0,
             source VARCHAR(20), day_rows INT NOT NULL DEFAULT 0, message $text)$tail",
+        "CREATE TABLE IF NOT EXISTS ig_daily (
+            day DATE NOT NULL PRIMARY KEY, new_followers INT NOT NULL DEFAULT 0, updated_at DATETIME NOT NULL)$tail",
+        "CREATE TABLE IF NOT EXISTS ig_media (
+            media_id VARCHAR(40) NOT NULL PRIMARY KEY, product_type VARCHAR(20), media_type VARCHAR(30), permalink VARCHAR(255),
+            posted_at DATETIME, caption VARCHAR(255), likes INT NOT NULL DEFAULT 0, comments INT NOT NULL DEFAULT 0,
+            reach INT, views INT, saved INT, shares INT, interactions INT, follows INT, profile_visits INT, avg_watch_ms INT,
+            updated_at DATETIME NOT NULL)$tail",
         "CREATE TABLE IF NOT EXISTS kv (
             k VARCHAR(64) NOT NULL PRIMARY KEY, v $text, updated_at DATETIME NOT NULL)$tail",
     ];
@@ -294,6 +301,7 @@ function collect(string $source = 'cron'): array {
         }
 
         // 4. Instagram follower count for the page.
+        $ig = null;
         try {
             $ig = find_instagram();
             if ($ig) {
@@ -307,6 +315,14 @@ function collect(string $source = 'cron'): array {
         } catch (GraphError $e) {
             kv_set('ig_error', $e->getMessage());
             $notes[] = 'Instagram follower count failed. ' . $e->getMessage();
+        }
+        // 5. Organic Instagram numbers: new followers by day, account totals and each recent post.
+        if (!empty($ig['id'])) {
+            try {
+                $notes = array_merge($notes, collect_organic($ig['id'], $now));
+            } catch (Throwable $e) {
+                $notes[] = 'Organic numbers failed. ' . $e->getMessage();
+            }
         }
         $ok = 1;
     } catch (Throwable $e) {
@@ -344,6 +360,83 @@ function find_instagram(): ?array {
         if ($want !== '' && strpos(strtolower($x['username'] ?? ''), $want) !== false) return ['id' => $x['id'] ?? '', 'followers' => (int)$x['followers_count'], 'username' => $x['username'] ?? ''];
     }
     return ['id' => $found[0]['id'] ?? '', 'followers' => (int)$found[0]['followers_count'], 'username' => $found[0]['username'] ?? ''];
+}
+
+function insight_values(array $resp): array {
+    $out = [];
+    foreach (($resp['data'] ?? []) as $m) {
+        $v = $m['total_value']['value'] ?? ($m['values'][0]['value'] ?? null);
+        if ($v !== null && !is_array($v)) $out[$m['name']] = (int)$v;
+    }
+    return $out;
+}
+
+function collect_organic(string $igId, string $now): array {
+    $notes = [];
+    $pdo = db();
+    // New followers for each day. Meta keeps about 30 days and is up to 2 days late.
+    try {
+        $r = graph("$igId/insights", ['metric' => 'follower_count', 'period' => 'day', 'since' => strtotime('-29 days'), 'until' => time()]);
+        $vals = $r['data'][0]['values'] ?? [];
+        $n = count($vals);
+        foreach ($vals as $i => $v) {
+            if (!isset($v['end_time'])) continue;
+            $val = (int)($v['value'] ?? 0);
+            if ($val === 0 && $i >= $n - 2) continue; // not ready yet
+            $day = gmdate('Y-m-d', strtotime($v['end_time']) - 86400);
+            upsert('ig_daily', ['day' => $day, 'new_followers' => $val, 'updated_at' => $now], ['day']);
+        }
+    } catch (GraphError $e) {
+        $notes[] = 'Daily new followers failed. ' . $e->getMessage();
+    }
+    // Account totals for the last 7 days and for this month.
+    $windows = ['week' => strtotime('-7 days'), 'month' => strtotime(date('Y-m-01 00:00:00'))];
+    $acct = [];
+    foreach ($windows as $name => $since) {
+        if (time() - $since < 86400) $since = time() - 86400;
+        foreach (['reach', 'views', 'profile_views', 'accounts_engaged', 'total_interactions'] as $metric) {
+            try {
+                $r = graph("$igId/insights", ['metric' => $metric, 'period' => 'day', 'metric_type' => 'total_value', 'since' => $since, 'until' => time()]);
+                $acct[$name][$metric] = (int)($r['data'][0]['total_value']['value'] ?? 0);
+            } catch (GraphError $e) {
+                $acct[$name][$metric] = null;
+            }
+        }
+        try {
+            $r = graph("$igId/insights", ['metric' => 'follows_and_unfollows', 'period' => 'day', 'metric_type' => 'total_value', 'breakdown' => 'follow_type', 'since' => $since, 'until' => time()]);
+            foreach (($r['data'][0]['total_value']['breakdowns'][0]['results'] ?? []) as $x) {
+                $k = ($x['dimension_values'][0] ?? '') === 'FOLLOWER' ? 'follows' : 'unfollows';
+                $acct[$name][$k] = (int)($x['value'] ?? 0);
+            }
+        } catch (GraphError $e) {
+            $acct[$name]['follows'] = null;
+        }
+    }
+    kv_set('ig_account', $acct);
+    // Recent posts with their numbers.
+    $media = graph("$igId/media", ['fields' => 'id,caption,media_type,media_product_type,timestamp,like_count,comments_count,permalink', 'limit' => 40])['data'] ?? [];
+    $failed = 0;
+    foreach ($media as $m) {
+        $isReel = ($m['media_product_type'] ?? '') === 'REELS';
+        $base = 'reach,views,saved,shares,total_interactions';
+        $v = [];
+        foreach ([$base . ($isReel ? ',ig_reels_avg_watch_time' : ',follows,profile_visits'), $base, 'reach,saved,total_interactions'] as $metrics) {
+            try { $v = insight_values(graph($m['id'] . '/insights', ['metric' => $metrics])); break; } catch (GraphError $e) { $v = []; }
+        }
+        if (!$v) $failed++;
+        $cap = trim(preg_replace('/\s+/u', ' ', (string)($m['caption'] ?? '')));
+        if (function_exists('mb_substr')) $cap = mb_substr($cap, 0, 90); else $cap = substr($cap, 0, 90);
+        upsert('ig_media', [
+            'media_id' => $m['id'], 'product_type' => $m['media_product_type'] ?? '', 'media_type' => $m['media_type'] ?? '',
+            'permalink' => $m['permalink'] ?? '', 'posted_at' => date('Y-m-d H:i:s', strtotime($m['timestamp'] ?? 'now')), 'caption' => $cap,
+            'likes' => (int)($m['like_count'] ?? 0), 'comments' => (int)($m['comments_count'] ?? 0),
+            'reach' => $v['reach'] ?? null, 'views' => $v['views'] ?? null, 'saved' => $v['saved'] ?? null, 'shares' => $v['shares'] ?? null,
+            'interactions' => $v['total_interactions'] ?? null, 'follows' => $v['follows'] ?? null, 'profile_visits' => $v['profile_visits'] ?? null,
+            'avg_watch_ms' => $v['ig_reels_avg_watch_time'] ?? null, 'updated_at' => $now,
+        ], ['media_id']);
+    }
+    if ($failed) $notes[] = "$failed posts returned no insight numbers.";
+    return $notes;
 }
 
 function last_pull(bool $onlyOk = false): ?array {

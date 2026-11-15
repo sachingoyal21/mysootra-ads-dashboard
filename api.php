@@ -20,6 +20,62 @@ try {
         json_out($r + ['last_pull' => last_pull()]);
         exit;
     }
+    if ($a === 'v2') {
+        // Extra numbers for the new console: daily series, organic posts, account totals and paid engagement.
+        $today = date('Y-m-d');
+        $monthStart = date('Y-m-01');
+        $from = date('Y-m-d', strtotime('-45 days'));
+        $days = [];
+        $st = db()->prepare('SELECT day, SUM(spend) AS spend, SUM(visits) AS visits, SUM(follows) AS follows, SUM(impressions) AS impressions FROM ad_daily WHERE day >= ? GROUP BY day ORDER BY day');
+        $st->execute([$from]);
+        foreach ($st as $r) $days[$r['day']] = ['date' => $r['day'], 'spend' => (float)$r['spend'], 'visits' => (int)$r['visits'], 'paid_follows' => (int)$r['follows'], 'impressions' => (int)$r['impressions'], 'new_followers' => null];
+        $st = db()->prepare('SELECT day, new_followers FROM ig_daily WHERE day >= ? ORDER BY day');
+        $st->execute([$from]);
+        foreach ($st as $r) {
+            if (!isset($days[$r['day']])) $days[$r['day']] = ['date' => $r['day'], 'spend' => 0, 'visits' => 0, 'paid_follows' => 0, 'impressions' => 0, 'new_followers' => null];
+            $days[$r['day']]['new_followers'] = (int)$r['new_followers'];
+        }
+        ksort($days);
+        $reportedFrom = null;
+        foreach ($days as $d) { if ($d['paid_follows'] >= 50) { $reportedFrom = $d['date']; break; } }
+        $map = ['post_reaction' => 'reactions', 'comment' => 'comments', 'onsite_conversion.post_save' => 'saves', 'video_view' => 'video_views', 'link_click' => 'link_clicks'];
+        $zero = ['reactions' => 0, 'comments' => 0, 'saves' => 0, 'video_views' => 0, 'link_clicks' => 0];
+        $eng = ['week' => $zero, 'month' => $zero];
+        $adEng = [];
+        $weekStart = date('Y-m-d', strtotime('-6 days'));
+        $st = db()->prepare('SELECT day, ad_id, spend, follows, actions_json FROM ad_daily WHERE day >= ?');
+        $st->execute([min($monthStart, $weekStart)]);
+        foreach ($st as $r) {
+            $id = (string)$r['ad_id'];
+            if (!isset($adEng[$id])) $adEng[$id] = $zero + ['spend_since' => 0.0, 'follows_since' => 0];
+            if ($reportedFrom && $r['day'] >= $reportedFrom) { $adEng[$id]['spend_since'] += (float)$r['spend']; $adEng[$id]['follows_since'] += (int)$r['follows']; }
+            foreach ((json_decode($r['actions_json'] ?: '[]', true) ?: []) as $x) {
+                $k = $map[$x['action_type'] ?? ''] ?? null;
+                if (!$k) continue;
+                $val = (int)($x['value'] ?? 0);
+                if ($r['day'] >= $monthStart) { $eng['month'][$k] += $val; $adEng[$id][$k] += $val; }
+                if ($r['day'] >= $weekStart) $eng['week'][$k] += $val;
+            }
+        }
+        $media = [];
+        foreach (db()->query('SELECT * FROM ig_media ORDER BY posted_at DESC LIMIT 40') as $r) {
+            $n = fn($k) => $r[$k] === null ? null : (int)$r[$k];
+            $media[] = ['id' => $r['media_id'], 'type' => $r['product_type'] === 'REELS' ? 'Reel' : ($r['media_type'] === 'CAROUSEL_ALBUM' ? 'Carousel' : ($r['media_type'] === 'VIDEO' ? 'Video' : 'Post')),
+                'link' => $r['permalink'], 'posted_at' => $r['posted_at'], 'caption' => $r['caption'], 'likes' => (int)$r['likes'], 'comments' => (int)$r['comments'],
+                'reach' => $n('reach'), 'views' => $n('views'), 'saved' => $n('saved'), 'shares' => $n('shares'), 'interactions' => $n('interactions'),
+                'follows' => $n('follows'), 'profile_visits' => $n('profile_visits'), 'avg_watch_ms' => $n('avg_watch_ms')];
+        }
+        $f = db()->query('SELECT followers, username FROM ig_followers ORDER BY day DESC LIMIT 1')->fetch();
+        json_out([
+            'generated_at' => date('c'), 'today' => $today, 'last_pull' => last_pull(true), 'last_attempt' => last_pull(), 'has_token' => (bool)token(),
+            'followers_now' => $f ? (int)$f['followers'] : null, 'username' => $f ? $f['username'] : null,
+            'goal' => 50000, 'launch' => '2026-12-01', 'plan' => cfg()['plan'],
+            'follows_reported_from' => $reportedFrom,
+            'daily' => array_values($days), 'ig_account' => kv_get('ig_account', new stdClass()), 'media' => $media,
+            'paid_engagement' => $eng, 'ad_engagement' => $adEng,
+        ]);
+        exit;
+    }
     if ($a === 'igprobe') {
         // Checking tool. Asks Meta which organic post numbers this token can read. Read only.
         $lastProbe = (int)kv_get('probe_at', 0);

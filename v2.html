@@ -12,7 +12,7 @@
 /* Layout idea: airy light page, hairline cards, one royal blue accent. Orange means paid, teal means organic. */
 :root{
   --bg:#F2F3F8; --panel:#FCFCFE; --ink:#17181C; --muted:#5F6472; --line:#DDDFE9; --soft:#ECEEF5;
-  --blue:#1D4FD8; --blue-soft:#DCE5FB; --paid:#D9541E; --organic:#0F8F7B; --violet:#7A4FD6;
+  --blue:#1D4FD8; --blue-soft:#DCE5FB; --paid:#D9541E; --organic:#0F8F7B; --violet:#7A4FD6; --slate:#A3ABBD;
   --good:#15803D; --good-bg:#DDF3E3; --warn:#A8650A; --warn-bg:#FBEFD6; --bad:#C8322B; --bad-bg:#FBE3E1;
   --sans:"Geist","Segoe UI",system-ui,-apple-system,sans-serif; --mono:"Geist Mono",ui-monospace,Menlo,monospace;
   --r:16px; color-scheme:light;
@@ -204,7 +204,7 @@ td small{display:block;color:var(--muted)}
     <div class="grid g2">
       <div class="card">
         <h2>New followers, last 7 days</h2>
-        <div class="legend"><span><i style="background:var(--paid)"></i>From ads</span><span><i style="background:var(--organic)"></i>Organic</span></div>
+        <div class="legend"><span><i style="background:var(--paid)"></i>From ads</span><span><i style="background:var(--organic)"></i>Not credited to an ad</span><span><i style="background:var(--slate)"></i>Source not split</span></div>
         <div class="chart" id="c-fol-mini"></div>
         <p class="note" id="fol-note-mini"></p>
       </div>
@@ -256,8 +256,8 @@ td small{display:block;color:var(--muted)}
   <section class="view" id="v-followers" hidden>
     <div class="strip" id="strip-f"></div>
     <div class="card">
-      <h2>New followers by day, paid and organic <span class="seg" id="fol-seg" role="group" aria-label="Days shown" style="margin-left:auto"><button type="button" data-n="7" class="on">7 days</button><button type="button" data-n="30">30 days</button></span></h2>
-      <div class="legend"><span><i style="background:var(--paid)"></i>From ads</span><span><i style="background:var(--organic)"></i>Organic</span></div>
+      <h2>New followers by day <span class="seg" id="fol-seg" role="group" aria-label="Days shown" style="margin-left:auto"><button type="button" data-n="7" class="on">7 days</button><button type="button" data-n="30">30 days</button></span></h2>
+      <div class="legend"><span><i style="background:var(--paid)"></i>From ads</span><span><i style="background:var(--organic)"></i>Not credited to an ad</span><span><i style="background:var(--slate)"></i>Source not split</span></div>
       <div class="chart" id="c-fol"></div>
       <p class="note" id="fol-note"></p>
     </div>
@@ -265,7 +265,7 @@ td small{display:block;color:var(--muted)}
       <div class="card"><h2>Where new followers came from</h2><p class="sub" id="split-sub"></p>
         <div class="split"><i id="sp-paid" style="background:var(--paid)"></i><i id="sp-org" style="background:var(--organic)"></i></div>
         <div class="legend"><span><i style="background:var(--paid)"></i><span id="sp-paid-t"></span></span><span><i style="background:var(--organic)"></i><span id="sp-org-t"></span></span></div>
-        <p class="note">Total new followers come from Instagram. Follows from ads come from Meta Ads. Organic is the total minus ads.</p>
+        <p class="note">Total new followers come from Instagram. Follows from ads are what Meta Ads credits to an ad. The rest is not proven organic. It can include people who saw an ad and followed later.</p>
       </div>
       <div class="card"><h2>Followers gained by each ad</h2><div class="rows" id="gain-paid"></div></div>
     </div>
@@ -537,29 +537,33 @@ function draw() {
     if (a != null && b != null) return {v: Math.max(0, a - b), src: 'Change in follower count' + (x.date === today ? ', today so far' : '')};
     return null;
   };
+  const slate = css('--slate');
+  const split = (x) => from && x.date >= from; // Meta only credits follows to ads from this date
   const folChart = (n, h) => {
     const win = daily.filter((x) => x.date <= today).slice(-n);
     const tot = win.map(totalFor);
-    const paidVals = win.map((x, i) => tot[i] ? Math.min(x.paid_follows, tot[i].v) : x.paid_follows);
-    const orgVals = win.map((x, i) => tot[i] ? Math.max(0, tot[i].v - x.paid_follows) : 0);
+    const paidVals = win.map((x, i) => !split(x) ? 0 : tot[i] ? Math.min(x.paid_follows, tot[i].v) : x.paid_follows);
+    const otherVals = win.map((x, i) => split(x) && tot[i] ? Math.max(0, tot[i].v - x.paid_follows) : 0);
+    const unsplitVals = win.map((x, i) => !split(x) && tot[i] ? tot[i].v : 0);
     return {labels: win.map((x) => dayLabel(x.date)), h, stack: true,
-      series: [{name: 'From ads', color: paidCol, values: paidVals}, {name: 'Organic', color: orgCol, values: orgVals}],
-      fmt: (v) => num(v), tip: (v) => num(v), label: 'Stacked bar chart of new followers for each day, split into ads and organic',
+      series: [{name: 'From ads', color: paidCol, values: paidVals}, {name: 'Not credited to an ad', color: orgCol, values: otherVals}, {name: 'Source not split', color: slate, values: unsplitVals}],
+      fmt: (v) => num(v), tip: (v) => num(v), label: 'Stacked bar chart of new followers for each day',
       totals: (i) => tot[i] ? num(tot[i].v) : num(win[i].paid_follows) + '+',
-      hover: (i) => tot[i]
-        ? [{text: 'Total new followers ' + num(tot[i].v)}, {color: paidCol, text: 'From ads ' + num(win[i].paid_follows)}, {color: orgCol, text: 'Organic ' + num(Math.max(0, tot[i].v - win[i].paid_follows))}, {text: 'Total source. ' + tot[i].src}]
-        : [{color: paidCol, text: 'From ads ' + num(win[i].paid_follows)}, {text: 'Instagram has not reported this day’s total yet'}],
-      pending: win.filter((x, i) => !tot[i]).map((x) => dayLabel(x.date))};
+      hover: (i) => !tot[i] ? [{color: paidCol, text: 'From ads ' + num(win[i].paid_follows)}, {text: 'Instagram has not reported this day’s total yet'}]
+        : !split(win[i]) ? [{color: slate, text: 'Total new followers ' + num(tot[i].v)}, {text: 'Meta did not report ad follows yet, so no split'}]
+        : [{text: 'Total new followers ' + num(tot[i].v)}, {color: paidCol, text: 'From ads ' + num(win[i].paid_follows)}, {color: orgCol, text: 'Not credited to an ad ' + num(Math.max(0, tot[i].v - win[i].paid_follows))}, {text: 'Total source. ' + tot[i].src}],
+      pending: win.filter((x, i) => !tot[i]).map((x) => dayLabel(x.date)), unsplit: win.some((x, i) => !split(x) && tot[i])};
   };
   const f7 = folChart(7, 240);
   chart($('c-fol-mini'), f7);
   const fBig = folChart(folDays, 280);
   chart($('c-fol'), fBig);
   document.querySelectorAll('#fol-seg button').forEach((b) => b.classList.toggle('on', Number(b.dataset.n) === folDays));
-  const srcNote = 'Total is from Instagram. From ads is from Meta Ads. Organic is the total minus ads.';
+  const srcNote = 'Total is from Instagram. From ads is what Meta Ads credits to an ad.';
   const pendNote = (c) => c.pending.length ? ' Instagram reports a day’s total up to 2 days late, so ' + c.pending.join(', ') + ' show ads only for now and are marked with a plus.' : '';
-  $('fol-note-mini').textContent = srcNote + pendNote(f7);
-  $('fol-note').textContent = srcNote + pendNote(fBig) + (from && folDays > 7 ? ' Meta credited almost no follows to ads before ' + dayLabel(from) + '.' : '');
+  const unsplitNote = (c) => c.unsplit ? ' Grey days are before ' + (from ? dayLabel(from) : 'Meta began reporting ad follows') + '. Meta did not report follows from ads then, so those days cannot be split and should not be read as organic.' : '';
+  $('fol-note-mini').textContent = srcNote + unsplitNote(f7) + pendNote(f7);
+  $('fol-note').textContent = srcNote + unsplitNote(fBig) + pendNote(fBig);
 
   // Overview strip
   const newMonth = sum(month.map((x) => x.new_followers));
@@ -632,7 +636,7 @@ function draw() {
   const tot = paidS + orgS;
   $('sp-paid').style.width = (tot ? paidS / tot * 100 : 0) + '%'; $('sp-org').style.width = (tot ? orgS / tot * 100 : 0) + '%';
   $('sp-paid-t').textContent = 'Ads ' + num(paidS) + (tot ? ', ' + Math.round(paidS / tot * 100) + '%' : '');
-  $('sp-org-t').textContent = 'Organic ' + num(orgS) + (tot ? ', ' + Math.round(orgS / tot * 100) + '%' : '');
+  $('sp-org-t').textContent = 'Not credited to an ad ' + num(orgS) + (tot ? ', ' + Math.round(orgS / tot * 100) + '%' : '');
 
   // Content view
   const pe = (V2.paid_engagement || {}).week || {};

@@ -1,0 +1,8 @@
+Options -Indexes
+DirectoryIndex index.html
+<IfModule mod_headers.c>
+Header set X-Robots-Tag "noindex, nofollow"
+</IfModule>
+<Files "lib.php">
+Require all denied
+</Files>

@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>MySootra Ads Command Center</title>
+<style>
+:root{
+--font-anthropic-sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+--color-fg:#1f1e1c;--color-fg-muted:#6b675f;--color-bg:#f6f5f1;--color-panel:#ffffff;--color-border-line:#e3e0d8;
+--color-bad:#b3261e;--color-ok:#1d7a3e;--color-warn:#a15c00;
+--cds-gap-xs:4px;--cds-gap-sm:8px;--cds-gap-md:12px;--cds-gap-lg:24px;--cds-pad-sm:8px;--cds-pad-md:12px;--cds-radius:8px;
+--cds-font-size-heading:22px;--cds-font-size-body:15px;--cds-font-size-caption:13px;--cds-font-weight-medium:600;
+--cds-text-secondary:#6b675f;--cds-chart-axis:#cfcbc0;--cds-chart-grid:#ece9e1;--cds-chart-reference:#8a867c;
+--cds-surface-popover:#ffffff;--cds-border:#e3e0d8;--cds-shadow-popover:0 4px 16px rgba(0,0,0,.12)
+}
+@media (prefers-color-scheme: dark){:root{
+--color-fg:#eceae4;--color-fg-muted:#a39f95;--color-bg:#1a1917;--color-panel:#24231f;--color-border-line:#3a3833;
+--color-bad:#f2857c;--color-ok:#6fcf8e;--color-warn:#e5a84f;
+--cds-text-secondary:#a39f95;--cds-chart-axis:#55524b;--cds-chart-grid:#33312c;--cds-chart-reference:#8a867c;
+--cds-surface-popover:#2c2a26;--cds-border:#3a3833;--cds-shadow-popover:0 4px 16px rgba(0,0,0,.5)
+}}
+html{background-color:var(--color-bg)}
+body{margin:0;padding:24px 16px 48px;line-height:1.45}
+.ms-page{max-width:1180px;margin:0 auto}
+.ms-wrap{font-family:var(--font-anthropic-sans);color:var(--color-fg);display:flex;flex-direction:column;gap:var(--cds-gap-lg)}
+.ms-head{display:flex;flex-wrap:wrap;gap:var(--cds-gap-md);align-items:center;justify-content:space-between}
+.ms-title{font-size:var(--cds-font-size-heading);font-weight:var(--cds-font-weight-medium);margin:0}
+.ms-muted{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);margin:var(--cds-gap-xs) 0 0}
+.ms-lede{margin:0;font-size:var(--cds-font-size-body)}
+.ms-btn{font:inherit;font-size:var(--cds-font-size-caption);padding:var(--cds-pad-sm) var(--cds-pad-md);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);background-color:var(--color-panel);color:var(--color-fg);cursor:pointer}
+.ms-btn:disabled{opacity:.5;cursor:default}
+.ms-banner{border:1px solid var(--color-warn);border-radius:var(--cds-radius);padding:var(--cds-pad-md);font-size:var(--cds-font-size-caption);background-color:var(--color-panel)}
+.ms-tabs{display:flex;gap:var(--cds-gap-xs);border-bottom:1px solid var(--color-border-line);overflow-x:auto}
+.ms-tab{font:inherit;font-size:var(--cds-font-size-body);padding:var(--cds-pad-sm) var(--cds-pad-md);border:0;border-bottom:2px solid transparent;background:none;color:var(--color-fg-muted);cursor:pointer;white-space:nowrap}
+.ms-tab-on{color:var(--color-fg);border-bottom-color:var(--color-fg);font-weight:var(--cds-font-weight-medium)}
+.ms-pane{display:flex;flex-direction:column;gap:var(--cds-gap-lg)}
+.ms-pane[hidden]{display:none}
+.ms-last{order:9}
+.ms-h2{font-size:var(--cds-font-size-body);font-weight:var(--cds-font-weight-medium);margin:0 0 var(--cds-gap-sm)}
+.ms-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:var(--cds-gap-sm)}
+.ms-tile{background-color:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-md)}
+.ms-tile-label{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin:0}
+.ms-tile-num{font-size:var(--cds-font-size-heading);font-weight:var(--cds-font-weight-medium);font-variant-numeric:tabular-nums;margin:var(--cds-gap-xs) 0 0;display:block;min-width:2ch}
+.ms-tile-stop{border-left:3px solid var(--color-bad)}
+.ms-tile-scale{border-left:3px solid var(--color-ok)}
+.ms-tile-wait{border-left:3px solid var(--color-warn)}
+.ms-bar{display:flex;flex-wrap:wrap;gap:var(--cds-gap-sm);align-items:center;margin-bottom:var(--cds-gap-sm)}
+.ms-input,.dash-select{font:inherit;font-size:var(--cds-font-size-caption);padding:var(--cds-pad-sm) var(--cds-pad-md);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);background-color:var(--color-panel);color:var(--color-fg)}
+.ms-input{min-width:160px;flex:1 1 160px;max-width:280px}
+.dash-select{max-width:240px}
+.dash-skeleton{opacity:.35}
+.ms-scroll{overflow-x:auto;border:1px solid var(--color-border-line);border-radius:var(--cds-radius);background-color:var(--color-panel)}
+.ms-table{border-collapse:collapse;width:100%;font-size:var(--cds-font-size-caption)}
+.ms-table th{text-align:left;font-weight:var(--cds-font-weight-medium);color:var(--color-fg-muted);padding:var(--cds-pad-sm) var(--cds-pad-md);border-bottom:1px solid var(--color-border-line);white-space:nowrap;background-color:var(--color-bg)}
+.ms-table td{padding:var(--cds-pad-sm) var(--cds-pad-md);border-bottom:1px solid var(--color-border-line);vertical-align:top}
+.ms-table tr:last-child td{border-bottom:0}
+.ms-table .ms-n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ms-table .ms-wide{min-width:200px}
+.ms-ad{font-weight:var(--cds-font-weight-medium);min-width:150px}
+.ms-sub{display:block;color:var(--color-fg-muted);font-weight:400}
+.ms-chip{display:inline-block;padding:1px 8px;border-radius:999px;font-weight:var(--cds-font-weight-medium);border:1px solid var(--color-border-line);white-space:nowrap}
+.ms-chip-STOP{color:var(--color-bad);border-color:var(--color-bad)}
+.ms-chip-SCALE,.ms-chip-Live{color:var(--color-ok);border-color:var(--color-ok)}
+.ms-chip-WAIT{color:var(--color-warn);border-color:var(--color-warn)}
+.ms-chip-Paused{color:var(--color-fg-muted)}
+.ms-chart{position:relative;min-height:290px;background-color:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-md)}
+.ms-chart .ms-axis text{fill:var(--cds-text-secondary);font-size:var(--cds-font-size-caption);font-family:var(--font-anthropic-sans)}
+.ms-chart .ms-axis path,.ms-chart .ms-axis line{stroke:var(--cds-chart-axis)}
+.ms-chart .ms-grid line{stroke:var(--cds-chart-grid)}
+.ms-chart .ms-ref{stroke:var(--cds-chart-reference);stroke-dasharray:4 4}
+.ms-chart .ms-reflabel{fill:var(--cds-text-secondary);font-size:var(--cds-font-size-caption)}
+.ms-tip{position:absolute;pointer-events:none;background-color:var(--cds-surface-popover);border:1px solid var(--cds-border);box-shadow:var(--cds-shadow-popover);border-radius:var(--cds-radius);padding:var(--cds-pad-sm);font-size:var(--cds-font-size-caption);max-width:220px}
+.ms-tip b{display:block}
+.ms-tip span{display:block;color:var(--cds-text-secondary)}
+.ms-legend{display:flex;flex-wrap:wrap;gap:var(--cds-gap-sm) var(--cds-gap-md);margin-top:var(--cds-gap-sm);font-size:var(--cds-font-size-caption)}
+.ms-key{display:inline-flex;align-items:center;gap:6px}
+.ms-swatch{width:10px;height:10px;border-radius:50%;display:inline-block}
+.ms-rules{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.ms-rules li{margin:var(--cds-gap-xs) 0}
+</style>
+</head>
+<body>
+<div class='ms-page'>
+<div class='ms-wrap'>
+<header class='ms-head' id='top'>
+<div>
+<h1 class='ms-title' id='title'>MySootra Ads Command Center</h1>
+<p class='ms-muted'>Advice only. This page reads Meta Ads and never changes an ad, a budget or a status.</p>
+<p class='ms-muted' id='updated'>Loading the latest saved data.</p>
+</div>
+<button class='ms-btn ms-refresh' type='button' id='refresh'>Refresh now</button>
+</header>
+<p class='ms-banner' id='banner' hidden></p>
+
+<nav class='ms-tabs' id='tabs' aria-label='Views'>
+<button class='ms-tab ms-tab-on' type='button' data-tab='month' aria-selected='true'>This month</button>
+<button class='ms-tab' type='button' data-tab='live' aria-selected='false'>Live ads</button>
+<button class='ms-tab' type='button' data-tab='alltime' aria-selected='false'>All time</button>
+</nav>
+
+<section class='ms-pane' id='month'>
+<p class='ms-lede' id='month-lede'>So far this month, <b data-draw='num' data-fmt='inr0' data-source='month_summary' data-field='spend' data-row='0'>—</b> bought <b data-draw='num' data-source='month_summary' data-field='visits' data-row='0'>—</b> profile visits from ads at <b data-draw='num' data-fmt='inr2' data-source='month_summary' data-field='cpv' data-row='0'>—</b> each. Cheapest ad is <b data-draw='num' data-fmt='text' data-source='month_summary' data-field='best_ad' data-row='0'>—</b> at <b data-draw='num' data-fmt='inr2' data-source='month_summary' data-field='best_cpv' data-row='0'>—</b> and the costliest is <b data-draw='num' data-fmt='text' data-source='month_summary' data-field='worst_ad' data-row='0'>—</b> at <b data-draw='num' data-fmt='inr2' data-source='month_summary' data-field='worst_cpv' data-row='0'>—</b>.</p>
+<div>
+<h2 class='ms-h2' id='month-kpis'>This month so far</h2>
+<div class='ms-tiles'>
+<div class='ms-tile' id='tile-m-spend'><p class='ms-tile-label'>Spend</p><b class='ms-tile-num' data-draw='num' data-fmt='inr0' data-source='month_summary' data-field='spend' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-m-visits'><p class='ms-tile-label'>Profile visits from ads</p><b class='ms-tile-num' data-draw='num' data-source='month_summary' data-field='visits' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-m-cpv'><p class='ms-tile-label'>Cost per profile visit</p><b class='ms-tile-num' data-draw='num' data-fmt='inr2' data-source='month_summary' data-field='cpv' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-m-reach'><p class='ms-tile-label'>People reached</p><b class='ms-tile-num' data-draw='num' data-source='month_summary' data-field='reach' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-m-follows'><p class='ms-tile-label'>Follows from ads</p><b class='ms-tile-num' data-draw='num' data-source='month_summary' data-field='follows' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-m-cpf'><p class='ms-tile-label'>Cost per follow</p><b class='ms-tile-num' data-draw='num' data-fmt='inr2' data-source='month_summary' data-field='cpf' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-m-rate'><p class='ms-tile-label'>Visitors who follow</p><b class='ms-tile-num' data-draw='num' data-fmt='pct' data-source='month_summary' data-field='follow_rate' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-m-ads'><p class='ms-tile-label'>Ads that spent</p><b class='ms-tile-num' data-draw='num' data-source='month_summary' data-field='ads_run' data-row='0'>—</b></div>
+</div>
+<p class='ms-muted'>Profile visits here are only the ones Meta credits to ads. Visits from Reels, Explore and search are not counted, so the Instagram app shows a higher number. Cost per profile visit is ad spend divided by these visits. Follows from ads are only the follows Meta credits to an ad, usually right after someone taps it. The page’s real follower growth is higher, so use this number to compare ads with each other. The month includes today so far. Cheapest and costliest compare only ads with <b data-draw='rule' data-rule='gateSpend'>—</b> or more spent this month.</p>
+</div>
+<div>
+<h2 class='ms-h2' id='today'>Today so far</h2>
+<div class='ms-tiles'>
+<div class='ms-tile' id='tile-t-spend'><p class='ms-tile-label'>Spent today</p><b class='ms-tile-num' data-draw='num' data-fmt='inr0' data-source='today' data-field='spend' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-t-visits'><p class='ms-tile-label'>Profile visits from ads</p><b class='ms-tile-num' data-draw='num' data-source='today' data-field='visits' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-t-cpv'><p class='ms-tile-label'>Cost per profile visit</p><b class='ms-tile-num' data-draw='num' data-fmt='inr2' data-source='today' data-field='cpv' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-t-follows'><p class='ms-tile-label'>Follows from ads</p><b class='ms-tile-num' data-draw='num' data-source='today' data-field='follows' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-t-budget'><p class='ms-tile-label'>Today’s budget</p><b class='ms-tile-num' data-draw='num' data-fmt='inr0' data-source='today' data-field='budget' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-t-used'><p class='ms-tile-label'>Budget used today</p><b class='ms-tile-num' data-draw='num' data-fmt='pct' data-source='today' data-field='used' data-row='0'>—</b></div>
+</div>
+<p class='ms-muted'>Today is not finished, so these numbers keep moving until midnight. Today’s budget is the sum of the daily budgets of the live ad sets.</p>
+</div>
+<div>
+<h2 class='ms-h2' id='followers'>Instagram followers</h2>
+<div class='ms-tiles'>
+<div class='ms-tile' id='tile-f-now'><p class='ms-tile-label'>Followers now</p><b class='ms-tile-num' data-draw='num' data-source='followers' data-field='now' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-f-day'><p class='ms-tile-label'>Change today so far</p><b class='ms-tile-num' data-draw='num' data-fmt='signed' data-source='followers' data-field='day_gain' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-f-total'><p class='ms-tile-label'>Change since tracking began</p><b class='ms-tile-num' data-draw='num' data-fmt='signed' data-source='followers' data-field='total_gain' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-f-goal'><p class='ms-tile-label'>Left to reach 50,000</p><b class='ms-tile-num' data-draw='num' data-source='followers' data-field='to_goal' data-row='0'>—</b></div>
+</div>
+<p class='ms-muted' id='followers-note'>This is the total follower count of the Instagram page, saved once for each day. It includes followers from ads and from regular posts. History starts on the day this dashboard began saving it.</p>
+<div class='ms-scroll' id='followers-table' hidden>
+<table class='ms-table'>
+<thead><tr><th>Day</th><th class='ms-n'>Followers</th><th class='ms-n'>Change</th><th class='ms-n'>Ad spend</th><th class='ms-n'>Follows from ads</th><th class='ms-n'>Ad spend per new follower</th></tr></thead>
+<tbody data-draw='followers-body'></tbody>
+</table>
+</div>
+</div>
+<div class='ms-last'>
+<h2 class='ms-h2' id='budget'>Budget plan, 13 to 30 November</h2>
+<div class='ms-tiles'>
+<div class='ms-tile' id='tile-spent'><p class='ms-tile-label'>Spent of the budget</p><b class='ms-tile-num' data-draw='num' data-fmt='inr0' data-source='budget' data-field='spent' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-left'><p class='ms-tile-label'>Budget left</p><b class='ms-tile-num' data-draw='num' data-fmt='inr0' data-source='budget' data-field='left' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-days'><p class='ms-tile-label'>Days left, with today</p><b class='ms-tile-num' data-draw='num' data-source='budget' data-field='days_left' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-daily'><p class='ms-tile-label'>Live daily budgets</p><b class='ms-tile-num' data-draw='num' data-fmt='inr0' data-source='budget' data-field='live_daily' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-projected'><p class='ms-tile-label'>Projected by 30 Nov</p><b class='ms-tile-num' data-draw='num' data-fmt='inr0' data-source='budget' data-field='projected' data-row='0'>—</b></div>
+</div>
+<p class='ms-muted ms-over' hidden>At today’s budgets you go over the plan by about <b data-draw='num' data-fmt='inr0' data-source='budget' data-field='gap_over' data-row='0'>—</b>. Any scale-up has to be paid for by stopping another ad.</p>
+<p class='ms-muted ms-under' hidden>At today’s budgets about <b data-draw='num' data-fmt='inr0' data-source='budget' data-field='gap_under' data-row='0'>—</b> of the plan stays unspent. That is the room you have for scaling.</p>
+</div>
+<div>
+<h2 class='ms-h2' id='month-days'>Spend by day</h2>
+<div class='ms-chart' id='month-chart' data-draw='month-chart' data-source='month_by_day'>—</div>
+</div>
+<div>
+<h2 class='ms-h2' id='month-ads'>Ads this month</h2>
+<div class='ms-bar'>
+<input class='ms-input ms-f-q' type='search' placeholder='Search ad or ad set' aria-label='Search ads'>
+<select class='dash-select' data-draw='adset-filter' aria-label='Ad set' data-source='ads_all'></select>
+<select class='dash-select ms-f-status' aria-label='Status'><option value='all'>All statuses</option><option value='live'>Live</option><option value='paused'>Paused</option></select>
+<button class='ms-btn ms-clear' type='button'>Clear filters</button>
+</div>
+<p class='ms-muted ms-empty' data-for='month-body' hidden>No ads match these filters.</p>
+<div class='ms-scroll'>
+<table class='ms-table' data-source='month_ads_table' data-row-key='id'>
+<thead><tr>
+<th data-field='ad'>Ad</th>
+<th data-field='status'>Status</th>
+<th data-field='spend' class='ms-n'>Spend</th>
+<th data-field='visits' class='ms-n'>Profile visits from ads</th>
+<th data-field='cpv' class='ms-n'>Cost per visit</th>
+<th data-field='visit_rate' class='ms-n'>Viewers who visit</th>
+<th data-field='cpm' class='ms-n'>Cost per 1,000 views</th>
+<th data-field='follows' class='ms-n'>Follows from ads</th>
+<th data-field='cpf' class='ms-n'>Cost per follow</th>
+</tr></thead>
+<tbody data-draw='month-body'></tbody>
+</table>
+</div>
+</div>
+</section>
+
+<section class='ms-pane' id='live' hidden>
+<div class='ms-tiles'>
+<div class='ms-tile ms-tile-stop' id='tile-stop'><p class='ms-tile-label'>Stop</p><b class='ms-tile-num' data-draw='num' data-source='summary' data-field='stop' data-row='0'>—</b></div>
+<div class='ms-tile ms-tile-scale' id='tile-scale'><p class='ms-tile-label'>Scale</p><b class='ms-tile-num' data-draw='num' data-source='summary' data-field='scale' data-row='0'>—</b></div>
+<div class='ms-tile' id='tile-hold'><p class='ms-tile-label'>Hold</p><b class='ms-tile-num' data-draw='num' data-source='summary' data-field='hold' data-row='0'>—</b></div>
+<div class='ms-tile ms-tile-wait' id='tile-wait'><p class='ms-tile-label'>Wait for data</p><b class='ms-tile-num' data-draw='num' data-source='summary' data-field='wait' data-row='0'>—</b></div>
+</div>
+<div>
+<h2 class='ms-h2' id='actions'>What to do with each live ad</h2>
+<div class='ms-bar'>
+<input class='ms-input ms-f-q' type='search' placeholder='Search ad or ad set' aria-label='Search ads'>
+<select class='dash-select' data-draw='adset-filter' aria-label='Ad set' data-source='ads_all'></select>
+<select class='dash-select ms-f-call' aria-label='Call'><option value='all'>All calls</option><option value='STOP'>Stop</option><option value='SCALE'>Scale</option><option value='HOLD'>Hold</option><option value='WAIT'>Wait</option></select>
+<button class='ms-btn ms-clear' type='button'>Clear filters</button>
+</div>
+<p class='ms-muted ms-nolive' hidden>No ads are live right now.</p>
+<p class='ms-muted ms-empty' data-for='live-body' hidden>No ads match these filters.</p>
+<div class='ms-scroll'>
+<table class='ms-table' data-source='decisions' data-row-key='id'>
+<thead><tr>
+<th data-field='ad'>Ad</th>
+<th data-field='verdict'>Call</th>
+<th data-field='action' class='ms-wide'>What to do</th>
+<th data-field='cpv3' class='ms-n'>Cost per visit, 3 days</th>
+<th data-field='cpv_yday' class='ms-n'>Yesterday</th>
+<th data-field='budget' class='ms-n'>Daily budget</th>
+<th data-field='follows' class='ms-n'>Follows from ads, all time</th>
+<th data-field='why' class='ms-wide'>Why</th>
+</tr></thead>
+<tbody data-draw='live-body'></tbody>
+</table>
+</div>
+<p class='ms-muted'>Costs use the last 3 finished days, so today is left out.</p>
+</div>
+<div>
+<h2 class='ms-h2' id='trend'>Cost per profile visit by day</h2>
+<div class='ms-chart' id='trend-chart' data-draw='trend' data-source='ads_daily decisions'>—</div>
+</div>
+</section>
+
+<section class='ms-pane' id='alltime' hidden>
+<div>
+<h2 class='ms-h2' id='history'>Every ad since the account started</h2>
+<div class='ms-bar'>
+<input class='ms-input ms-f-q' type='search' placeholder='Search ad or ad set' aria-label='Search ads'>
+<select class='dash-select' data-draw='adset-filter' aria-label='Ad set' data-source='ads_all'></select>
+<select class='dash-select ms-f-status' aria-label='Status'><option value='all'>All statuses</option><option value='live'>Live</option><option value='paused'>Paused</option></select>
+<button class='ms-btn ms-clear' type='button'>Clear filters</button>
+</div>
+<p class='ms-muted ms-empty' data-for='history-body' hidden>No ads match these filters.</p>
+<div class='ms-scroll'>
+<table class='ms-table' data-source='history' data-row-key='id'>
+<thead><tr>
+<th data-field='ad'>Ad</th>
+<th data-field='status'>Status</th>
+<th data-field='spend' class='ms-n'>Spend</th>
+<th data-field='visits' class='ms-n'>Profile visits from ads</th>
+<th data-field='cpv' class='ms-n'>Cost per visit</th>
+<th data-field='visit_rate' class='ms-n'>Viewers who visit</th>
+<th data-field='cpm' class='ms-n'>Cost per 1,000 views</th>
+<th data-field='follows' class='ms-n'>Follows from ads</th>
+<th data-field='cpf' class='ms-n'>Cost per follow</th>
+</tr></thead>
+<tbody data-draw='history-body'></tbody>
+</table>
+</div>
+</div>
+</section>
+
+<details class='ms-rules' id='rules'>
+<summary>The rules behind the calls</summary>
+<ul>
+<li>Budget is <b data-draw='rule' data-rule='budget'>—</b> for 13 to 30 November.</li>
+<li>Volume ads aim for <b data-draw='rule' data-rule='volTarget'>—</b> per profile visit and stop above <b data-draw='rule' data-rule='volStop'>—</b>.</li>
+<li>Quality ads aim for <b data-draw='rule' data-rule='qualTarget'>—</b> and stop above <b data-draw='rule' data-rule='qualStop'>—</b>. An ad counts as Quality only when its ad name or ad set name contains the word Quality.</li>
+<li>An ad gets a call after 2 days with spend and <b data-draw='rule' data-rule='gateSpend'>—</b> spent or 150 profile visits. Before that it shows Wait.</li>
+<li>Stop also fires when cost rises 3 days in a row above target, when fewer than 1 in 100 viewers visit the profile, or when the same people keep seeing the ad and fewer of them visit.</li>
+<li>Scale needs cost at or under target, a steady last day, the ad seen under 2 times per person in 7 days, and the daily budget used in full. The step is 20% at a time, with 2 to 3 days between raises.</li>
+<li>One ad gets at most 40% of the live daily budgets, which is <b data-draw='num' data-fmt='inr0' data-source='budget' data-field='cap' data-row='0'>—</b> a day right now. Keep <b data-draw='rule' data-rule='reserve'>—</b> a day free for testing new posts.</li>
+<li>A raise is paid for by lowering the weakest Hold ad, or by the budget of a stopped ad. If cost is 25% or more worse for 2 days after a raise, go back to the previous budget.</li>
+<li>Data is pulled from Meta every 3 hours and saved on our own server, so the history stays even if Meta drops it.</li>
+</ul>
+</details>
+</div>
+</div>
+
+<script src='d3.min.js'></script>
+<script>
+// Small stand-in for the Claude dashboard runtime, so the same calculations run on our own server data.
+const dash = (() => {
+  let raw = {}, state = 'loading', meta = {}, busy = false, params = {};
+  const calcs = [], computed = {}, draws = {}, listeners = [];
+  const data = (id) => {
+    if (state === 'loading') return {status: 'loading'};
+    if (state === 'error') return {status: 'error'};
+    if (id in computed) return computed[id];
+    if (id in raw) return {status: 'ok', data: raw[id]};
+    return {status: 'error'};
+  };
+  const recompute = () => calcs.forEach(({id, def}) => {
+    delete computed[id];
+    if (state !== 'ok') return;
+    try { computed[id] = {status: 'ok', data: def.fn(...def.inputs.map((i) => data(i).data))}; }
+    catch (e) { console.error(id, e); computed[id] = {status: 'error'}; }
+  });
+  const render = () => {
+    document.querySelectorAll('[data-draw]').forEach((el) => { const f = draws[el.dataset.draw]; if (f) { try { f(el); } catch (e) { console.error(e); } } });
+    listeners.forEach((f) => { try { f(); } catch (e) { console.error(e); } });
+  };
+  const load = async () => {
+    try {
+      const r = await fetch('api.php?a=data', {cache: 'no-store'});
+      const j = await r.json();
+      if (!r.ok || j.error) throw new Error(j.error || 'The server did not answer.');
+      raw = j.datasets || {}; meta = j; state = 'ok';
+    } catch (e) {
+      if (state !== 'ok') state = 'error';
+      meta = Object.assign({}, meta, {load_error: String(e.message || e)});
+    }
+    recompute(); render();
+  };
+  const refreshAll = async () => {
+    if (busy) return;
+    busy = true; render();
+    let note = '';
+    try {
+      const r = await fetch('api.php?a=refresh', {method: 'POST', cache: 'no-store'});
+      const j = await r.json();
+      note = j.error || (j.skipped ? j.message : (j.ok ? (j.message || '') : (j.message || 'The pull from Meta failed.')));
+    } catch (e) { note = 'Could not reach the server.'; }
+    await load();
+    busy = false; meta.note = note; render();
+  };
+  return {
+    calc: (id, def) => { calcs.push({id, def}); }, draw: (n, f) => { draws[n] = f; }, data,
+    params: () => params,
+    setParams: (p) => { Object.keys(p).forEach((k) => { if (p[k] == null) delete params[k]; else params[k] = p[k]; }); render(); },
+    resetParams: () => { params = {}; render(); },
+    onData: (f) => { listeners.push(f); },
+    setLink: (id) => { history.replaceState(null, '', '#' + id); },
+    colors: ['#2a6fb0', '#d97706', '#1d7a3e', '#b3261e', '#7c3aed', '#0e7490', '#be185d', '#65a30d'],
+    load, refreshAll, busy: () => busy, meta: () => meta, render
+  };
+})();
+
+const RULES = {budget: 15000, end: '2026-11-30', volume: {target: 1, stop: 1.5}, quality: {target: 2, stop: 3}, gateDays: 2, gateSpend: 300, gateVisits: 150, step: 0.2, capShare: 0.4, reserve: '₹100 to ₹150'};
+const GOAL = 50000;
+
+dash.calc('decisions', {
+  inputs: ['ads_all', 'ads_daily', 'ads_week', 'adsets', 'budget_spend'],
+  fn: (adsAll, adsDaily, adsWeek, adSets, budgetSpend) => {
+    const sum = (rows, k) => rows.reduce((t, r) => t + r[k], 0);
+    const r2 = (v) => (v == null ? null : Math.round(v * 100) / 100);
+    const money = (v) => '₹' + v.toFixed(2);
+    const dates = Array.from(new Set(adsDaily.map((d) => d.date))).sort();
+    const last3 = dates.slice(-3);
+    const yday = dates[dates.length - 1];
+    const todayIST = new Date(Date.now() + 19800000).toISOString().slice(0, 10);
+    const daysLeft = Math.max(0, Math.round((Date.parse(RULES.end) - Date.parse(todayIST)) / 86400000) + 1);
+    const spent = budgetSpend.length ? budgetSpend[0].spend : 0;
+    const liveDaily = sum(adSets.filter((s) => s.status === 'ACTIVE'), 'daily_budget');
+    const committed = spent + liveDaily * daysLeft >= RULES.budget * 0.98;
+    const cap = Math.round(liveDaily * RULES.capShare);
+    const out = adsAll.filter((a) => a.status === 'ACTIVE').map((a) => {
+      const mine = adsDaily.filter((d) => d.id === a.id && d.spend > 0).sort((x, y) => (x.date < y.date ? -1 : 1));
+      const m3 = mine.filter((d) => last3.includes(d.date));
+      const s3 = sum(m3, 'spend'), v3 = sum(m3, 'visits'), i3 = sum(m3, 'impressions');
+      const cpv3 = v3 > 0 ? s3 / v3 : null;
+      const y = mine.find((d) => d.date === yday);
+      const cpvY = y && y.visits > 0 ? y.spend / y.visits : null;
+      const lifeCpv = a.visits > 0 ? a.spend / a.visits : null;
+      const vr = a.impressions > 0 ? a.visits / a.impressions : null;
+      const vr3 = i3 > 0 ? v3 / i3 : null;
+      const wk = adsWeek.find((w) => w.id === a.id);
+      const freq = wk ? wk.frequency : 0;
+      const set = adSets.find((s) => s.id === a.adset_id);
+      const budget = set ? set.daily_budget : 0;
+      const setSpendY = sum(adsDaily.filter((d) => d.date === yday && d.adset_id === a.adset_id), 'spend');
+      const quality = /quality/i.test(a.name + ' ' + a.adset_name);
+      const lim = quality ? RULES.quality : RULES.volume;
+      const days = mine.length;
+      const gate = days >= RULES.gateDays && (a.spend >= RULES.gateSpend || a.visits >= RULES.gateVisits);
+      const dcp = mine.slice(-3).map((d) => (d.visits > 0 ? d.spend / d.visits : null));
+      const rising = dcp.length === 3 && dcp.every((v) => v != null) && dcp[0] < dcp[1] && dcp[1] < dcp[2] && cpv3 != null && cpv3 > lim.target;
+      const hint = vr != null && vr >= 0.02 && a.cpm > 30 ? ' The creative pulls well but this audience is expensive, so test the post in a cheaper audience.' : vr != null && vr < 0.012 && a.cpm < 20 ? ' The audience is cheap but few viewers visit the profile, so try a stronger hook.' : '';
+      let verdict, why;
+      if (a.spend >= 150 && ((lifeCpv != null && lifeCpv > 4) || (a.impressions >= 2000 && vr != null && vr < 0.007))) { verdict = 'STOP'; why = 'Cost is far above the limit even on a small spend.'; }
+      else if (!gate) { verdict = 'WAIT'; why = 'Needs 2 days with spend and ₹' + RULES.gateSpend + ' spent, or 150 profile visits, before a fair call.'; }
+      else if (cpv3 != null && cpv3 > lim.stop) { verdict = 'STOP'; why = '3-day cost is above the ' + money(lim.stop) + ' stop line.' + hint; }
+      else if (rising) { verdict = 'STOP'; why = 'Cost is above target and has risen 3 days in a row.' + hint; }
+      else if (a.impressions >= 5000 && vr != null && vr < 0.01) { verdict = 'STOP'; why = 'Fewer than 1 in 100 viewers visit the profile.'; }
+      else if (freq > 4 || (freq > 2.5 && vr != null && vr3 != null && vr3 < vr * 0.75)) { verdict = 'STOP'; why = 'The same people keep seeing this ad and fewer of them visit now.'; }
+      else if (cpv3 != null && cpv3 <= lim.target && (cpvY == null || cpvY <= cpv3 * 1.15) && freq < 2 && budget > 0 && setSpendY >= budget * 0.9) { verdict = 'SCALE'; why = '3-day cost is at or under the ' + money(lim.target) + ' target, steady, and the budget is used in full.'; }
+      else if (cpv3 == null) { verdict = 'HOLD'; why = 'No profile visits in the last 3 days.'; }
+      else if (cpv3 <= lim.target) { verdict = 'HOLD'; why = 'Cost is on target, but ' + (freq >= 2 ? 'the same people are seeing it often.' : setSpendY < budget * 0.9 ? 'it is not using its full budget yet.' : 'yesterday was costlier than the 3-day figure.'); }
+      else { verdict = 'HOLD'; why = 'Cost is between the ' + money(lim.target) + ' target and the ' + money(lim.stop) + ' stop line.' + hint; }
+      return {id: a.id, ad: a.name, adset: a.adset_name, bucket: quality ? 'Quality' : 'Volume', status: 'Live', follows: a.follows, verdict, action: '', why, cpv3: r2(cpv3), cpv_yday: r2(cpvY), visit_rate: vr == null ? null : Math.round(vr * 1000) / 10, cpm: r2(a.cpm), freq: r2(freq), days, budget: Math.round(budget)};
+    });
+    const scalers = out.filter((o) => o.verdict === 'SCALE').sort((p, q) => p.cpv3 - q.cpv3);
+    if (committed && scalers.length) out.forEach((o) => {
+      const best = out.filter((x) => x.bucket === o.bucket && x.cpv3 != null && x.verdict !== 'WAIT').sort((p, q) => p.cpv3 - q.cpv3)[0];
+      if (o.verdict === 'HOLD' && best && best.id !== o.id && o.cpv3 != null && o.cpv3 >= best.cpv3 * 1.3) { o.verdict = 'STOP'; o.why = 'It costs 30% or more above your best ad, and the budget is fully committed.'; }
+    });
+    const winner = scalers[0];
+    const stopMoney = out.filter((o) => o.verdict === 'STOP').reduce((t, o) => t + o.budget, 0);
+    const weakest = out.filter((o) => o.verdict === 'HOLD' && o.cpv3 != null).sort((p, q) => q.cpv3 - p.cpv3)[0];
+    const scaleText = (o) => {
+      if (o.budget >= cap) return 'It is at the ₹' + cap + ' a day cap. Keep the budget as it is and use any spare money to test a new post.';
+      const isWinner = winner && winner.id === o.id;
+      const first = Math.min(cap, isWinner && stopMoney > 0 ? o.budget + stopMoney : Math.round(o.budget * (1 + RULES.step)));
+      const ladder = [];
+      let b = first;
+      while (b < cap && ladder.length < 4) { b = Math.min(cap, Math.round(b * (1 + RULES.step))); ladder.push('₹' + b); }
+      const pay = isWinner && stopMoney > 0 ? ' Use the budget of the stopped ad.' : committed ? (weakest ? ' Pay for it by lowering ' + weakest.ad + ' by ₹' + (first - o.budget) + ' a day.' : ' The plan is fully committed, so lower another ad by the same amount.') : ' The unspent budget covers it.';
+      return 'Raise the daily budget from ₹' + o.budget + ' to ₹' + first + '.' + pay + (ladder.length ? ' If cost holds, go to ' + ladder.join(', then ') + ', with 2 to 3 days between raises. ₹' + cap + ' is the cap.' : ' That is the cap.') + ' Go back a step if cost is 25% worse for 2 days.';
+    };
+    out.forEach((o) => {
+      if (o.verdict === 'STOP') o.action = 'Pause it. Move its ₹' + o.budget + ' a day to ' + (winner ? winner.ad + ', up to its ₹' + cap + ' a day cap. Anything left goes to the test reserve' : 'the test reserve for a new post') + '.';
+      else if (o.verdict === 'SCALE') o.action = scaleText(o);
+      else if (o.verdict === 'HOLD') o.action = 'Keep the budget as it is. Check again tomorrow.';
+      else o.action = 'Let it run. No change yet.';
+    });
+    const order = {STOP: 0, SCALE: 1, HOLD: 2, WAIT: 3};
+    return out.sort((p, q) => order[p.verdict] - order[q.verdict]);
+  }
+});
+
+dash.calc('summary', {
+  inputs: ['decisions'],
+  fn: (decisions) => {
+    const rows = decisions || [];
+    const n = (v) => rows.filter((o) => o.verdict === v).length;
+    return [{live: rows.length, stop: n('STOP'), scale: n('SCALE'), hold: n('HOLD'), wait: n('WAIT')}];
+  }
+});
+
+dash.calc('budget', {
+  inputs: ['budget_spend', 'adsets'],
+  fn: (budgetSpend, adSets) => {
+    const todayIST = new Date(Date.now() + 19800000).toISOString().slice(0, 10);
+    const daysLeft = Math.max(0, Math.round((Date.parse(RULES.end) - Date.parse(todayIST)) / 86400000) + 1);
+    const spent = Math.round(budgetSpend.length ? budgetSpend[0].spend : 0);
+    const liveDaily = Math.round(adSets.filter((s) => s.status === 'ACTIVE').reduce((t, s) => t + s.daily_budget, 0));
+    const projected = spent + liveDaily * daysLeft;
+    const gap = projected - RULES.budget;
+    return [{cap: Math.round(liveDaily * RULES.capShare), spent, left: RULES.budget - spent, days_left: daysLeft, live_daily: liveDaily, projected, gap_over: Math.max(0, gap), gap_under: Math.max(0, -gap)}];
+  }
+});
+
+const adRows = (ads) => ads.map((a) => ({
+  id: a.id, ad: a.name, adset: a.adset_name, status: a.status === 'ACTIVE' ? 'Live' : 'Paused',
+  spend: Math.round(a.spend), visits: a.visits, follows: a.follows, cpf: a.follows > 0 ? Math.round((a.spend / a.follows) * 100) / 100 : null,
+  cpv: a.visits > 0 ? Math.round((a.spend / a.visits) * 100) / 100 : null,
+  visit_rate: a.impressions > 0 ? Math.round((a.visits / a.impressions) * 1000) / 10 : null,
+  cpm: Math.round(a.cpm * 100) / 100
+})).sort((p, q) => q.spend - p.spend);
+
+dash.calc('history', {inputs: ['ads_all'], fn: (adsAll) => adRows(adsAll)});
+dash.calc('month_ads_table', {inputs: ['month_ads'], fn: (monthAds) => adRows(monthAds.filter((a) => a.spend > 0))});
+
+dash.calc('month_summary', {
+  inputs: ['month_ads', 'month_total'],
+  fn: (monthAds, monthTotal) => {
+    const spend = monthAds.reduce((t, a) => t + a.spend, 0);
+    const visits = monthAds.reduce((t, a) => t + a.visits, 0);
+    const total = (monthTotal || [])[0] || {};
+    const follows = monthAds.reduce((t, a) => t + a.follows, 0);
+    const ranked = monthAds.filter((a) => a.spend >= RULES.gateSpend && a.visits > 0).map((a) => ({ad: a.name, cpv: Math.round((a.spend / a.visits) * 100) / 100})).sort((p, q) => p.cpv - q.cpv);
+    const best = ranked[0], worst = ranked[ranked.length - 1];
+    return [{spend: Math.round(spend), visits, cpv: visits > 0 ? Math.round((spend / visits) * 100) / 100 : null, reach: total.reach || 0, follows, cpf: follows > 0 ? Math.round((spend / follows) * 100) / 100 : null, follow_rate: visits > 0 ? Math.round((follows / visits) * 1000) / 10 : null, ads_run: monthAds.filter((a) => a.spend > 0).length, best_ad: best ? best.ad : null, best_cpv: best ? best.cpv : null, worst_ad: worst ? worst.ad : null, worst_cpv: worst ? worst.cpv : null}];
+  }
+});
+
+dash.calc('month_by_day', {
+  inputs: ['month_days'],
+  fn: (monthDays) => {
+    const days = {};
+    monthDays.forEach((r) => { const d = days[r.date] || (days[r.date] = {date: r.date, spend: 0, visits: 0}); d.spend += r.spend; d.visits += r.visits; });
+    return Object.values(days).sort((p, q) => (p.date < q.date ? -1 : 1)).map((d) => ({date: d.date, spend: Math.round(d.spend), visits: d.visits, cpv: d.visits > 0 ? Math.round((d.spend / d.visits) * 100) / 100 : null}));
+  }
+});
+
+dash.calc('today', {
+  inputs: ['month_days', 'adsets'],
+  fn: (monthDays, adSets) => {
+    const todayIST = new Date(Date.now() + 19800000).toISOString().slice(0, 10);
+    const rows = monthDays.filter((r) => r.date === todayIST);
+    const spend = rows.reduce((t, r) => t + r.spend, 0);
+    const visits = rows.reduce((t, r) => t + r.visits, 0);
+    const budget = Math.round(adSets.filter((s) => s.status === 'ACTIVE').reduce((t, s) => t + s.daily_budget, 0));
+    return [{follows: rows.reduce((t, r) => t + r.follows, 0), spend: Math.round(spend), visits, cpv: visits > 0 ? Math.round((spend / visits) * 100) / 100 : null, budget, used: budget > 0 ? Math.round((spend / budget) * 100) : null}];
+  }
+});
+
+dash.calc('followers', {
+  inputs: ['ig_followers'],
+  fn: (rows) => {
+    rows = rows || [];
+    if (!rows.length) return [{now: null, day_gain: null, total_gain: null, to_goal: null}];
+    const last = rows[rows.length - 1], prev = rows.length > 1 ? rows[rows.length - 2] : null;
+    return [{now: last.followers, day_gain: prev ? last.followers - prev.followers : null, total_gain: prev ? last.followers - rows[0].followers : null, to_goal: Math.max(0, GOAL - last.followers)}];
+  }
+});
+
+dash.calc('followers_by_day', {
+  inputs: ['ig_followers', 'month_days'],
+  fn: (rows, monthDays) => {
+    rows = rows || [];
+    return rows.map((r, i) => {
+      const ads = (monthDays || []).find((d) => d.date === r.date) || {};
+      const change = i > 0 ? r.followers - rows[i - 1].followers : null;
+      return {date: r.date, followers: r.followers, change, spend: ads.spend == null ? null : Math.round(ads.spend), follows: ads.follows == null ? null : ads.follows, cost: change > 0 && ads.spend > 0 ? Math.round((ads.spend / change) * 100) / 100 : null};
+    }).reverse();
+  }
+});
+
+const INR0 = (v) => '₹' + d3.format(',.0f')(v);
+const INR2 = (v) => '₹' + d3.format(',.2f')(v);
+const SIGNED = (v) => (v > 0 ? '+' : '') + d3.format(',')(v);
+const FMT = {inr0: INR0, inr2: INR2, int: (v) => d3.format(',')(v), text: (v) => String(v), pct: (v) => v + '%', signed: SIGNED};
+const dashOr = (v, f) => (v == null ? '—' : f(v));
+const PARAM_DEFAULTS = {q: '', adset: '', status: 'all', call: 'all'};
+const getP = () => { const p = dash.params() || {}; const o = {}; Object.keys(PARAM_DEFAULTS).forEach((k) => { o[k] = p[k] == null || p[k] === '' ? PARAM_DEFAULTS[k] : String(p[k]); }); return o; };
+const pick = (rows, use) => { const p = getP(); const q = p.q.trim().toLowerCase(); return rows.filter((o) => (!q || (o.ad + ' ' + o.adset).toLowerCase().includes(q)) && (!p.adset || o.adset === p.adset) && (!use.status || p.status === 'all' || o.status.toLowerCase() === p.status) && (!use.call || p.call === 'all' || o.verdict === p.call)); };
+
+dash.draw('num', (el) => {
+  const s = dash.data(el.dataset.source);
+  const row = s.status === 'ok' && s.data ? s.data[0] : null;
+  const v = row ? row[el.dataset.field] : null;
+  el.classList.toggle('dash-skeleton', s.status === 'loading');
+  el.textContent = v == null ? '—' : FMT[el.dataset.fmt || 'int'](v);
+});
+
+dash.draw('rule', (el) => {
+  const map = {budget: INR0(RULES.budget), volTarget: INR2(RULES.volume.target), volStop: INR2(RULES.volume.stop), qualTarget: INR2(RULES.quality.target), qualStop: INR2(RULES.quality.stop), gateSpend: INR0(RULES.gateSpend), reserve: RULES.reserve};
+  el.textContent = map[el.dataset.rule] || '—';
+});
+
+dash.draw('adset-filter', (sel) => {
+  const g = dash.data('ads_all');
+  const names = g.status === 'ok' ? Array.from(new Set(g.data.map((a) => a.adset_name).filter(Boolean))).sort() : [];
+  sel.replaceChildren(new Option('All ad sets', ''), ...names.map((n) => new Option(n)));
+  sel.value = getP().adset;
+  sel.onchange = () => dash.setParams({adset: sel.value || null});
+});
+
+const addCell = (tr, text, cls) => { const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; tr.appendChild(td); return td; };
+const adCell = (tr, name, sub) => { const td = document.createElement('td'); td.className = 'ms-ad'; td.textContent = name; if (sub) { const s = document.createElement('span'); s.className = 'ms-sub'; s.textContent = sub; td.appendChild(s); } tr.appendChild(td); };
+const chipCell = (tr, word) => { const td = document.createElement('td'); const chip = document.createElement('span'); chip.className = 'ms-chip ms-chip-' + word; chip.textContent = word; td.appendChild(chip); tr.appendChild(td); };
+const adsRow = (tr, o) => {
+  adCell(tr, o.ad, o.adset);
+  chipCell(tr, o.status);
+  addCell(tr, INR0(o.spend), 'ms-n');
+  addCell(tr, d3.format(',')(o.visits), 'ms-n');
+  addCell(tr, dashOr(o.cpv, INR2), 'ms-n');
+  addCell(tr, dashOr(o.visit_rate, (v) => v.toFixed(1) + '%'), 'ms-n');
+  addCell(tr, dashOr(o.cpm, INR2), 'ms-n');
+  addCell(tr, d3.format(',')(o.follows), 'ms-n');
+  addCell(tr, dashOr(o.cpf, INR2), 'ms-n');
+};
+const liveRow = (tr, o) => {
+  adCell(tr, o.ad, o.adset + ' · ' + o.bucket);
+  chipCell(tr, o.verdict);
+  addCell(tr, o.action, 'ms-wide');
+  addCell(tr, dashOr(o.cpv3, INR2), 'ms-n');
+  addCell(tr, dashOr(o.cpv_yday, INR2), 'ms-n');
+  addCell(tr, INR0(o.budget), 'ms-n');
+  addCell(tr, d3.format(',')(o.follows), 'ms-n');
+  addCell(tr, o.why, 'ms-wide');
+};
+const TABLES = {
+  'live-body': {source: 'decisions', use: {call: true}, row: liveRow},
+  'month-body': {source: 'month_ads_table', use: {status: true}, row: adsRow},
+  'history-body': {source: 'history', use: {status: true}, row: adsRow}
+};
+Object.keys(TABLES).forEach((name) => dash.draw(name, (tb) => {
+  const t = TABLES[name];
+  const s = dash.data(t.source);
+  tb.replaceChildren();
+  if (s.status !== 'ok' || !s.data) return;
+  pick(s.data, t.use).forEach((o) => { const tr = document.createElement('tr'); tr.setAttribute('data-key', o.id); t.row(tr, o); tb.appendChild(tr); });
+}));
+
+const fmtDay = d3.utcFormat('%d %b');
+dash.draw('followers-body', (tb) => {
+  const s = dash.data('followers_by_day');
+  tb.replaceChildren();
+  if (s.status !== 'ok' || !s.data) return;
+  s.data.forEach((o) => {
+    const tr = document.createElement('tr');
+    addCell(tr, fmtDay(new Date(o.date + 'T00:00:00Z')));
+    addCell(tr, d3.format(',')(o.followers), 'ms-n');
+    addCell(tr, dashOr(o.change, SIGNED), 'ms-n');
+    addCell(tr, dashOr(o.spend, INR0), 'ms-n');
+    addCell(tr, dashOr(o.follows, (v) => d3.format(',')(v)), 'ms-n');
+    addCell(tr, dashOr(o.cost, INR2), 'ms-n');
+    tb.appendChild(tr);
+  });
+});
+
+const addTip = (el) => { const tip = document.createElement('div'); tip.className = 'ms-tip'; tip.hidden = true; el.appendChild(tip); return tip; };
+const showTip = (tip, el, svg, w, px, py, title, lines) => {
+  tip.replaceChildren();
+  const b = document.createElement('b'); b.textContent = title; tip.appendChild(b);
+  lines.forEach((t) => { const sp = document.createElement('span'); sp.textContent = t; tip.appendChild(sp); });
+  tip.hidden = false;
+  const box = svg.node().getBoundingClientRect(), host = el.getBoundingClientRect();
+  const sx = box.width / w;
+  tip.style.left = Math.min(Math.max(4, box.left - host.left + px * sx + 10), Math.max(4, host.width - 230)) + 'px';
+  tip.style.top = Math.max(4, box.top - host.top + py * sx - 10) + 'px';
+};
+
+dash.draw('month-chart', (el) => {
+  const s = dash.data('month_by_day');
+  el.replaceChildren();
+  if (s.status === 'error') { const p = document.createElement('p'); p.className = 'ms-muted'; p.textContent = 'Failed to load'; el.appendChild(p); return; }
+  if (s.status !== 'ok' || !s.data || !s.data.length) { el.textContent = '—'; return; }
+  const rows = s.data.map((r) => Object.assign({day: new Date(r.date + 'T00:00:00Z')}, r));
+  const w = Math.max(280, el.clientWidth - 24), h = 250, m = {t: 16, r: 16, b: 28, l: 54};
+  const x = d3.scaleBand().domain(rows.map((r) => r.date)).range([m.l, w - m.r]).padding(0.25);
+  const y = d3.scaleLinear().domain([0, d3.max(rows, (r) => r.spend) * 1.1 || 1]).range([h - m.b, m.t]);
+  const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', '0 0 ' + w + ' ' + h).attr('role', 'img').attr('aria-label', 'Bar chart of total ad spend for each day of this month');
+  svg.append('g').attr('class', 'ms-grid').attr('transform', 'translate(' + m.l + ',0)').call(d3.axisLeft(y).ticks(4).tickSize(-(w - m.l - m.r)).tickFormat('')).call((g) => g.select('.domain').remove());
+  svg.append('g').attr('class', 'ms-axis').attr('transform', 'translate(' + m.l + ',0)').call(d3.axisLeft(y).ticks(4).tickFormat((v) => '₹' + d3.format(',')(v))).call((g) => g.select('.domain').remove());
+  const step = Math.max(1, Math.ceil(rows.length / Math.max(2, Math.floor((w - m.l - m.r) / 60))));
+  svg.append('g').attr('class', 'ms-axis').attr('transform', 'translate(0,' + (h - m.b) + ')').call(d3.axisBottom(x).tickValues(rows.filter((_, i) => i % step === 0).map((r) => r.date)).tickFormat((d) => fmtDay(new Date(d + 'T00:00:00Z'))).tickSizeOuter(0));
+  const tip = addTip(el);
+  svg.append('g').selectAll('rect').data(rows).join('rect').attr('x', (r) => x(r.date)).attr('width', x.bandwidth()).attr('y', (r) => y(r.spend)).attr('height', (r) => y(0) - y(r.spend)).attr('rx', 2).style('fill', dash.colors[0])
+    .on('pointermove', (event, r) => showTip(tip, el, svg, w, x(r.date) + x.bandwidth() / 2, y(r.spend), fmtDay(r.day), [INR0(r.spend) + ' spent', r.visits + ' profile visits from ads', dashOr(r.cpv, INR2) + ' per profile visit']))
+    .on('pointerleave', () => { tip.hidden = true; });
+});
+
+dash.draw('trend', (el) => {
+  const d = dash.data('ads_daily'), dec = dash.data('decisions');
+  el.replaceChildren();
+  if (d.status === 'error') { const p = document.createElement('p'); p.className = 'ms-muted'; p.textContent = 'Failed to load'; el.appendChild(p); return; }
+  if (d.status !== 'ok' || dec.status !== 'ok' || !dec.data) { el.textContent = '—'; return; }
+  const series = dec.data.map((o, i) => ({o, color: dash.colors[i % dash.colors.length], pts: d.data.filter((r) => r.id === o.id && r.visits > 0).map((r) => ({date: new Date(r.date + 'T00:00:00Z'), cpv: r.spend / r.visits, spend: r.spend, visits: r.visits})).sort((a, b) => a.date - b.date)})).filter((s) => s.pts.length);
+  if (!series.length) { el.textContent = '—'; return; }
+  const w = Math.max(280, el.clientWidth - 24), h = 250, m = {t: 16, r: 34, b: 28, l: 54};
+  const all = series.flatMap((s) => s.pts);
+  const ext = d3.extent(all, (p) => p.date);
+  if (+ext[0] === +ext[1]) { ext[0] = new Date(+ext[0] - 43200000); ext[1] = new Date(+ext[1] + 43200000); }
+  const x = d3.scaleUtc().domain(ext).range([m.l, w - m.r]);
+  const y = d3.scaleLinear().domain([0, Math.max(d3.max(all, (p) => p.cpv), RULES.volume.stop) * 1.15]).range([h - m.b, m.t]);
+  const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', '0 0 ' + w + ' ' + h).attr('role', 'img').attr('aria-label', 'Line chart of daily cost per profile visit for each live ad over the last 7 days, with the target and stop lines');
+  svg.append('g').attr('class', 'ms-grid').attr('transform', 'translate(' + m.l + ',0)').call(d3.axisLeft(y).ticks(5).tickSize(-(w - m.l - m.r)).tickFormat('')).call((g) => g.select('.domain').remove());
+  svg.append('g').attr('class', 'ms-axis').attr('transform', 'translate(' + m.l + ',0)').call(d3.axisLeft(y).ticks(5).tickFormat((v) => '₹' + v.toFixed(2))).call((g) => g.select('.domain').remove());
+  const days = Array.from(new Set(all.map((p) => +p.date))).sort().map((t) => new Date(t));
+  const step = Math.max(1, Math.ceil(days.length / Math.max(2, Math.floor((w - m.l - m.r) / 70))));
+  svg.append('g').attr('class', 'ms-axis').attr('transform', 'translate(0,' + (h - m.b) + ')').call(d3.axisBottom(x).tickValues(days.filter((_, i) => i % step === 0)).tickFormat(fmtDay));
+  [[RULES.volume.target, 'Target'], [RULES.volume.stop, 'Stop line']].forEach(([v, label]) => {
+    svg.append('line').attr('class', 'ms-ref').attr('x1', m.l).attr('x2', w - m.r).attr('y1', y(v)).attr('y2', y(v));
+    svg.append('text').attr('class', 'ms-reflabel').attr('x', w - m.r).attr('y', y(v) - 4).attr('text-anchor', 'end').text(label + ' ₹' + v.toFixed(2));
+  });
+  const line = d3.line().x((p) => x(p.date)).y((p) => y(p.cpv));
+  series.forEach((s) => {
+    svg.append('path').attr('d', line(s.pts)).attr('fill', 'none').style('stroke', s.color).attr('stroke-width', 2);
+    svg.append('g').selectAll('circle').data(s.pts).join('circle').attr('cx', (p) => x(p.date)).attr('cy', (p) => y(p.cpv)).attr('r', 3.5).style('fill', s.color);
+  });
+  const tip = addTip(el);
+  svg.on('pointermove', (event) => {
+    const [px, py] = d3.pointer(event);
+    let best = null, bd = Infinity;
+    series.forEach((s) => s.pts.forEach((p) => { const dd = Math.hypot(x(p.date) - px, y(p.cpv) - py); if (dd < bd) { bd = dd; best = {s, p}; } }));
+    if (!best) return;
+    showTip(tip, el, svg, w, x(best.p.date), y(best.p.cpv), best.s.o.ad, [best.s.o.adset, fmtDay(best.p.date) + ': ' + INR2(best.p.cpv) + ' per profile visit', INR0(best.p.spend) + ' spent, ' + best.p.visits + ' visits']);
+  }).on('pointerleave', () => { tip.hidden = true; });
+  const legend = document.createElement('div');
+  legend.className = 'ms-legend';
+  series.forEach((s) => { const k = document.createElement('span'); k.className = 'ms-key'; const sw = document.createElement('span'); sw.className = 'ms-swatch'; sw.style.background = s.color; const t = document.createElement('span'); t.textContent = s.o.ad + ' (' + s.o.adset + ')'; k.appendChild(sw); k.appendChild(t); legend.appendChild(k); });
+  el.appendChild(legend);
+});
+
+const fmtWhen = (s) => {
+  if (!s) return '';
+  const d = new Date(s.replace(' ', 'T') + '+05:30');
+  return d.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'});
+};
+
+dash.onData(() => {
+  const b = dash.data('budget'), s = dash.data('summary'), meta = dash.meta();
+  const row = b.status === 'ok' && b.data ? b.data[0] : null;
+  document.querySelectorAll('.ms-over').forEach((p) => { p.hidden = !(row && row.gap_over > 0); });
+  document.querySelectorAll('.ms-under').forEach((p) => { p.hidden = !(row && row.gap_under > 0); });
+  const sr = s.status === 'ok' && s.data ? s.data[0] : null;
+  document.querySelectorAll('.ms-nolive').forEach((p) => { p.hidden = !(sr && sr.live === 0); });
+  document.querySelectorAll('.ms-empty').forEach((p) => {
+    const t = TABLES[p.dataset.for];
+    const d = t ? dash.data(t.source) : null;
+    p.hidden = !(d && d.status === 'ok' && d.data && d.data.length > 0 && pick(d.data, t.use).length === 0);
+  });
+  const prm = getP();
+  const sync = (cls, v) => document.querySelectorAll(cls).forEach((el) => { if (document.activeElement !== el) el.value = v; });
+  sync('.ms-f-q', prm.q); sync('.ms-f-status', prm.status); sync('.ms-f-call', prm.call);
+  const loading = dash.data('ads_all').status === 'loading';
+  document.querySelectorAll('.ms-refresh').forEach((btn) => { btn.disabled = dash.busy() || loading; btn.textContent = dash.busy() ? 'Refreshing' : 'Refresh now'; });
+
+  const up = document.getElementById('updated');
+  const lp = meta.last_pull;
+  up.textContent = loading ? 'Loading the latest saved data.' : lp ? 'Data last pulled from Meta on ' + fmtWhen(lp.finished_at || lp.started_at) + ' IST. It refreshes on its own every 3 hours.' + (meta.note ? ' ' + meta.note : '') : 'No data has been pulled from Meta yet.';
+  const banner = document.getElementById('banner');
+  let text = '';
+  if (meta.load_error) text = 'The page could not load fresh data. ' + meta.load_error;
+  else if (meta.has_token === false) text = 'Setup is not finished. The Meta token has not been saved on the server yet.';
+  else if (meta.last_attempt && Number(meta.last_attempt.ok) === 0 && meta.last_attempt.finished_at) text = 'The latest pull from Meta failed, so you are seeing the last saved data. ' + (meta.last_attempt.message || '');
+  banner.hidden = !text; banner.textContent = text;
+
+  const f = dash.data('followers_by_day');
+  const hasF = f.status === 'ok' && f.data && f.data.length > 0;
+  document.getElementById('followers-table').hidden = !hasF;
+  if (!loading && !hasF) document.getElementById('followers-note').textContent = meta.ig_error ? 'The follower count is not available yet. ' + meta.ig_error : 'The follower count will show after the next pull from Meta.';
+});
+
+document.querySelectorAll('.ms-f-q').forEach((el) => el.addEventListener('input', () => dash.setParams({q: el.value})));
+document.querySelectorAll('.ms-f-status').forEach((el) => el.addEventListener('change', () => dash.setParams({status: el.value})));
+document.querySelectorAll('.ms-f-call').forEach((el) => el.addEventListener('change', () => dash.setParams({call: el.value})));
+document.querySelectorAll('.ms-clear').forEach((btn) => btn.addEventListener('click', () => dash.resetParams()));
+
+const TAB_IDS = ['month', 'live', 'alltime'];
+const showTab = (id) => {
+  document.querySelectorAll('.ms-pane').forEach((p) => { p.hidden = p.id !== id; });
+  document.querySelectorAll('.ms-tab').forEach((t) => { const on = t.dataset.tab === id; t.classList.toggle('ms-tab-on', on); t.setAttribute('aria-selected', on ? 'true' : 'false'); });
+  dash.render();
+};
+document.querySelectorAll('.ms-tab').forEach((t) => t.addEventListener('click', () => { showTab(t.dataset.tab); dash.setLink(t.dataset.tab); }));
+const startTab = (location.hash || '').replace('#', '');
+if (TAB_IDS.includes(startTab)) showTab(startTab);
+
+document.querySelectorAll('.ms-refresh').forEach((btn) => btn.addEventListener('click', () => dash.refreshAll()));
+setInterval(() => dash.load(), 15 * 60 * 1000);
+let resizeTimer = null;
+window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => dash.render(), 200); });
+dash.render();
+dash.load();
+</script>
+</body>
+</html>

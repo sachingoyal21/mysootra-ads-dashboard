@@ -319,6 +319,16 @@ td small{display:block;color:var(--muted)}
   <section class="view" id="v-decisions" hidden>
     <div class="calls" id="calls"></div>
     <div class="card">
+      <h2>Budget pace <span class="chip" id="pace-chip"></span></h2>
+      <div class="kpis">
+        <div class="kpi"><span>Left to spend this month</span><b id="pace-left">—</b></div>
+        <div class="kpi"><span>Needed each day</span><b id="pace-need">—</b></div>
+        <div class="kpi"><span>Live daily budgets</span><b id="pace-live">—</b></div>
+        <div class="kpi"><span>Gap each day</span><b id="pace-gap">—</b></div>
+      </div>
+      <p class="sub" id="pace-note"></p>
+    </div>
+    <div class="card">
       <h2>What to do with each live ad <span class="seg" id="dec-seg" role="group" aria-label="Layout" style="margin-left:auto"><button type="button" data-m="table" class="on">Table</button><button type="button" data-m="cards">Cards</button></span></h2>
       <p class="sub">Calls use the last 3 finished days. Today so far is shown for reference only, because a part day swings a lot. This page gives advice only and never changes an ad.</p>
       <div class="tools">
@@ -338,7 +348,10 @@ td small{display:block;color:var(--muted)}
           <li>An ad that brings followers cheaper than the account average is kept on Hold, even if its visits are costly.</li>
           <li>A cost that rises 3 days in a row is a warning on Hold, not a Stop.</li>
           <li>Scale needs cost per visit at or under target, a steady last day, the budget used in full, and followers that are not far costlier than average.</li>
-          <li>Budgets move 20% at a time. Money from a stopped ad goes to a new post test.</li>
+          <li>A raise is 50% while the ad set is under ₹500 a day, then 20%. Wait 2 days between raises, and go back a step if cost is 25% worse for 2 days.</li>
+          <li>One ad gets at most 40% of the live daily budgets.</li>
+          <li>A new ad starts at ₹150 a day and shows Wait for its first 2 days. Money from a stopped ad goes to the day’s new ad.</li>
+          <li>The plan is to spend the full budget, so the Budget pace card shows how much more, or less, the live budgets should be.</li>
           <li>Stop still fires at once for an ad that is far over the limit, shown too often to the same people, or visited by fewer than 1 in 100 viewers.</li>
         </ul>
       </details>
@@ -348,7 +361,7 @@ td small{display:block;color:var(--muted)}
 </div>
 
 <script>
-const RULES = {budget: 25000, end: '2026-11-30', volume: {target: 1, stop: 1.5}, quality: {target: 2, stop: 3}, gateDays: 2, gateSpend: 300, gateVisits: 150, step: 0.2, capShare: 0.4};
+const RULES = {budget: 25000, end: '2026-11-30', volume: {target: 1, stop: 1.5}, quality: {target: 2, stop: 3}, gateDays: 2, gateSpend: 300, gateVisits: 150, step: 0.2, stepSmall: 0.5, smallBudget: 500, newAdBudget: 150, capShare: 0.4};
 const $ = (id) => document.getElementById(id);
 const nf = new Intl.NumberFormat('en-IN');
 const num = (v) => v == null ? '—' : nf.format(Math.round(v));
@@ -522,23 +535,26 @@ function decide(d, eng) {
   const winner = scalers[0];
   const stopMoney = out.filter((o) => o.verdict === 'STOP').reduce((t, o) => t + o.budget, 0);
   const weakest = out.filter((o) => o.verdict === 'HOLD' && o.cpv3 != null).sort((p, q) => q.cpv3 - p.cpv3)[0];
+  // Balanced scaling: 50% steps while an ad set is under ₹500 a day, then 20%.
+  const nextBudget = (b) => Math.round(b * (1 + (b < RULES.smallBudget ? RULES.stepSmall : RULES.step)));
   const scaleText = (o) => {
     if (o.budget >= cap) return 'It is at the ₹' + cap + ' a day cap. Keep the budget as it is and use any spare money to test a new post.';
     const isWinner = winner && winner.id === o.id;
-    const first = Math.min(cap, Math.round(o.budget * (1 + RULES.step)));
+    const first = Math.min(cap, nextBudget(o.budget));
     const ladder = []; let b = first;
-    while (b < cap && ladder.length < 4) { b = Math.min(cap, Math.round(b * (1 + RULES.step))); ladder.push('₹' + b); }
+    while (b < cap && ladder.length < 4) { b = Math.min(cap, nextBudget(b)); ladder.push('₹' + b); }
     const pay = isWinner && stopMoney > 0 ? ' The stopped ad’s budget covers it.' : committed ? (weakest ? ' Pay for it by lowering ' + weakest.ad + ' by ₹' + (first - o.budget) + ' a day.' : ' The plan is fully committed, so lower another ad by the same amount.') : ' The unspent budget covers it.';
-    return 'Raise the daily budget from ₹' + o.budget + ' to ₹' + first + '.' + pay + (ladder.length ? ' If cost holds, go to ' + ladder.join(', then ') + ', with 2 to 3 days between raises. ₹' + cap + ' is the cap.' : ' That is the cap.') + ' Go back a step if cost is 25% worse for 2 days.';
+    return 'Raise the daily budget from ₹' + o.budget + ' to ₹' + first + '.' + pay + (ladder.length ? ' If cost holds, go to ' + ladder.join(', then ') + ', with 2 days between raises. ₹' + cap + ' is the cap.' : ' That is the cap.') + ' Go back a step if cost is 25% worse for 2 days.';
   };
   out.forEach((o) => {
-    if (o.verdict === 'STOP') o.action = 'Pause it. ' + (winner ? 'Raise ' + winner.ad + ' by 20% and use the rest of its ₹' + o.budget + ' a day to test a new post.' : 'Use its ₹' + o.budget + ' a day to test a new post.');
+    if (o.verdict === 'STOP') o.action = 'Pause it. ' + (winner ? 'Raise ' + winner.ad + ' to ₹' + Math.min(cap, nextBudget(winner.budget)) + ' a day and use the rest of its ₹' + o.budget + ' a day for today’s new ad.' : 'Use its ₹' + o.budget + ' a day for today’s new ad.');
     else if (o.verdict === 'SCALE') o.action = scaleText(o);
     else if (o.verdict === 'HOLD') o.action = 'Keep the budget as it is. Check again tomorrow.';
     else o.action = 'Let it run. No change yet.';
   });
   const order = {STOP: 0, SCALE: 1, HOLD: 2, WAIT: 3};
-  return {calls: out.sort((p, q) => order[p.verdict] - order[q.verdict]), liveDaily, daysLeft, spent};
+  const weakestLive = out.filter((o) => o.cpv3 != null && o.verdict !== 'SCALE').sort((p, q) => q.cpv3 - p.cpv3)[0];
+  return {calls: out.sort((p, q) => order[p.verdict] - order[q.verdict]), liveDaily, daysLeft, spent, cap, weakest: weakestLive ? weakestLive.ad : null};
 }
 
 function actCard(c, eng) {
@@ -666,6 +682,14 @@ function draw() {
   // Spend
   chart($('c-spend'), {labels: month.map((x) => dayLabel(x.date)), series: [{name: 'Spend', color: paidCol, values: month.map((x) => x.spend)}], fmt: (v) => '₹' + num(v), tip: (v) => inr(v), label: 'Bar chart of ad spend by day this month'});
   chart($('c-cpv'), {labels: month.map((x) => dayLabel(x.date)), line: true, ref: 1, series: [{name: 'Cost per visit', color: blue, values: month.map((x) => x.visits > 0 ? x.spend / x.visits : null)}], fmt: (v) => '₹' + v.toFixed(2), tip: (v) => inr2(v) + ' per profile visit', label: 'Line chart of cost per profile visit by day with the one rupee target'});
+  const todaySpend = (month.find((x) => x.date === today) || {}).spend || 0;
+  const leftToSpend = Math.max(0, V2.plan.budget - dec.spent), needDay = dec.daysLeft > 0 ? (leftToSpend + todaySpend) / dec.daysLeft : 0, gap = needDay - dec.liveDaily;
+  $('pace-left').textContent = inr(leftToSpend); $('pace-need').textContent = inr(needDay); $('pace-live').textContent = inr(dec.liveDaily); $('pace-gap').textContent = (gap >= 0 ? '+' : '−') + inr(Math.abs(gap)).slice(0);
+  const newAds = Math.max(1, Math.round(gap / RULES.newAdBudget));
+  const pc = $('pace-chip');
+  if (Math.abs(gap) <= needDay * 0.1) { pc.className = 'chip good'; pc.textContent = 'On pace'; $('pace-note').textContent = 'Live budgets match the pace needed to spend the full ' + inr(V2.plan.budget) + '. When today’s new ad goes live at ₹' + RULES.newAdBudget + ' a day, pause the weakest ad or trim budgets by the same amount.'; }
+  else if (gap > 0) { pc.className = 'chip warn'; pc.textContent = 'Under pace'; $('pace-note').textContent = 'To spend the full ' + inr(V2.plan.budget) + ', live budgets need about ' + inr(gap) + ' more a day. That is about ' + newAds + ' new ' + (newAds === 1 ? 'ad' : 'ads') + ' at ₹' + RULES.newAdBudget + ' a day, plus any Scale raises below. With one new ad a day you close this gap in about ' + newAds + (newAds === 1 ? ' day.' : ' days.'); }
+  else { pc.className = 'chip bad'; pc.textContent = 'Over pace'; $('pace-note').textContent = 'Live budgets are about ' + inr(-gap) + ' a day above the pace for ' + inr(V2.plan.budget) + '. For each new ad you launch, pause one. ' + (dec.weakest ? 'The weakest on cost per visit right now is ' + dec.weakest + '.' : ''); }
   const plan = V2.plan, proj = dec.spent + dec.liveDaily * dec.daysLeft - ((month.find((x) => x.date === today) || {}).spend || 0);
   $('b-plan').textContent = inr(plan.budget); $('b-spent').textContent = inr(dec.spent); $('b-daily').textContent = inr(dec.liveDaily); $('b-proj').textContent = inr(proj);
   $('b-bar').style.width = Math.min(100, dec.spent / plan.budget * 100).toFixed(1) + '%';

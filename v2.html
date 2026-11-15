@@ -269,8 +269,8 @@ td small{display:block;color:var(--muted)}
       </div>
       <div class="card"><h2>Followers gained by each ad</h2><div class="rows" id="gain-paid"></div></div>
     </div>
-    <div class="card"><h2>Followers gained by each organic post</h2><div class="rows" id="gain-org"></div>
-      <p class="note">Meta does not report followers gained for Reels. We asked and it refused that number for Reels. Feed posts and carousels do report it.</p></div>
+    <div class="card"><h2>Latest 10 organic posts</h2><p class="sub">Newest first. Bars show reach.</p><div class="rows" id="gain-org"></div>
+      <p class="note">Meta reports followers gained for feed posts and carousels only. It refuses that number for Reels, so Reels show reach, likes, saves and shares.</p></div>
   </section>
 
   <section class="view" id="v-content" hidden>
@@ -606,9 +606,8 @@ function draw() {
   const orgItems = byReach.map((m) => ({name: title(m), link: m.link, sub: m.type + ', ' + dayLabel(m.posted_at.slice(0, 10)) + ', ' + num(m.likes) + ' likes, ' + num(m.saved) + ' saves, ' + num(m.shares) + ' shares', value: m.reach, text: num(m.reach) + ' reach'}));
   rankRows($('top-org-mini'), orgItems.slice(0, Math.max(3, Math.min(4, paidItems.length))), 'org', 'Organic posts load after the next pull from Meta.');
   rankRows($('top-org'), orgItems.slice(0, Math.max(4, Math.min(6, paidItems.length))), 'org', 'Organic posts load after the next pull from Meta.');
-  const feedPosts = media.filter((m) => m.follows != null);
-  const gain = feedPosts.filter((m) => m.follows > 0).sort((a, b) => b.follows - a.follows).map((m) => ({name: title(m), link: m.link, sub: m.type + ', ' + dayLabel(m.posted_at.slice(0, 10)) + ', ' + num(m.reach) + ' reach', value: m.follows, text: num(m.follows) + ' followers'}));
-  rankRows($('gain-org'), gain.slice(0, 8), 'org', feedPosts.length ? 'Meta reports 0 followers gained for each of the ' + feedPosts.length + ' feed posts and carousels among your latest 40 posts. Their combined reach is ' + num(sum(feedPosts.map((m) => m.reach))) + '.' : 'None of the latest 40 posts is a feed post or carousel, so there is nothing to show here yet.');
+  const latest = media.slice(0, 10).map((m) => ({name: title(m), link: m.link, sub: m.type + ', ' + dayLabel(m.posted_at.slice(0, 10)) + ', ' + num(m.likes) + ' likes, ' + num(m.saved) + ' saves, ' + num(m.shares) + ' shares, ' + (m.follows != null ? num(m.follows) + ' followers gained' : 'followers gained not reported for Reels'), value: m.reach || 0, text: num(m.reach) + ' reach'}));
+  rankRows($('gain-org'), latest, 'org', 'Organic posts load after the next pull from Meta.');
   POSTS = media.map((m) => Object.assign({}, m, {title: title(m), date: m.posted_at.slice(0, 10), rate: m.reach ? (m.interactions != null ? m.interactions : m.likes + m.comments + (m.saved || 0) + (m.shares || 0)) / m.reach * 100 : null}));
   const tsel = $('of-type'), cur = tsel.value; tsel.replaceChildren(new Option('All types', ''), ...Array.from(new Set(POSTS.map((p) => p.type))).sort().map((t) => new Option(t))); tsel.value = cur;
   drawPosts();

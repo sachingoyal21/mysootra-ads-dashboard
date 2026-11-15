@@ -49,7 +49,7 @@ a{color:var(--blue)}
 .head p{margin:8px 0 0;color:var(--muted);font-size:14px}
 .eyebrow{font-family:var(--mono);font-size:12px;color:var(--blue);letter-spacing:.06em;text-transform:uppercase}
 .banner{border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:12px;padding:10px 12px;font-size:13px}
-.grid{display:grid;gap:16px;align-items:start}
+.grid{display:grid;gap:16px;align-items:stretch}
 .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -80,6 +80,19 @@ a{color:var(--blue)}
 .chart svg{display:block;width:100%;height:auto;min-width:440px}
 .chart text{font-family:var(--mono);font-size:11px;fill:var(--muted)}
 .chart .gl{stroke:var(--line)}
+.chart{position:relative}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.5;white-space:nowrap;z-index:3;box-shadow:0 6px 18px rgba(23,24,28,.18)}
+.tip b{display:block;font-size:13px}
+.tip i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tools input,.tools select{font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}
+.tools input[type=search]{flex:1 1 180px;min-width:150px}
+.tools input[type=number]{width:110px}
+.tools label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.btn.ghost{background:var(--panel);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line);font-weight:500}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--ink)}
+th .ord{font-family:var(--mono);font-size:10px;color:var(--blue);margin-left:4px}
 .split{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--soft)}
 .split i{display:block;height:100%}
 .rows{display:flex;flex-direction:column;gap:12px}
@@ -190,8 +203,8 @@ td small{display:block;color:var(--muted)}
     </div>
     <div class="grid g2">
       <div class="card">
-        <h2>New followers by day</h2>
-        <div class="legend"><span><i style="background:var(--paid)"></i>From ads</span><span><i style="background:var(--organic)"></i>Organic, estimated</span></div>
+        <h2>New followers, last 7 days</h2>
+        <div class="legend"><span><i style="background:var(--paid)"></i>From ads</span><span><i style="background:var(--organic)"></i>Organic</span></div>
         <div class="chart" id="c-fol-mini"></div>
         <p class="note" id="fol-note-mini"></p>
       </div>
@@ -243,8 +256,8 @@ td small{display:block;color:var(--muted)}
   <section class="view" id="v-followers" hidden>
     <div class="strip" id="strip-f"></div>
     <div class="card">
-      <h2>New followers by day, paid and organic</h2>
-      <div class="legend"><span><i style="background:var(--paid)"></i>From ads</span><span><i style="background:var(--organic)"></i>Organic, estimated</span></div>
+      <h2>New followers by day, paid and organic <span class="seg" id="fol-seg" role="group" aria-label="Days shown" style="margin-left:auto"><button type="button" data-n="7" class="on">7 days</button><button type="button" data-n="30">30 days</button></span></h2>
+      <div class="legend"><span><i style="background:var(--paid)"></i>From ads</span><span><i style="background:var(--organic)"></i>Organic</span></div>
       <div class="chart" id="c-fol"></div>
       <p class="note" id="fol-note"></p>
     </div>
@@ -252,7 +265,7 @@ td small{display:block;color:var(--muted)}
       <div class="card"><h2>Where new followers came from</h2><p class="sub" id="split-sub"></p>
         <div class="split"><i id="sp-paid" style="background:var(--paid)"></i><i id="sp-org" style="background:var(--organic)"></i></div>
         <div class="legend"><span><i style="background:var(--paid)"></i><span id="sp-paid-t"></span></span><span><i style="background:var(--organic)"></i><span id="sp-org-t"></span></span></div>
-        <p class="note">Organic is worked out, not reported. It is Meta's new followers for the day minus follows credited to ads.</p>
+        <p class="note">Total new followers come from Instagram. Follows from ads come from Meta Ads. Organic is the total minus ads.</p>
       </div>
       <div class="card"><h2>Followers gained by each ad</h2><div class="rows" id="gain-paid"></div></div>
     </div>
@@ -270,8 +283,20 @@ td small{display:block;color:var(--muted)}
       <div class="card"><h2>Best organic content</h2><p class="sub">Ranked by reach, from the latest 40 posts.</p><div class="rows" id="top-org"></div></div>
     </div>
     <div class="card">
-      <h2>Organic posts in detail</h2>
-      <div class="tbl"><table><thead><tr><th>Post</th><th>Type</th><th class="n">Reach</th><th class="n">Views</th><th class="n">Likes</th><th class="n">Comments</th><th class="n">Saves</th><th class="n">Shares</th><th class="n">Avg watch</th></tr></thead><tbody id="t-org"></tbody></table></div>
+      <h2>Organic posts in detail <span class="tag" id="org-count"></span></h2>
+      <div class="tools">
+        <input type="search" id="of-q" placeholder="Search caption" aria-label="Search caption">
+        <select id="of-type" aria-label="Type"><option value="">All types</option></select>
+        <label>From <input type="date" id="of-from"></label>
+        <label>To <input type="date" id="of-to"></label>
+        <label>Min reach <input type="number" id="of-reach" min="0" step="100" placeholder="0"></label>
+        <label>Min likes <input type="number" id="of-likes" min="0" step="10" placeholder="0"></label>
+        <button class="btn ghost" type="button" id="of-clear">Clear</button>
+        <button class="btn ghost" type="button" id="of-csv">Download CSV</button>
+      </div>
+      <p class="note">Click a column to sort. Hold Shift and click another column to sort inside the first one. Click again to flip the order.</p>
+      <div class="tbl"><table><thead><tr id="org-head"></tr></thead><tbody id="t-org"></tbody></table></div>
+      <p class="empty" id="org-empty" hidden>No posts match these filters.</p>
     </div>
   </section>
 
@@ -338,7 +363,25 @@ function chart(host, o) {
     });
   }
   if (o.ref) svg.appendChild(svgEl('line', {x1: m.l, x2: W - m.r, y1: y(o.ref), y2: y(o.ref), stroke: css('--muted'), 'stroke-dasharray': '5 5'}));
+  if (o.totals && o.labels.length <= 10) o.labels.forEach((lab, i) => { const t = o.totals(i); if (t) svg.appendChild(svgEl('text', {x: m.l + bw * i + bw / 2, y: y(totals[i]) - 6, 'text-anchor': 'middle', style: 'fill:var(--ink);font-weight:500'}, t)); });
   host.appendChild(svg);
+  // Hover: one invisible column per day shows that day's numbers.
+  const tip = el('div', 'tip'); tip.hidden = true; host.appendChild(tip);
+  o.labels.forEach((lab, i) => {
+    const hit = svgEl('rect', {x: m.l + bw * i, y: m.t, width: bw, height: H - m.t - m.b, fill: 'transparent'});
+    hit.addEventListener('pointerenter', () => {
+      tip.replaceChildren(el('b', '', lab));
+      const lines = o.hover ? o.hover(i) : o.series.map((s) => ({color: s.color, text: s.name + ' ' + o.tip(s.values[i])}));
+      lines.forEach((l) => { const d = el('div'); if (l.color) { const dot = el('i'); dot.style.background = l.color; d.appendChild(dot); } d.appendChild(document.createTextNode(l.text)); tip.appendChild(d); });
+      tip.hidden = false;
+      const sx = svg.getBoundingClientRect().width / W, hw = host.clientWidth;
+      const left = (m.l + bw * i + bw / 2) * sx;
+      tip.style.left = Math.max(4, Math.min(hw - tip.offsetWidth - 4, left - tip.offsetWidth / 2)) + 'px';
+      tip.style.top = Math.max(0, y(totals[i]) * sx - tip.offsetHeight - 10) + 'px';
+    });
+    hit.addEventListener('pointerleave', () => { tip.hidden = true; });
+    svg.appendChild(hit);
+  });
 }
 
 function spark(values, color) {
@@ -468,7 +511,8 @@ function actCard(c, eng) {
   return a;
 }
 
-let DATA = null, V2 = null, period = 'week', busy = false, note = '', loadError = '';
+let DATA = null, V2 = null, period = 'week', busy = false, note = '', loadError = '', folDays = 7;
+const postSort = [{k: 'reach', dir: -1}];
 
 function draw() {
   if (!DATA || !V2) return;
@@ -484,16 +528,38 @@ function draw() {
   const pace = last7r.length ? sum(last7r.map((x) => x.new_followers)) / last7r.length : null;
   const last7 = daily.filter((x) => x.date <= today).slice(-7);
 
-  // Followers chart data: last 21 days.
-  const win = daily.slice(-21);
-  const paidVals = win.map((x) => x.new_followers == null ? x.paid_follows : Math.min(x.paid_follows, Math.max(x.new_followers, x.paid_follows)));
-  const orgVals = win.map((x) => x.new_followers == null ? 0 : Math.max(0, x.new_followers - x.paid_follows));
-  const folChart = {labels: win.map((x) => dayLabel(x.date)), stack: true, series: [{name: 'From ads', color: paidCol, values: paidVals}, {name: 'Organic, estimated', color: orgCol, values: orgVals}], fmt: (v) => num(v), tip: (v) => num(v) + ' followers', label: 'Stacked bar chart of new followers by day, split into ads and organic'};
-  chart($('c-fol-mini'), Object.assign({h: 220}, folChart));
-  chart($('c-fol'), Object.assign({h: 260}, folChart));
-  const pending = daily.filter((x) => x.date <= today && x.new_followers == null).slice(-3).map((x) => dayLabel(x.date));
-  const folNote = (from ? 'Meta began reporting follows from ads on ' + dayLabel(from) + ', so earlier days show as organic even if some came from ads. ' : '') + (pending.length ? 'Instagram has not yet reported total new followers for ' + pending.join(', ') + ', so those days show ads only. It runs up to 2 days late.' : '');
-  $('fol-note-mini').textContent = folNote; $('fol-note').textContent = folNote;
+  // Total new followers per day. First choice is Instagram's own daily number. If that is not in yet, use the change in the saved follower count.
+  const counts = {}; (V2.follower_counts || []).forEach((c) => { counts[c.date] = c.followers; });
+  const prevDay = (dt) => new Date(Date.parse(dt + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10);
+  const totalFor = (x) => {
+    if (x.new_followers != null) return {v: x.new_followers, src: 'Instagram daily report'};
+    const a = counts[x.date], b = counts[prevDay(x.date)];
+    if (a != null && b != null) return {v: Math.max(0, a - b), src: 'Change in follower count' + (x.date === today ? ', today so far' : '')};
+    return null;
+  };
+  const folChart = (n, h) => {
+    const win = daily.filter((x) => x.date <= today).slice(-n);
+    const tot = win.map(totalFor);
+    const paidVals = win.map((x, i) => tot[i] ? Math.min(x.paid_follows, tot[i].v) : x.paid_follows);
+    const orgVals = win.map((x, i) => tot[i] ? Math.max(0, tot[i].v - x.paid_follows) : 0);
+    return {labels: win.map((x) => dayLabel(x.date)), h, stack: true,
+      series: [{name: 'From ads', color: paidCol, values: paidVals}, {name: 'Organic', color: orgCol, values: orgVals}],
+      fmt: (v) => num(v), tip: (v) => num(v), label: 'Stacked bar chart of new followers for each day, split into ads and organic',
+      totals: (i) => tot[i] ? num(tot[i].v) : num(win[i].paid_follows) + '+',
+      hover: (i) => tot[i]
+        ? [{text: 'Total new followers ' + num(tot[i].v)}, {color: paidCol, text: 'From ads ' + num(win[i].paid_follows)}, {color: orgCol, text: 'Organic ' + num(Math.max(0, tot[i].v - win[i].paid_follows))}, {text: 'Total source. ' + tot[i].src}]
+        : [{color: paidCol, text: 'From ads ' + num(win[i].paid_follows)}, {text: 'Instagram has not reported this day’s total yet'}],
+      pending: win.filter((x, i) => !tot[i]).map((x) => dayLabel(x.date))};
+  };
+  const f7 = folChart(7, 240);
+  chart($('c-fol-mini'), f7);
+  const fBig = folChart(folDays, 280);
+  chart($('c-fol'), fBig);
+  document.querySelectorAll('#fol-seg button').forEach((b) => b.classList.toggle('on', Number(b.dataset.n) === folDays));
+  const srcNote = 'Total is from Instagram. From ads is from Meta Ads. Organic is the total minus ads.';
+  const pendNote = (c) => c.pending.length ? ' Instagram reports a day’s total up to 2 days late, so ' + c.pending.join(', ') + ' show ads only for now and are marked with a plus.' : '';
+  $('fol-note-mini').textContent = srcNote + pendNote(f7);
+  $('fol-note').textContent = srcNote + pendNote(fBig) + (from && folDays > 7 ? ' Meta credited almost no follows to ads before ' + dayLabel(from) + '.' : '');
 
   // Overview strip
   const newMonth = sum(month.map((x) => x.new_followers));
@@ -534,11 +600,13 @@ function draw() {
   const title = (m) => (m.caption ? m.caption.slice(0, 46) + (m.caption.length > 46 ? '…' : '') : m.type + ' on ' + dayLabel(m.posted_at.slice(0, 10)));
   const byReach = media.filter((m) => m.reach != null).sort((a, b) => b.reach - a.reach);
   const orgItems = byReach.map((m) => ({name: title(m), link: m.link, sub: m.type + ', ' + dayLabel(m.posted_at.slice(0, 10)) + ', ' + num(m.likes) + ' likes, ' + num(m.saved) + ' saves, ' + num(m.shares) + ' shares', value: m.reach, text: num(m.reach) + ' reach'}));
-  rankRows($('top-org-mini'), orgItems.slice(0, 4), 'org', 'Organic posts load after the next pull from Meta.');
-  rankRows($('top-org'), orgItems.slice(0, 8), 'org', 'Organic posts load after the next pull from Meta.');
+  rankRows($('top-org-mini'), orgItems.slice(0, Math.max(3, Math.min(4, paidItems.length))), 'org', 'Organic posts load after the next pull from Meta.');
+  rankRows($('top-org'), orgItems.slice(0, Math.max(4, Math.min(6, paidItems.length))), 'org', 'Organic posts load after the next pull from Meta.');
   const gain = media.filter((m) => m.follows != null).sort((a, b) => b.follows - a.follows).map((m) => ({name: title(m), link: m.link, sub: m.type + ', ' + dayLabel(m.posted_at.slice(0, 10)), value: m.follows, text: num(m.follows) + ' followers'}));
   rankRows($('gain-org'), gain.slice(0, 8), 'org', 'None of the latest 40 posts is a feed post or carousel, so there is nothing to show here yet.');
-  $('t-org').replaceChildren(...media.map((m) => { const tr = el('tr'); const td = el('td'); const a = el('a', '', title(m)); a.href = m.link; a.target = '_blank'; a.rel = 'noopener'; td.append(a, el('small', '', dayLabel(m.posted_at.slice(0, 10)))); tr.append(td, el('td', '', m.type), el('td', 'n', num(m.reach)), el('td', 'n', num(m.views)), el('td', 'n', num(m.likes)), el('td', 'n', num(m.comments)), el('td', 'n', num(m.saved)), el('td', 'n', num(m.shares)), el('td', 'n', m.avg_watch_ms == null ? '—' : (m.avg_watch_ms / 1000).toFixed(1) + ' s')); return tr; }));
+  POSTS = media.map((m) => Object.assign({}, m, {title: title(m), date: m.posted_at.slice(0, 10), rate: m.reach ? (m.interactions != null ? m.interactions : m.likes + m.comments + (m.saved || 0) + (m.shares || 0)) / m.reach * 100 : null}));
+  const tsel = $('of-type'), cur = tsel.value; tsel.replaceChildren(new Option('All types', ''), ...Array.from(new Set(POSTS.map((p) => p.type))).sort().map((t) => new Option(t))); tsel.value = cur;
+  drawPosts();
 
   // Spend
   chart($('c-spend'), {labels: month.map((x) => dayLabel(x.date)), series: [{name: 'Spend', color: paidCol, values: month.map((x) => x.spend)}], fmt: (v) => '₹' + num(v), tip: (v) => inr(v), label: 'Bar chart of ad spend by day this month'});
@@ -584,6 +652,31 @@ function draw() {
   $('refresh').disabled = busy; $('refresh').textContent = busy ? 'Refreshing' : 'Refresh now';
 }
 
+let POSTS = [];
+const COLS = [['title', 'Post', false], ['type', 'Type', false], ['date', 'Posted', false], ['reach', 'Reach', true], ['views', 'Views', true], ['likes', 'Likes', true], ['comments', 'Comments', true], ['saved', 'Saves', true], ['shares', 'Shares', true], ['rate', 'Engagement rate', true], ['avg_watch_ms', 'Avg watch', true], ['follows', 'Followers gained', true]];
+function filteredPosts() {
+  const q = $('of-q').value.trim().toLowerCase(), t = $('of-type').value, f = $('of-from').value, to = $('of-to').value, mr = Number($('of-reach').value) || 0, ml = Number($('of-likes').value) || 0;
+  const rows = POSTS.filter((p) => (!q || (p.caption || '').toLowerCase().includes(q)) && (!t || p.type === t) && (!f || p.date >= f) && (!to || p.date <= to) && (p.reach || 0) >= mr && p.likes >= ml);
+  return rows.sort((a, b) => { for (const s of postSort) { const x = a[s.k], y = b[s.k]; if (x == null && y == null) continue; if (x == null) return 1; if (y == null) return -1; if (x < y) return -s.dir; if (x > y) return s.dir; } return 0; });
+}
+function cellText(p, k) { const v = p[k]; if (v == null) return k === 'follows' && p.type === 'Reel' ? 'Not reported' : '—'; return k === 'rate' ? v.toFixed(1) + '%' : k === 'avg_watch_ms' ? (v / 1000).toFixed(1) + ' s' : k === 'date' ? dayLabel(v) : typeof v === 'number' ? num(v) : v; }
+function drawPosts() {
+  $('org-head').replaceChildren(...COLS.map(([k, label, right]) => { const th = el('th', 'sortable' + (right ? ' n' : ''), label); const i = postSort.findIndex((s) => s.k === k); if (i >= 0) th.appendChild(el('span', 'ord', (postSort[i].dir < 0 ? '↓' : '↑') + (postSort.length > 1 ? i + 1 : ''))); th.tabIndex = 0;
+    const go = (e) => { const i2 = postSort.findIndex((s) => s.k === k); if (e.shiftKey) { if (i2 >= 0) postSort[i2].dir *= -1; else postSort.push({k, dir: right ? -1 : 1}); } else { const dir = i2 === 0 && postSort.length === 1 ? -postSort[0].dir : (right ? -1 : 1); postSort.length = 0; postSort.push({k, dir}); } drawPosts(); };
+    th.addEventListener('click', go); th.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(e); }); return th; }));
+  const rows = filteredPosts();
+  $('t-org').replaceChildren(...rows.map((p) => { const tr = el('tr'); COLS.forEach(([k, , right]) => { const td = el('td', right ? 'n' : ''); if (k === 'title') { const a = el('a', '', p.title); a.href = p.link; a.target = '_blank'; a.rel = 'noopener'; td.appendChild(a); } else td.textContent = cellText(p, k); tr.appendChild(td); }); return tr; }));
+  $('org-empty').hidden = rows.length > 0 || !POSTS.length;
+  $('org-count').textContent = rows.length + ' of ' + POSTS.length + ' posts';
+}
+['of-q', 'of-type', 'of-from', 'of-to', 'of-reach', 'of-likes'].forEach((id) => $(id).addEventListener('input', drawPosts));
+$('of-clear').addEventListener('click', () => { ['of-q', 'of-type', 'of-from', 'of-to', 'of-reach', 'of-likes'].forEach((id) => { $(id).value = ''; }); postSort.length = 0; postSort.push({k: 'reach', dir: -1}); drawPosts(); });
+$('of-csv').addEventListener('click', () => {
+  const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const lines = [COLS.map((c) => esc(c[1])).concat(esc('Link')).join(',')].concat(filteredPosts().map((p) => COLS.map(([k]) => esc(k === 'title' ? (p.caption || p.title) : k === 'rate' && p.rate != null ? p.rate.toFixed(2) : k === 'avg_watch_ms' && p.avg_watch_ms != null ? (p.avg_watch_ms / 1000).toFixed(1) : p[k])).concat(esc(p.link)).join(',')));
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\n')], {type: 'text/csv'})); a.download = 'mysootra-organic-posts.csv'; document.body.appendChild(a); a.click(); a.remove();
+});
+
 function drawPeriod() {
   if (!V2) return;
   const today = V2.today, monthStart = today.slice(0, 8) + '01', from = V2.follows_reported_from;
@@ -594,9 +687,10 @@ function drawPeriod() {
   const fs = sum(fr.map((x) => x.spend)), ff = sum(fr.map((x) => x.paid_follows));
   $('k-spend').textContent = inr(s); $('k-visits').textContent = num(v); $('k-cpv').textContent = v ? inr2(s / v) : '—';
   $('k-follows').textContent = num(f); $('k-cpf').textContent = ff ? inr2(fs / ff) : '—';
-  document.querySelectorAll('.seg button').forEach((b) => b.classList.toggle('on', b.dataset.p === period));
+  document.querySelectorAll('.seg button[data-p]').forEach((b) => b.classList.toggle('on', b.dataset.p === period));
 }
-document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => { period = b.dataset.p; drawPeriod(); }));
+document.querySelectorAll('.seg button[data-p]').forEach((b) => b.addEventListener('click', () => { period = b.dataset.p; drawPeriod(); }));
+document.querySelectorAll('#fol-seg button').forEach((b) => b.addEventListener('click', () => { folDays = Number(b.dataset.n); draw(); }));
 
 async function load() {
   try {

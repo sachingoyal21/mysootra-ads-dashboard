@@ -71,6 +71,7 @@ try {
             'followers_now' => $f ? (int)$f['followers'] : null, 'username' => $f ? $f['username'] : null,
             'goal' => 50000, 'launch' => '2026-12-01', 'plan' => cfg()['plan'],
             'follows_reported_from' => $reportedFrom,
+            'follower_counts' => array_map(fn($r) => ['date' => $r['day'], 'followers' => (int)$r['followers']], db()->query('SELECT day, followers FROM ig_followers ORDER BY day')->fetchAll()),
             'daily' => array_values($days), 'ig_account' => kv_get('ig_account', new stdClass()), 'media' => $media,
             'paid_engagement' => $eng, 'ad_engagement' => $adEng,
         ]);

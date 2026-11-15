@@ -215,6 +215,7 @@ try {
         'datasets' => [
             'ads_all' => $perAd(null),
             'ads_daily' => $adsDaily,
+            'ads_today' => array_map(fn($r) => ['id' => (string)$r['ad_id'], 'spend' => (float)$r['spend'], 'visits' => (int)$r['visits'], 'follows' => (int)$r['follows']], (function () use ($today) { $st = db()->prepare('SELECT ad_id, spend, visits, follows FROM ad_daily WHERE day = ?'); $st->execute([$today]); return $st->fetchAll(); })()),
             'ads_week' => kv_get('ads_week', []),
             'adsets' => $adsets,
             'budget_spend' => [['spend' => $planSpend]],

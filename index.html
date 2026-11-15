@@ -35,7 +35,22 @@ a{color:var(--blue)}
 .count{margin-left:auto;background:var(--blue);color:#fff;font-size:11px;font-weight:600;border-radius:999px;padding:1px 7px}
 .rail-foot{margin-top:auto;font-size:12px;color:var(--muted);padding:0 8px}
 .btn{font:inherit;font-weight:600;font-size:14px;border:0;border-radius:10px;padding:9px 14px;background:var(--blue);color:#fff;cursor:pointer;white-space:nowrap}
-.btn:disabled{opacity:.55;cursor:default}
+.btn:disabled{opacity:.75;cursor:default}
+#refresh{display:inline-flex;align-items:center;gap:8px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;animation:spin .7s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.rbar{position:fixed;left:0;top:0;right:0;height:3px;z-index:50;pointer-events:none;opacity:0;transition:opacity .3s}
+.rbar.on{opacity:1}
+.rbar i{display:block;height:100%;width:0;background:var(--blue);border-radius:0 3px 3px 0}
+.rbar.run i{width:90%;transition:width 45s cubic-bezier(.08,.6,.2,1)}
+.rbar.done i{width:100%;transition:width .25s ease-out}
+.rbar.fail i{background:var(--bad)}
+.rstat{display:flex;align-items:center;gap:10px;border-radius:10px;padding:10px 14px;margin:0 0 14px;font-size:14px;background:var(--blue-soft);color:var(--blue)}
+.rstat.ok{background:var(--good-bg);color:var(--good)} .rstat.error{background:var(--bad-bg);color:var(--bad)} .rstat.info{background:var(--warn-bg);color:var(--warn)}
+.rstat .spin{border-color:rgba(29,79,216,.25);border-top-color:var(--blue)}
+.rstat span:not(.spin){flex:1}
+.rstat button{font:inherit;border:0;background:none;color:inherit;cursor:pointer;padding:2px 6px;border-radius:6px;font-size:16px;line-height:1}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:2s}.rbar.run i{transition:none;width:60%}}
 .nav a:focus-visible,.btn:focus-visible,.seg button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .wrap{max-width:1200px;width:100%;margin:0 auto;padding:26px 26px 56px;display:flex;flex-direction:column;gap:18px;min-width:0}
 .head{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
@@ -177,6 +192,8 @@ td small{display:block;color:var(--muted)}
     </div>
     <button class="btn" type="button" id="refresh">Refresh now</button>
   </div>
+  <div class="rbar" id="rbar" aria-hidden="true"><i></i></div>
+  <div class="rstat" id="rstat" role="status" aria-live="polite" hidden></div>
   <p class="banner" id="banner" hidden></p>
 
   <section class="view" id="v-overview">
@@ -768,13 +785,13 @@ function draw() {
   // Header
   const lp = V2.last_pull;
   const when = lp ? new Date((lp.finished_at || lp.started_at).replace(' ', 'T') + '+05:30').toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'}) : '';
-  $('updated').textContent = (lp ? 'Data pulled from Meta on ' + when + ' IST. It refreshes on its own every 3 hours.' : 'No data has been pulled from Meta yet.') + (note ? ' ' + note : '');
+  $('updated').textContent = (lp ? 'Data pulled from Meta on ' + when + ' IST. It refreshes on its own every 3 hours.' : 'No data has been pulled from Meta yet.');
   let text = '';
   if (loadError) text = 'The page could not load fresh data. ' + loadError;
   else if (V2.has_token === false) text = 'Setup is not finished. The Meta token has not been saved on the server yet.';
   else if (V2.last_attempt && Number(V2.last_attempt.ok) === 0 && V2.last_attempt.finished_at) text = 'The latest pull from Meta failed, so you are seeing the last saved data. ' + (V2.last_attempt.message || '');
   $('banner').hidden = !text; $('banner').textContent = text;
-  $('refresh').disabled = busy; $('refresh').textContent = busy ? 'Refreshing' : 'Refresh now';
+  setBtn();
 }
 
 let DEC = [], ENG = {}, decMode = 'table';
@@ -875,11 +892,48 @@ async function load() {
   } catch (e) { loadError = String(e.message || e); if (!V2) { $('updated').textContent = 'The page could not load data. ' + loadError; return; } }
   draw();
 }
+// Refresh button: spinner on the button, a progress bar across the top, and a clear message when it ends.
+// The pull is one long request, so the bar shows that work is going on. It is not a real percentage.
+let statTimer = null, tick = null;
+function setBtn() {
+  const b = $('refresh'); b.disabled = busy; b.setAttribute('aria-busy', busy ? 'true' : 'false');
+  b.replaceChildren(...(busy ? [el('span', 'spin'), document.createTextNode('Refreshing')] : [document.createTextNode('Refresh now')]));
+}
+function setStat(kind, text) {
+  const box = $('rstat'); clearTimeout(statTimer);
+  if (!kind) { box.hidden = true; return; }
+  box.className = 'rstat ' + kind; box.hidden = false;
+  const kids = [];
+  if (kind === 'busy') kids.push(el('span', 'spin'));
+  kids.push(el('span', '', text));
+  if (kind !== 'busy') { const x = el('button', '', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Dismiss message'); x.addEventListener('click', () => setStat(null)); kids.push(x); }
+  box.replaceChildren(...kids);
+  if (kind === 'ok') statTimer = setTimeout(() => setStat(null), 8000);
+}
+function setBar(state) {
+  const bar = $('rbar');
+  if (state === 'run') { bar.className = 'rbar'; void bar.offsetWidth; bar.className = 'rbar on run'; }
+  else { bar.className = 'rbar on done' + (state === 'fail' ? ' fail' : ''); setTimeout(() => { bar.className = 'rbar'; }, 900); }
+}
 $('refresh').addEventListener('click', async () => {
   if (busy) return;
-  busy = true; $('refresh').disabled = true; $('refresh').textContent = 'Refreshing';
-  try { const r = await fetch('api.php?a=refresh', {method: 'POST', cache: 'no-store'}); const j = await r.json(); note = j.error || (j.skipped ? j.message : (j.ok ? (j.message || '') : (j.message || 'The pull from Meta failed.'))); } catch (e) { note = 'Could not reach the server.'; }
-  busy = false; await load(); draw();
+  busy = true; setBtn(); setBar('run');
+  const t0 = Date.now();
+  const say = () => { const sec = Math.round((Date.now() - t0) / 1000); setStat('busy', 'Pulling fresh numbers from Meta and Instagram. This can take up to a minute.' + (sec >= 5 ? ' ' + sec + ' seconds so far.' : '')); };
+  say(); tick = setInterval(say, 1000);
+  let kind = 'ok', text = '';
+  try {
+    const r = await fetch('api.php?a=refresh', {method: 'POST', cache: 'no-store'});
+    let j = null; try { j = await r.json(); } catch (e) { j = null; }
+    if (!j) { kind = 'error'; text = 'Refresh failed. The server gave an answer the page could not read. You are seeing the last saved data.'; }
+    else if (j.error) { kind = 'error'; text = 'Refresh failed. ' + j.error + ' You are seeing the last saved data.'; }
+    else if (j.skipped) { kind = 'info'; text = (j.message || 'Data was pulled a few minutes ago.') + ' Nothing new to fetch yet, so the page shows that pull.'; }
+    else if (j.ok) { text = 'Updated. Fresh numbers are in' + (j.message ? '. ' + j.message : '.'); }
+    else { kind = 'error'; text = 'Refresh failed. ' + (j.message || 'The pull from Meta did not finish.') + ' You are seeing the last saved data.'; }
+  } catch (e) { kind = 'error'; text = 'Refresh failed. The page could not reach the server. Check your connection and try again.'; }
+  await load();
+  if (kind !== 'error' && loadError) { kind = 'error'; text = 'The pull ran, but the page could not load the new data. ' + loadError; }
+  clearInterval(tick); busy = false; setBtn(); setBar(kind === 'error' ? 'fail' : 'ok'); setStat(kind, text);
 });
 
 const TITLES = {overview: 'Overview', spend: 'Spend', followers: 'Followers', content: 'Content', analyse: 'Analyse live ad', decisions: 'Decision center'};

@@ -347,6 +347,7 @@ td small{display:block;color:var(--muted)}
           <li>Stop needs the 3-day cost per visit above the stop line on at least 2 of the last 3 days. One bad day is not enough.</li>
           <li>An ad that brings followers cheaper than the account average is kept on Hold, even if its visits are costly.</li>
           <li>A cost that rises 3 days in a row is a warning on Hold, not a Stop.</li>
+          <li>Daily budgets are set on the ad set, not the ad. When two ads share an ad set, the budget check looks at what the whole ad set spent.</li>
           <li>Scale goes by cost per profile visit only. It needs cost per visit at or under target, a steady last day, the ad seen under 2 times per person in 7 days, and the budget used in full. Cost per follower plays no part in scaling.</li>
           <li>A raise is 50% while the ad set is under ₹500 a day, then 20%. Wait 2 days between raises, and go back a step if cost is 25% worse for 2 days.</li>
           <li>One ad gets at most 40% of the live daily budgets.</li>
@@ -502,6 +503,8 @@ function decide(d, eng) {
     const set = adSets.find((x) => x.id === a.adset_id);
     const budget = set ? set.daily_budget : 0;
     const setSpendY = s(adsDaily.filter((x) => x.date === yday && x.adset_id === a.adset_id), 'spend');
+    const mates = adsAll.filter((x) => x.status === 'ACTIVE' && x.adset_id === a.adset_id && x.id !== a.id).map((x) => x.name);
+    const usedTxt = 'Its ad set spent ₹' + Math.round(setSpendY) + ' of its ₹' + Math.round(budget) + ' budget yesterday' + (mates.length ? ', shared with ' + mates.join(' and ') + '. This ad spent ₹' + Math.round(y ? y.spend : 0) + ' of that' : '') + '.';
     const quality = /quality/i.test(a.name + ' ' + a.adset_name);
     const lim = quality ? RULES.quality : RULES.volume;
     const gate = mine.length >= RULES.gateDays && (a.spend >= RULES.gateSpend || a.visits >= RULES.gateVisits);
@@ -522,11 +525,11 @@ function decide(d, eng) {
     else if (a.impressions >= 5000 && vr != null && vr < 0.01 && followsGood) { verdict = 'HOLD'; why = 'Fewer than 1 in 100 viewers visit the profile, but it still brings followers cheaper than your average.' + fTxt; }
     else if (a.impressions >= 5000 && vr != null && vr < 0.01) { verdict = 'STOP'; why = 'Fewer than 1 in 100 viewers visit the profile.'; }
     else if (freq > 4 || (freq > 2.5 && vr != null && vr3 != null && vr3 < vr * 0.75)) { verdict = 'STOP'; why = 'The same people keep seeing this ad and fewer of them visit now.'; }
-    else if (cpv3 != null && cpv3 <= lim.target && (cpvY == null || cpvY <= cpv3 * 1.15) && freq < 2 && budget > 0 && setSpendY >= budget * 0.9) { verdict = 'SCALE'; why = '3-day cost is at or under the ' + money(lim.target) + ' target, steady, and the budget is used in full.'; }
+    else if (cpv3 != null && cpv3 <= lim.target && (cpvY == null || cpvY <= cpv3 * 1.15) && freq < 2 && budget > 0 && setSpendY >= budget * 0.9) { verdict = 'SCALE'; why = '3-day cost is at or under the ' + money(lim.target) + ' target and steady. ' + usedTxt + (mates.length ? ' A raise goes to the whole ad set, and Meta decides how the ads share it.' : ''); }
     else if (cpv3 == null) { verdict = 'HOLD'; why = 'No profile visits in the last 3 days.'; }
     else if (cpv3 <= lim.target) { verdict = 'HOLD'; why = 'Cost is on target, but ' + (freq >= 2 ? 'the same people are seeing it often.' : setSpendY < budget * 0.9 ? 'it is not using its full budget yet.' : 'yesterday was costlier than the 3-day figure.'); }
     else { verdict = 'HOLD'; why = 'Cost is between the ' + money(lim.target) + ' target and the ' + money(lim.stop) + ' stop line.' + hint; }
-    return {id: a.id, ad: a.name, adset: a.adset_name, bucket: quality ? 'Quality' : 'Volume', verdict, action: '', why, cpv3: r2(cpv3), cpv_yday: r2(cpvY), budget: Math.round(budget), cpf};
+    return {id: a.id, ad: a.name, adset: a.adset_name, bucket: quality ? 'Quality' : 'Volume', verdict, action: '', why, cpv3: r2(cpv3), cpv_yday: r2(cpvY), budget: Math.round(budget), cpf, mates};
   });
   // Best ad to receive money: the Scale ad with the cheapest profile visits.
   const scalers = out.filter((o) => o.verdict === 'SCALE').sort((p, q) => p.cpv3 - q.cpv3);
@@ -737,7 +740,7 @@ function drawDecisions() {
     const e = ENG[c.id], cpf = e && e.follows_since > 0 ? e.spend_since / e.follows_since : null, tr = el('tr');
     const ad = el('td'); ad.appendChild(el('b', '', c.ad)); ad.appendChild(el('small', '', c.adset + ' · ' + c.bucket));
     const call = el('td'); call.appendChild(el('span', 'pill ' + c.verdict, c.verdict));
-    tr.append(ad, call, el('td', '', c.action), el('td', 'n', inr2(c.cpv3)), el('td', 'n', inr2(c.cpv_yday)), el('td', 'n', inr2(c.cpv_today)), el('td', 'n', inr2(cpf)), el('td', 'n', inr(c.budget)), el('td', 'n', num(c.follows)), el('td', '', c.why));
+    tr.append(ad, call, el('td', '', c.action), el('td', 'n', inr2(c.cpv3)), el('td', 'n', inr2(c.cpv_yday)), el('td', 'n', inr2(c.cpv_today)), el('td', 'n', inr2(cpf)), (() => { const td = el('td', 'n', inr(c.budget)); if (c.mates && c.mates.length) td.appendChild(el('small', '', 'shared by ' + (c.mates.length + 1) + ' ads')); return td; })(), el('td', 'n', num(c.follows)), el('td', '', c.why));
     return tr;
   }));
   $('todo').replaceChildren(...rows.map((c) => actCard(c, ENG)));

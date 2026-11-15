@@ -313,6 +313,7 @@ td small{display:block;color:var(--muted)}
     <div class="grid g2" id="an-charts">
       <div class="card"><h2>Cost per profile visit, last 7 days</h2><div class="chart" id="c-an-cpv"></div><p class="note">The dashed line is the ₹1.00 target. Today is still running, so its point can move.</p></div>
       <div class="card"><h2>Followers gained by this ad, last 7 days</h2><div class="chart" id="c-an-fol"></div><p class="note" id="an-fol-note"></p></div>
+      <div class="card" style="grid-column:1 / -1"><h2>Ad spend, last 7 days</h2><div class="chart" id="c-an-spend"></div><p class="note" id="an-spend-note"></p></div>
     </div>
   </section>
 
@@ -767,6 +768,10 @@ function drawAnalyse() {
     hover: (i) => rows[i].visits > 0 ? [{color: blue, text: 'Cost per visit ' + inr2(rows[i].spend / rows[i].visits)}, {text: inr(rows[i].spend) + ' spent, ' + num(rows[i].visits) + ' profile visits'}] : [{text: rows[i].spend > 0 ? inr(rows[i].spend) + ' spent, no profile visits' : 'The ad did not run'}]});
   chart($('c-an-fol'), {labels, h: 260, series: [{name: 'Followers gained', color: paidCol, values: rows.map((r) => r.follows)}], fmt: (v) => num(v), tip: (v) => num(v), label: 'Bar chart of followers this ad gained on each of the last 7 days and today', totals: (i) => rows[i].follows ? num(rows[i].follows) : '',
     hover: (i) => [{color: paidCol, text: 'Followers gained ' + num(rows[i].follows)}, {text: rows[i].follows > 0 ? inr2(rows[i].spend / rows[i].follows) + ' per follower' : inr(rows[i].spend) + ' spent'}]});
+  chart($('c-an-spend'), {labels, h: 240, series: [{name: 'Spend', color: css('--violet'), values: rows.map((r) => r.spend)}], fmt: (v) => '₹' + num(v), tip: (v) => inr(v), label: 'Bar chart of this ad’s spend on each of the last 7 days and today', totals: (i) => rows[i].spend ? inr(rows[i].spend) : '',
+    hover: (i) => [{color: css('--violet'), text: 'Spent ' + inr(rows[i].spend)}, {text: num(rows[i].visits) + ' profile visits, ' + num(rows[i].follows) + ' followers gained'}]});
+  const setA = d.adsets.find((x) => x.id === ad.adset_id), matesA = d.ads_all.filter((x) => x.status === 'ACTIVE' && x.adset_id === ad.adset_id && x.id !== ad.id).length;
+  $('an-spend-note').textContent = 'What this ad spent each day.' + (setA ? ' Its ad set has a daily budget of ' + inr(setA.daily_budget) + (matesA ? ', shared by ' + (matesA + 1) + ' ads.' : '.') : '') + ' Today is still running.';
   $('an-fol-note').textContent = 'Followers that Meta credits to this ad.' + (from ? ' Meta began reporting them on ' + dayLabel(from) + ', so earlier days show little or nothing.' : '');
   const s7 = sum(rows.map((r) => r.spend)), v7 = sum(rows.map((r) => r.visits)), f7 = sum(rows.map((r) => r.follows));
   const fr = from ? rows.filter((r) => r.date >= from) : [], fs = sum(fr.map((r) => r.spend)), ff = sum(fr.map((r) => r.follows));

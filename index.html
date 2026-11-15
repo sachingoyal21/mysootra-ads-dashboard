@@ -161,6 +161,7 @@ td small{display:block;color:var(--muted)}
     <a href="#spend" data-v="spend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h12M6 9h12M9 4c6 0 6 9 0 9H6l8 7"/></svg>Spend</a>
     <a href="#followers" data-v="followers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7M17 4a4 4 0 0 1 0 8M22 21c0-3-2-6-5-7"/></svg>Followers</a>
     <a href="#content" data-v="content"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m10 8 6 4-6 4z"/></svg>Content</a>
+    <a href="#analyse" data-v="analyse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-7"/></svg>Analyse live ad</a>
     <a href="#decisions" data-v="decisions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Decision center<span class="count" id="nav-count" hidden></span></a>
   </nav>
   <div class="rail-foot">Reads Meta only. Never changes an ad.</div>
@@ -298,6 +299,20 @@ td small{display:block;color:var(--muted)}
       <p class="note">Click a column to sort. Hold Shift and click another column to sort inside the first one. Click again to flip the order.</p>
       <div class="tbl"><table><thead><tr id="org-head"></tr></thead><tbody id="t-org"></tbody></table></div>
       <p class="empty" id="org-empty" hidden>No posts match these filters.</p>
+    </div>
+  </section>
+
+  <section class="view" id="v-analyse" hidden>
+    <div class="card">
+      <h2>Pick a live ad</h2>
+      <div class="tools"><select id="an-ad" aria-label="Live ad" style="flex:1 1 280px;max-width:520px"></select><span class="pill" id="an-call" hidden></span></div>
+      <p class="empty" id="an-none" hidden>No ads are live right now.</p>
+      <div class="kpis" id="an-kpis"></div>
+      <p class="note" id="an-why"></p>
+    </div>
+    <div class="grid g2" id="an-charts">
+      <div class="card"><h2>Cost per profile visit, last 7 days</h2><div class="chart" id="c-an-cpv"></div><p class="note">The dashed line is the ₹1.00 target. Today is still running, so its point can move.</p></div>
+      <div class="card"><h2>Followers gained by this ad, last 7 days</h2><div class="chart" id="c-an-fol"></div><p class="note" id="an-fol-note"></p></div>
     </div>
   </section>
 
@@ -624,6 +639,9 @@ function draw() {
   DEC = dec.calls.map((c) => Object.assign({}, c, {follows: (d.ads_all.find((a) => a.id === c.id) || {}).follows || 0, cpv_today: (() => { const t = (d.ads_today || []).find((a) => a.id === c.id); return t && t.visits > 0 ? t.spend / t.visits : null; })()})); ENG = eng;
   const dsel = $('df-set'), dcur = dsel.value; dsel.replaceChildren(new Option('All ad sets', ''), ...Array.from(new Set(DEC.map((c) => c.adset))).sort().map((t) => new Option(t))); dsel.value = dcur;
   drawDecisions();
+  const live = d.ads_all.filter((a) => a.status === 'ACTIVE').sort((a, b) => b.spend - a.spend);
+  const asel = $('an-ad'), acur = asel.value; asel.replaceChildren(...live.map((a) => new Option(a.name + (a.adset_name ? '  (' + a.adset_name + ')' : ''), a.id))); if (live.some((a) => a.id === acur)) asel.value = acur;
+  drawAnalyse();
 
   // Paid rankings
   const monthAds = d.month_ads.filter((a) => a.spend > 0);
@@ -708,6 +726,31 @@ function drawDecisions() {
 ['df-q', 'df-set', 'df-call'].forEach((id) => $(id).addEventListener('input', drawDecisions));
 $('df-clear').addEventListener('click', () => { ['df-q', 'df-set', 'df-call'].forEach((id) => { $(id).value = ''; }); drawDecisions(); });
 document.querySelectorAll('#dec-seg button').forEach((b) => b.addEventListener('click', () => { decMode = b.dataset.m; drawDecisions(); }));
+function drawAnalyse() {
+  if (!DATA || !V2) return;
+  const d = DATA.datasets, id = $('an-ad').value, today = V2.today, from = V2.follows_reported_from;
+  const ad = d.ads_all.find((a) => a.id === id);
+  $('an-none').hidden = !!ad; $('an-charts').hidden = !ad; $('an-kpis').hidden = !ad;
+  if (!ad) { $('an-call').hidden = true; $('an-why').textContent = ''; return; }
+  const dates = Array.from(new Set(d.ads_daily.map((x) => x.date))).sort().slice(-7);
+  const rows = dates.map((dt) => d.ads_daily.find((x) => x.id === id && x.date === dt) || {date: dt, spend: 0, visits: 0, follows: 0});
+  const t = (d.ads_today || []).find((x) => x.id === id);
+  rows.push({date: today, spend: t ? t.spend : 0, visits: t ? t.visits : 0, follows: t ? t.follows : 0, today: true});
+  const labels = rows.map((r) => r.today ? 'Today' : dayLabel(r.date));
+  const blue = css('--blue'), paidCol = css('--paid');
+  chart($('c-an-cpv'), {labels, h: 260, line: true, ref: 1, series: [{name: 'Cost per visit', color: blue, values: rows.map((r) => r.visits > 0 ? r.spend / r.visits : null)}], fmt: (v) => '₹' + v.toFixed(2), tip: (v) => inr2(v), label: 'Line chart of this ad’s cost per profile visit for each of the last 7 days and today',
+    hover: (i) => rows[i].visits > 0 ? [{color: blue, text: 'Cost per visit ' + inr2(rows[i].spend / rows[i].visits)}, {text: inr(rows[i].spend) + ' spent, ' + num(rows[i].visits) + ' profile visits'}] : [{text: rows[i].spend > 0 ? inr(rows[i].spend) + ' spent, no profile visits' : 'The ad did not run'}]});
+  chart($('c-an-fol'), {labels, h: 260, series: [{name: 'Followers gained', color: paidCol, values: rows.map((r) => r.follows)}], fmt: (v) => num(v), tip: (v) => num(v), label: 'Bar chart of followers this ad gained on each of the last 7 days and today', totals: (i) => rows[i].follows ? num(rows[i].follows) : '',
+    hover: (i) => [{color: paidCol, text: 'Followers gained ' + num(rows[i].follows)}, {text: rows[i].follows > 0 ? inr2(rows[i].spend / rows[i].follows) + ' per follower' : inr(rows[i].spend) + ' spent'}]});
+  $('an-fol-note').textContent = 'Followers that Meta credits to this ad.' + (from ? ' Meta began reporting them on ' + dayLabel(from) + ', so earlier days show little or nothing.' : '');
+  const s7 = sum(rows.map((r) => r.spend)), v7 = sum(rows.map((r) => r.visits)), f7 = sum(rows.map((r) => r.follows));
+  const fr = from ? rows.filter((r) => r.date >= from) : [], fs = sum(fr.map((r) => r.spend)), ff = sum(fr.map((r) => r.follows));
+  const set = d.adsets.find((x) => x.id === ad.adset_id), c = DEC.find((x) => x.id === id);
+  $('an-kpis').replaceChildren(...[['Spend, 7 days and today', inr(s7)], ['Profile visits', num(v7)], ['Cost per visit', v7 ? inr2(s7 / v7) : '—'], ['Followers gained', num(f7)], ['Cost per follower', ff ? inr2(fs / ff) : '—'], ['Daily budget', set ? inr(set.daily_budget) : '—']].map(([k, v]) => { const x = el('div', 'kpi'); x.append(el('span', '', k), el('b', '', v)); return x; }));
+  $('an-call').hidden = !c; if (c) { $('an-call').className = 'pill ' + c.verdict; $('an-call').textContent = c.verdict; }
+  $('an-why').textContent = c ? c.action + ' ' + c.why : '';
+}
+$('an-ad').addEventListener('change', drawAnalyse);
 let POSTS = [];
 const COLS = [['title', 'Post', false], ['type', 'Type', false], ['date', 'Posted', false], ['reach', 'Reach', true], ['views', 'Views', true], ['likes', 'Likes', true], ['comments', 'Comments', true], ['saved', 'Saves', true], ['shares', 'Shares', true], ['rate', 'Engagement rate', true], ['avg_watch_ms', 'Avg watch', true], ['follows', 'Followers gained', true]];
 function filteredPosts() {
@@ -765,7 +808,7 @@ $('refresh').addEventListener('click', async () => {
   busy = false; await load(); draw();
 });
 
-const TITLES = {overview: 'Overview', spend: 'Spend', followers: 'Followers', content: 'Content', decisions: 'Decision center'};
+const TITLES = {overview: 'Overview', spend: 'Spend', followers: 'Followers', content: 'Content', analyse: 'Analyse live ad', decisions: 'Decision center'};
 function route() {
   const v = TITLES[location.hash.slice(1)] ? location.hash.slice(1) : 'overview';
   Object.keys(TITLES).forEach((k) => { $('v-' + k).hidden = k !== v; });

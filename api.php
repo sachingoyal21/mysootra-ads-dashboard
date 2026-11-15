@@ -20,6 +20,54 @@ try {
         json_out($r + ['last_pull' => last_pull()]);
         exit;
     }
+    if ($a === 'igprobe') {
+        // Checking tool. Asks Meta which organic post numbers this token can read. Read only.
+        $lastProbe = (int)kv_get('probe_at', 0);
+        if ($lastProbe > time() - 60) { json_out(['error' => 'Wait a minute between checks.'], 429); exit; }
+        kv_set('probe_at', time());
+        $out = [];
+        $ig = find_instagram();
+        if (!$ig || !$ig['id']) { json_out(['error' => 'No Instagram account is visible to this token.']); exit; }
+        $out['account'] = ['username' => $ig['username'], 'followers' => $ig['followers']];
+        try {
+            $media = graph($ig['id'] . '/media', ['fields' => 'id,media_type,media_product_type,timestamp,like_count,comments_count,permalink', 'limit' => 12])['data'] ?? [];
+            $out['media_count_returned'] = count($media);
+            $out['media_sample'] = array_slice($media, 0, 4);
+            $seen = [];
+            foreach ($media as $m) {
+                $kind = ($m['media_product_type'] ?? '?') . '/' . ($m['media_type'] ?? '?');
+                if (isset($seen[$kind])) continue;
+                $seen[$kind] = true;
+                foreach (['reach', 'views', 'saved', 'shares', 'total_interactions', 'likes', 'comments', 'follows', 'profile_visits', 'ig_reels_avg_watch_time'] as $metric) {
+                    try {
+                        $r = graph($m['id'] . '/insights', ['metric' => $metric]);
+                        $out['post_insights'][$kind][$metric] = $r['data'][0]['values'][0]['value'] ?? ($r['data'] ?? null);
+                    } catch (Throwable $e) {
+                        $out['post_insights'][$kind][$metric] = 'ERROR ' . $e->getMessage();
+                    }
+                }
+            }
+        } catch (Throwable $e) {
+            $out['media_error'] = $e->getMessage();
+        }
+        $since = strtotime('-7 days'); $until = time();
+        foreach ([['follows_and_unfollows', ['breakdown' => 'follow_type']], ['reach', []], ['views', []], ['profile_views', []], ['accounts_engaged', []], ['total_interactions', []]] as [$metric, $more]) {
+            try {
+                $r = graph($ig['id'] . '/insights', ['metric' => $metric, 'period' => 'day', 'metric_type' => 'total_value', 'since' => $since, 'until' => $until] + $more);
+                $out['account_insights_last_7d'][$metric] = $r['data'][0]['total_value'] ?? ($r['data'] ?? null);
+            } catch (Throwable $e) {
+                $out['account_insights_last_7d'][$metric] = 'ERROR ' . $e->getMessage();
+            }
+        }
+        try {
+            $r = graph($ig['id'] . '/insights', ['metric' => 'follower_count', 'period' => 'day', 'since' => strtotime('-20 days'), 'until' => $until]);
+            $out['follower_count_daily'] = $r['data'][0]['values'] ?? ($r['data'] ?? null);
+        } catch (Throwable $e) {
+            $out['follower_count_daily'] = 'ERROR ' . $e->getMessage();
+        }
+        json_out($out);
+        exit;
+    }
     if ($a === 'diag') {
         $since = date('Y-m-d', strtotime('-7 days'));
         $st = db()->prepare('SELECT day, actions_json, extra_json, spend, visits, follows FROM ad_daily WHERE day >= ?');

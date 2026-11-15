@@ -341,9 +341,9 @@ function find_instagram(): ?array {
         return null;
     }
     foreach ($found as $x) {
-        if ($want !== '' && strpos(strtolower($x['username'] ?? ''), $want) !== false) return ['followers' => (int)$x['followers_count'], 'username' => $x['username'] ?? ''];
+        if ($want !== '' && strpos(strtolower($x['username'] ?? ''), $want) !== false) return ['id' => $x['id'] ?? '', 'followers' => (int)$x['followers_count'], 'username' => $x['username'] ?? ''];
     }
-    return ['followers' => (int)$found[0]['followers_count'], 'username' => $found[0]['username'] ?? ''];
+    return ['id' => $found[0]['id'] ?? '', 'followers' => (int)$found[0]['followers_count'], 'username' => $found[0]['username'] ?? ''];
 }
 
 function last_pull(bool $onlyOk = false): ?array {

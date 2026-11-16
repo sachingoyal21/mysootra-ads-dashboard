@@ -10,11 +10,22 @@ try {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') { json_out(['error' => 'Use POST.'], 405); exit; }
         if (!token()) { json_out(['error' => 'Setup is not finished.'], 409); exit; }
         $last = last_pull();
+        $lastOk = last_pull(true);
         $gap = cfg()['refresh_gap_minutes'] ?? 10;
         $current = (int)kv_get('collector_version', 1) === COLLECTOR_VERSION;
-        if ($current && $last && strtotime($last['started_at']) > time() - $gap * 60) {
-            json_out(['skipped' => true, 'message' => "Data was pulled less than $gap minutes ago.", 'last_pull' => $last]);
+        // A pull that started in the last 5 minutes and has not finished is still running. Do not start a second one.
+        if ($last && empty($last['finished_at']) && strtotime($last['started_at']) > time() - 300) {
+            json_out(['running' => true, 'started_seconds_ago' => time() - strtotime($last['started_at']), 'message' => 'A pull is already running.']);
             exit;
+        }
+        // The wait only counts from the last pull that worked. A failed or dead attempt can be retried at once.
+        if ($current && $lastOk) {
+            $ago = time() - strtotime($lastOk['finished_at'] ?: $lastOk['started_at']);
+            if ($ago < $gap * 60) {
+                $mins = max(1, (int)round($ago / 60));
+                json_out(['skipped' => true, 'minutes_ago' => $mins, 'message' => "Data was pulled $mins " . ($mins === 1 ? 'minute' : 'minutes') . " ago. The next pull is allowed $gap minutes after the last one.", 'last_pull' => $lastOk]);
+                exit;
+            }
         }
         $r = collect('button');
         json_out($r + ['last_pull' => last_pull()]);
@@ -189,10 +200,10 @@ try {
     foreach ($st as $r) $adsDaily[] = ['id' => (string)$r['ad_id'], 'date' => $r['day'], 'adset_id' => (string)$r['adset_id'], 'spend' => (float)$r['spend'], 'impressions' => (int)$r['impressions'], 'visits' => (int)$r['visits'], 'follows' => (int)$r['follows']];
 
     // Longer history per ad, finished days only. The decision rules need it to know an ad's age and its own best run.
-    $st = db()->prepare('SELECT ad_id, day, spend, impressions, visits FROM ad_daily WHERE day >= ? AND day < ? AND spend > 0 ORDER BY day');
+    $st = db()->prepare('SELECT ad_id, day, spend, impressions, visits, follows FROM ad_daily WHERE day >= ? AND day < ? AND spend > 0 ORDER BY day');
     $st->execute([date('Y-m-d', strtotime('-45 days')), $today]);
     $adsHist = [];
-    foreach ($st as $r) $adsHist[] = ['id' => (string)$r['ad_id'], 'date' => $r['day'], 'spend' => (float)$r['spend'], 'impressions' => (int)$r['impressions'], 'visits' => (int)$r['visits']];
+    foreach ($st as $r) $adsHist[] = ['id' => (string)$r['ad_id'], 'date' => $r['day'], 'spend' => (float)$r['spend'], 'impressions' => (int)$r['impressions'], 'visits' => (int)$r['visits'], 'follows' => (int)$r['follows']];
 
     $st = db()->prepare('SELECT day, SUM(spend) AS spend, SUM(visits) AS visits, SUM(follows) AS follows, SUM(impressions) AS impressions FROM ad_daily WHERE day >= ? GROUP BY day ORDER BY day');
     $st->execute([$monthStart]);
@@ -203,9 +214,16 @@ try {
     $st->execute([$plan['start'], $plan['end']]);
     $planSpend = (float)$st->fetchColumn();
 
+    // When each ad set's budget was last raised, read from the budget saved at every pull. Needed for the 2-day wait between raises.
+    $raisedOn = []; $prevBudget = [];
+    foreach (db()->query("SELECT pulled_at, entity_id, daily_budget FROM snapshots WHERE kind='adset' AND daily_budget IS NOT NULL ORDER BY pulled_at, id") as $r) {
+        $k = (string)$r['entity_id']; $b = (float)$r['daily_budget'];
+        if (isset($prevBudget[$k]) && $b > $prevBudget[$k] + 0.5) $raisedOn[$k] = ['date' => substr($r['pulled_at'], 0, 10), 'from' => $prevBudget[$k], 'to' => $b];
+        $prevBudget[$k] = $b;
+    }
     $adsets = [];
     foreach (db()->query('SELECT adset_id, name, status, daily_budget FROM adsets') as $r) {
-        $adsets[] = ['id' => (string)$r['adset_id'], 'name' => (string)$r['name'], 'status' => (string)$r['status'], 'daily_budget' => (float)$r['daily_budget'], 'spend' => 0, 'impressions' => 0, 'visits' => 0, 'follows' => 0];
+        $adsets[] = ['id' => (string)$r['adset_id'], 'name' => (string)$r['name'], 'status' => (string)$r['status'], 'daily_budget' => (float)$r['daily_budget'], 'spend' => 0, 'impressions' => 0, 'visits' => 0, 'follows' => 0, 'raised' => $raisedOn[(string)$r['adset_id']] ?? null];
     }
 
     $followers = [];

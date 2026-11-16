@@ -363,23 +363,20 @@ td small{display:block;color:var(--muted)}
       <p class="empty" id="dec-none" hidden>No ads match these filters.</p>
       <details class="note"><summary>How the calls are made</summary>
         <ul>
-          <li>An ad gets a call after 2 days with spend and ₹300 spent or 150 profile visits. Before that it shows Wait.</li>
-          <li>The stop line is a 3-day cost per visit above ₹1.50 on at least 2 of the last 3 days. One bad day is not enough. What happens next depends on pull, which is the share of viewers who visit the profile.</li>
-          <li>Weak pull, under 1.5%, and over the stop line is a Stop. Ads like this have not recovered in this account.</li>
-          <li>Healthy pull, 2% or more, is a slow starter. It stays on Hold at its current budget for up to 10 days. From day 10 it is a Stop only if cost is still over the line and no longer falling.</li>
-          <li>An ad with 7 or more days and a good run behind it gets Cut budget first when its cost doubles against its own best 3 days. Halve the budget. It turns to Stop if cost stays that high for 6 days in a row.</li>
+          <li>The goal is followers, so an ad is judged on cost per follower first. This needs 30 follows credited to the ad in the last 3 finished days. Until then the visit rules below apply and the ad cannot be raised.</li>
+          <li>An ad gets a call after 2 days with spend and ₹300 spent, 150 profile visits or 100 follows. Before that it shows Wait.</li>
+          <li>Scale needs all of these. Followers at or under ₹1.20 each, yesterday not more than 15% costlier, the ad seen under 2 times per person in 7 days, the budget used in full, and no raise in the last 2 days. The ₹1.20 comes from the followers still needed and the budget left.</li>
+          <li>When a profile visit costs more than a follower, people are following straight from the ad. The card calls this out as a strong sign.</li>
+          <li>Only one ad is raised a day, the one with the cheapest followers. A raise is 50% while the ad set is under ₹500 a day, then 20%. Go back a step if cost is 25% worse for 2 days. One ad gets at most 40% of the live daily budgets.</li>
+          <li>Stop needs all of these. Followers above ₹1.80 each over 3 full days, ₹300 spent since follows were reported, and yesterday also above ₹1.80. An ad that did well over its whole run gets Cut budget first.</li>
+          <li>Day-3 check. From its 3rd day an ad is a Stop if it has under 100 profile visits and under 30 follows, or if its followers cost more than ₹2.00 each. If it has too few follows to judge, a visit cost above ₹2.00 is a Stop. An ad with cheap followers is kept even when its visits cost more than ₹2.00.</li>
+          <li>Cheap followers with costly visits. When followers cost under ₹1.50 but a profile visit costs ₹2.50 or more, the ad is on Hold with no raise, as long as follower gains keep up. Keeping up means yesterday’s follows were at least 80% of its daily average before that. If gains slow, it is a Stop.</li>
+          <li>Between ₹1.20 and ₹1.80 is Hold. Every card shows the ad’s rank on cost per follower.</li>
           <li>If every ad gets costlier on the same day, nothing is stopped. Check the account first.</li>
-          <li>An ad that brings followers cheaper than the account average is kept on Hold, even if its visits are costly.</li>
-          <li>A cost that rises 3 days in a row is a warning on Hold, not a Stop.</li>
+          <li>Visit rules, used only when an ad has too few follows. Under 1.5% of viewers visiting and over ₹1.50 a visit is a Stop. With 2% or more it gets up to 10 days on Hold. A proven ad whose visit cost doubles gets Cut budget first.</li>
           <li>Give every festival ad an end date on the festival day when you set it up. The dashboard cannot see festival dates.</li>
-          <li>Daily budgets are set on the ad set, not the ad. When two ads share an ad set, the budget check looks at what the whole ad set spent.</li>
-          <li>The scale test is cost per visit at or under ₹1.00, a steady last day, the ad seen under 2 times per person in 7 days, and the budget used in full. An ad whose followers are cheaper than the account average passes up to ₹1.50 a visit.</li>
-          <li>Only one ad is raised a day. Among the ads that pass, the one with the cheapest followers goes first. An ad needs 100 follows before its follower cost is used, and until then cost per visit decides.</li>
-          <li>A raise is 50% while the ad set is under ₹500 a day, then 20%. Wait 2 days between raises, and go back a step if cost is 25% worse for 2 days.</li>
-          <li>One ad gets at most 40% of the live daily budgets.</li>
-          <li>A new ad starts at ₹150 a day and shows Wait for its first 2 days. Money from a stopped ad goes to the day’s new ad.</li>
-          <li>The plan is to spend the full budget, so the Budget pace card shows how much more, or less, the live budgets should be.</li>
-          <li>Stop still fires at once for an ad that is far over the limit, shown too often to the same people, or visited by fewer than 1 in 100 viewers.</li>
+          <li>A new ad starts at ₹150 a day. Money from a stopped ad goes to the day’s new ad.</li>
+          <li>Stop still fires at once for an ad shown too often to the same people, or far over the visit limit with no cheap followers to show for it.</li>
         </ul>
       </details>
     </div>
@@ -388,7 +385,7 @@ td small{display:block;color:var(--muted)}
 </div>
 
 <script>
-const RULES = {budget: 25000, end: '2026-11-30', volume: {target: 1, stop: 1.5}, quality: {target: 2, stop: 3}, gateDays: 2, gateSpend: 300, gateVisits: 150, step: 0.2, stepSmall: 0.5, smallBudget: 500, newAdBudget: 150, capShare: 0.4, pullWeak: 0.015, pullGood: 0.02, slowDays: 10, provenDays: 7, jump: 2, jumpStopDays: 6, cutShare: 0.5, rankFollows: 100};
+const RULES = {budget: 25000, end: '2026-11-30', volume: {target: 1, stop: 1.5}, quality: {target: 2, stop: 3}, gateDays: 2, gateSpend: 300, gateVisits: 150, step: 0.2, stepSmall: 0.5, smallBudget: 500, newAdBudget: 150, capShare: 0.4, pullWeak: 0.015, pullGood: 0.02, slowDays: 10, provenDays: 7, jump: 2, jumpStopDays: 6, cutShare: 0.5, rankFollows: 100, fTarget: 1.2, fStop: 1.8, minFollows: 30, day3: 3, hardLine: 2, day3Visits: 100, cheapF: 1.5, dearV: 2.5, momentum: 0.8};
 const $ = (id) => document.getElementById(id);
 const nf = new Intl.NumberFormat('en-IN');
 const num = (v) => v == null ? '—' : nf.format(Math.round(v));
@@ -495,7 +492,7 @@ function rankRows(host, items, cls, emptyText) {
   });
 }
 
-// Rulebook v1.6. Returns a call for every live ad.
+// Rulebook v1.7. Followers first: an ad with enough follows is judged on cost per follower. Visits are the fallback.
 function decide(d, eng) {
   eng = eng || {};
   // Cost per follow needs at least 30 follows credited to the ad before it is trusted.
@@ -516,6 +513,7 @@ function decide(d, eng) {
   const cap = Math.round(liveDaily * RULES.capShare);
   // Account alarm: if cost per visit across all ads doubled yesterday against the 3 days before, the cause is not one ad.
   const hist = d.ads_hist && d.ads_hist.length ? d.ads_hist : adsDaily;
+  const fFrom = d.follows_from || (typeof V2 !== 'undefined' && V2 ? V2.follows_reported_from : null);
   const cp = (rows) => { const v = s(rows, 'visits'); return v > 0 ? s(rows, 'spend') / v : null; };
   const yRows = adsDaily.filter((x) => x.date === yday && x.spend > 0), pDates = dates.slice(-4, -1);
   const acctY = cp(yRows), acctPrev = cp(adsDaily.filter((x) => pDates.includes(x.date)));
@@ -539,7 +537,7 @@ function decide(d, eng) {
     const usedTxt = 'Its ad set spent ₹' + Math.round(setSpendY) + ' of its ₹' + Math.round(budget) + ' budget yesterday' + (mates.length ? ', shared with ' + mates.join(' and ') + '. This ad spent ₹' + Math.round(y ? y.spend : 0) + ' of that' : '') + '.';
     const quality = /quality/i.test(a.name + ' ' + a.adset_name);
     const lim = quality ? RULES.quality : RULES.volume;
-    const gate = mine.length >= RULES.gateDays && (a.spend >= RULES.gateSpend || a.visits >= RULES.gateVisits);
+    const gate = mine.length >= RULES.gateDays && (a.spend >= RULES.gateSpend || a.visits >= RULES.gateVisits || (eng[a.id] && eng[a.id].follows_since >= 100));
     const dcp = mine.slice(-3).map((x) => (x.visits > 0 ? x.spend / x.visits : null));
     const rising = dcp.length === 3 && dcp.every((v) => v != null) && dcp[0] < dcp[1] && dcp[1] < dcp[2] && cpv3 != null && cpv3 > lim.target;
     const hint = vr != null && vr >= 0.02 && a.cpm > 30 ? ' The creative pulls well but this audience is expensive, so test the post in a cheaper audience.' : vr != null && vr < 0.012 && a.cpm < 20 ? ' The audience is cheap but few viewers visit the profile, so try a stronger hook.' : '';
@@ -563,9 +561,58 @@ function decide(d, eng) {
     for (let i = all.length - 1; i >= 0; i--) { const c = all[i].visits > 0 ? all[i].spend / all[i].visits : Infinity; if (c > badLine) badDays++; else break; }
     const pct = (v) => (v * 100).toFixed(1) + '%';
     const weakPull = vr != null && vr < RULES.pullWeak, goodPull = vr != null && vr >= RULES.pullGood;
+    // Follower view. Used when Meta has credited this ad at least 30 follows in the last 3 finished days.
+    const fDays = fFrom ? m3.filter((x) => x.date >= fFrom) : [];
+    const fol3 = s(fDays, 'follows'), fSp3 = s(fDays, 'spend'), fVis3 = s(fDays, 'visits');
+    const F = fol3 >= RULES.minFollows ? fSp3 / fol3 : null;
+    const yF = y && fFrom && y.date >= fFrom && y.follows > 0 ? y.spend / y.follows : null;
+    const R = F != null && fVis3 > 0 ? fol3 / fVis3 : null;
+    const eA = eng[a.id] || {spend_since: 0, follows_since: 0};
+    const lifeF = eA.follows_since >= RULES.minFollows ? eA.spend_since / eA.follows_since : null;
+    const raisedDays = set && set.raised ? Math.round((Date.parse(todayIST) - Date.parse(set.raised.date)) / 86400000) : null;
+    // Cheap followers with costly visits. Fine to hold while follower gains keep up.
+    const mixF = F != null ? F : lifeF, mixV = cpv3 != null ? cpv3 : lifeCpv;
+    const fRows = fFrom ? mine.filter((x) => x.date >= fFrom) : [];
+    const yFol = y && fFrom && y.date >= fFrom ? y.follows : 0;
+    const prevRows = fRows.filter((x) => x.date !== yday);
+    const prevFol = prevRows.length ? s(prevRows, 'follows') / prevRows.length : null;
+    const momentumOk = prevFol == null ? yFol >= 10 : yFol >= prevFol * RULES.momentum;
+    const followerCall = () => {
+      const fT = RULES.fTarget, fS = RULES.fStop;
+      const rTxt = R == null ? '' : R >= 1 ? ' It gets ' + R.toFixed(2) + ' follows for every profile visit, so a visit costs more than a follower. People follow straight from the ad, which is a strong sign.' : ' It gets ' + R.toFixed(2) + ' follows for every profile visit.';
+      const base = 'Followers cost ' + money(F) + ' each over the last 3 days';
+      if (freq > 4 || (freq > 2.5 && vr != null && vr3 != null && vr3 < vr * 0.75)) return ['STOP', 'The same people keep seeing this ad and fewer of them respond now.'];
+      if (F > fS) {
+        if (accountJump) return ['HOLD', 'Every ad got costlier on the same day, so this is not about one ad. Do not pause anything yet. Check the account first.'];
+        if (eA.spend_since < RULES.gateSpend) return ['HOLD', base + ', above the ' + money(fS) + ' stop line. It has spent ₹' + Math.round(eA.spend_since) + ' so far. A stop call needs ₹' + RULES.gateSpend + ', so give it ₹' + Math.round(RULES.gateSpend - eA.spend_since) + ' more. Do not raise it.' + rTxt];
+        if (fDays.length < 3) return ['HOLD', base + ', above the ' + money(fS) + ' stop line, but that is only ' + fDays.length + ' days of follower numbers. A stop call needs 3. Do not raise it.' + rTxt];
+        if (yF != null && yF <= fS) return ['HOLD', base + ', above the ' + money(fS) + ' stop line, but yesterday was back under it at ' + money(yF) + '. Give it one more day.' + rTxt];
+        if (lifeF != null && lifeF <= fT && eA.follows_since >= 100) return ['CUT', base + ', above the ' + money(fS) + ' stop line. Over its whole run it has done well at ' + money(lifeF) + ' a follower, so cut the budget first instead of stopping it.'];
+        return ['STOP', base + ', above the ' + money(fS) + ' stop line, and yesterday was no better' + (yF != null ? ' at ' + money(yF) : '') + '.' + rTxt + hint];
+      }
+      if (F <= fT) {
+        const blocks = [];
+        if (yF != null && yF > F * 1.15) blocks.push('yesterday was costlier at ' + money(yF));
+        if (freq >= 2) blocks.push('the same people are seeing it often');
+        if (raisedDays != null && raisedDays < 2) blocks.push('its budget was raised ' + (raisedDays <= 0 ? 'today' : 'yesterday') + ' from ₹' + Math.round(set.raised.from) + ' to ₹' + Math.round(set.raised.to) + ', and raises need 2 days between them');
+        else if (!(budget > 0 && setSpendY >= budget * 0.9)) blocks.push('its ad set spent ₹' + Math.round(setSpendY) + ' of its ₹' + Math.round(budget) + ' budget yesterday, so more budget would not be used');
+        if (!blocks.length) return ['SCALE', base + ', under the ' + money(fT) + ' scale line, and steady.' + rTxt + ' ' + usedTxt + (mates.length ? ' A raise goes to the whole ad set, and Meta decides how the ads share it.' : '')];
+        return ['HOLD', base + ', under the ' + money(fT) + ' scale line. It is not a raise today because ' + blocks.join(' and ') + '.' + rTxt];
+      }
+      return ['HOLD', base + ', between the ' + money(fT) + ' scale line and the ' + money(fS) + ' stop line.' + rTxt];
+    };
     let verdict, why;
-    if (a.spend >= 150 && ((lifeCpv != null && lifeCpv > 4) || (a.impressions >= 2000 && vr != null && vr < 0.007))) { verdict = 'STOP'; why = 'Cost is far above the limit even on a small spend.'; }
-    else if (!gate) { verdict = 'WAIT'; why = 'Needs 2 days with spend and ₹' + RULES.gateSpend + ' spent, or 150 profile visits, before a fair call.'; }
+    if (!(lifeF != null && lifeF <= RULES.fStop) && a.spend >= 150 && ((lifeCpv != null && lifeCpv > 4) || (a.impressions >= 2000 && vr != null && vr < 0.007))) { verdict = 'STOP'; why = 'Cost is far above the limit even on a small spend.'; }
+    // Day-3 check. From its 3rd day an ad must be getting results, and they must not cost more than ₹2.
+    // Follower cost decides when the ad has 30 follows. Visit cost decides only when it does not.
+    else if (daysRun >= RULES.day3 && accountJump && ((lifeF != null && lifeF > RULES.hardLine) || (lifeF == null && lifeCpv != null && lifeCpv > RULES.hardLine))) { verdict = 'HOLD'; why = 'Every ad got costlier on the same day, so this is not about one ad. Do not pause anything yet. Check the account first.'; }
+    else if (daysRun >= RULES.day3 && a.visits < RULES.day3Visits && eA.follows_since < RULES.minFollows) { verdict = 'STOP'; why = 'It has run ' + daysRun + ' days and has only ' + a.visits + ' profile visits and ' + eA.follows_since + ' follows from ₹' + Math.round(a.spend) + '. By day 3 an ad should have at least ' + RULES.day3Visits + ' visits or ' + RULES.minFollows + ' follows.' + (mates.length ? ' It shares its ad set with ' + mates.join(' and ') + ', and Meta is giving it little of the budget.' : ''); }
+    else if (daysRun >= RULES.day3 && lifeF != null && lifeF > RULES.hardLine) { verdict = 'STOP'; why = 'It has run ' + daysRun + ' days and its followers cost ' + money(lifeF) + ' each, above the ' + money(RULES.hardLine) + ' limit for an ad on day 3 or later.' + (lifeCpv != null ? ' Visits cost ' + money(lifeCpv) + '.' : ''); }
+    else if (daysRun >= RULES.day3 && lifeF == null && lifeCpv != null && lifeCpv > RULES.hardLine) { verdict = 'STOP'; why = 'It has run ' + daysRun + ' days, has fewer than ' + RULES.minFollows + ' follows, and its visits cost ' + money(lifeCpv) + ' each, above the ' + money(RULES.hardLine) + ' limit for an ad on day 3 or later.'; }
+    else if (!gate) { verdict = 'WAIT'; why = 'Needs 2 days with spend and ₹' + RULES.gateSpend + ' spent, 150 profile visits or 100 follows, before a fair call.'; }
+    else if (mixF != null && mixF < RULES.cheapF && mixV != null && mixV >= RULES.dearV && momentumOk) { verdict = 'HOLD'; why = 'Followers are cheap at ' + money(mixF) + ' each, but a profile visit costs ' + money(mixV) + '. Few people open the profile and many follow straight from the ad. Follower gains are holding up, with ' + yFol + ' yesterday' + (prevFol != null ? ' against ' + Math.round(prevFol) + ' a day before that' : '') + '. Keep it running at this budget. No raise while visits cost this much.'; }
+    else if (mixF != null && mixF < RULES.cheapF && mixV != null && mixV >= RULES.dearV) { verdict = 'STOP'; why = 'Followers cost ' + money(mixF) + ' each, but a profile visit costs ' + money(mixV) + ' and follower gains are slowing, with ' + yFol + ' yesterday against ' + Math.round(prevFol) + ' a day before that. Costly visits were fine only while followers kept coming.'; }
+    else if (F != null) { const fc = followerCall(); verdict = fc[0]; why = fc[1]; }
     else if (over && accountJump) { verdict = 'HOLD'; why = 'Every ad got costlier on the same day, so this is not about one ad. Do not pause anything yet. Check the account first, then look again tomorrow.'; }
     else if (over && followsGood) { verdict = 'HOLD'; why = 'Visits cost more than the ' + money(lim.stop) + ' stop line, but it brings followers cheaper than your average, so keep it.' + fTxt; }
     else if (over && daysOver < 2) { verdict = 'HOLD'; why = '3-day cost is above the ' + money(lim.stop) + ' stop line, but only one day was over it. Watch one more day before pausing.'; }
@@ -580,6 +627,7 @@ function decide(d, eng) {
     else if (a.impressions >= 5000 && vr != null && vr < 0.01 && followsGood) { verdict = 'HOLD'; why = 'Fewer than 1 in 100 viewers visit the profile, but it still brings followers cheaper than your average.' + fTxt; }
     else if (a.impressions >= 5000 && vr != null && vr < 0.01) { verdict = 'STOP'; why = 'Fewer than 1 in 100 viewers visit the profile.'; }
     else if (freq > 4 || (freq > 2.5 && vr != null && vr3 != null && vr3 < vr * 0.75)) { verdict = 'STOP'; why = 'The same people keep seeing this ad and fewer of them visit now.'; }
+    else if (avgCpf != null && cpv3 != null && cpv3 <= lim.target) { verdict = 'HOLD'; why = 'Visits are cheap, but Meta has credited it fewer than ' + RULES.minFollows + ' follows in the last 3 days, so its follower cost cannot be judged yet. No raise until it can.' + (lifeF != null ? ' So far its followers cost ' + money(lifeF) + ' each.' : ''); }
     else if (cpv3 != null && (cpv3 <= lim.target || (followsGood && cpv3 <= lim.stop)) && (cpvY == null || cpvY <= cpv3 * 1.15) && freq < 2 && budget > 0 && setSpendY >= budget * 0.9) { verdict = 'SCALE'; why = (cpv3 <= lim.target ? '3-day cost is at or under the ' + money(lim.target) + ' target and steady. ' : 'Visits cost a little more than the ' + money(lim.target) + ' target, but its followers are cheaper than your average and it is under the ' + money(lim.stop) + ' stop line.' + fTxt + ' ') + usedTxt + (mates.length ? ' A raise goes to the whole ad set, and Meta decides how the ads share it.' : ''); }
     else if (cpv3 == null) { verdict = 'HOLD'; why = 'No profile visits in the last 3 days.'; }
     else if (cpv3 <= lim.target) { verdict = 'HOLD'; why = 'Cost is on target, but ' + (freq >= 2 ? 'the same people are seeing it often.' : setSpendY < budget * 0.9 ? 'it is not using its full budget yet.' : 'yesterday was costlier than the 3-day figure.'); }
@@ -587,13 +635,15 @@ function decide(d, eng) {
     // Follower cost used to rank Scale ads. It needs 100 follows credited to the ad before it is trusted for this.
     const e = eng[a.id];
     const cpfRank = e && e.follows_since >= RULES.rankFollows ? e.spend_since / e.follows_since : null;
-    return {id: a.id, ad: a.name, adset: a.adset_name, bucket: quality ? 'Quality' : 'Volume', verdict, action: '', why, cpv3: r2(cpv3), cpv_yday: r2(cpvY), budget: Math.round(budget), cpf, cpfRank, mates, days: daysRun, pull: vr};
+    return {id: a.id, ad: a.name, adset: a.adset_name, bucket: quality ? 'Quality' : 'Volume', verdict, action: '', why, cpv3: r2(cpv3), cpv_yday: r2(cpvY), budget: Math.round(budget), cpf, cpfRank: F != null ? F : cpfRank, f3: r2(F), fpv: r2(R), mates, days: daysRun, pull: vr};
   });
   // One raise a day. The ad to raise is the Scale ad with the cheapest followers. Ads without enough follows yet come after, by cost per visit.
   const scalers = out.filter((o) => o.verdict === 'SCALE').sort((p, q) => (p.cpfRank != null && q.cpfRank != null ? p.cpfRank - q.cpfRank : p.cpfRank != null ? -1 : q.cpfRank != null ? 1 : p.cpv3 - q.cpv3));
   const winner = scalers[0];
   scalers.slice(1).forEach((o) => { o.verdict = 'HOLD'; o.queued = true; o.why = 'It passes the scale test, but only one ad is raised a day. ' + winner.ad + ' goes first because ' + (winner.cpfRank != null ? 'its followers are the cheapest at ' + money(winner.cpfRank) + (o.cpfRank != null ? ' against ' + money(o.cpfRank) + ' here.' : '. This ad does not have 100 follows yet to compare.') : 'its visits are cheaper and no ad has 100 follows yet to compare follower cost.'); });
   if (winner && !winner.why.includes('per follower')) winner.why += winner.cpfRank != null ? ' Among the ads ready to scale it has the cheapest followers, at ' + money(winner.cpfRank) + ' each' + (avgCpf != null ? ' against an account average of ' + money(avgCpf) : '') + '.' : ' It does not have 100 follows yet, so it was picked on cost per visit.' + (winner.cpf != null && avgCpf != null && winner.cpf > avgCpf ? ' Be careful. So far its followers cost ' + money(winner.cpf) + ' each against an account average of ' + money(avgCpf) + '.' : '');
+  const ranked = out.filter((o) => o.f3 != null).sort((p, q) => p.f3 - q.f3);
+  ranked.forEach((o, i) => { o.rank = i + 1; if (ranked.length > 1) o.why += ' Rank ' + (i + 1) + ' of ' + ranked.length + ' on cost per follower.'; });
   const stopMoney = out.filter((o) => o.verdict === 'STOP').reduce((t, o) => t + o.budget, 0);
   const weakest = out.filter((o) => o.verdict === 'HOLD' && !o.queued && o.cpv3 != null).sort((p, q) => q.cpv3 - p.cpv3)[0];
   // Balanced scaling: 50% steps while an ad set is under ₹500 a day, then 20%.
@@ -927,7 +977,18 @@ $('refresh').addEventListener('click', async () => {
     let j = null; try { j = await r.json(); } catch (e) { j = null; }
     if (!j) { kind = 'error'; text = 'Refresh failed. The server gave an answer the page could not read. You are seeing the last saved data.'; }
     else if (j.error) { kind = 'error'; text = 'Refresh failed. ' + j.error + ' You are seeing the last saved data.'; }
-    else if (j.skipped) { kind = 'info'; text = (j.message || 'Data was pulled a few minutes ago.') + ' Nothing new to fetch yet, so the page shows that pull.'; }
+    else if (j.running) {
+      // Another pull is in progress, from an earlier click or the 3-hourly job. Keep the loader on and wait for it to end.
+      const t1 = Date.now(); let done = null;
+      while (!done && Date.now() - t1 < 300000) {
+        await new Promise((res) => setTimeout(res, 5000));
+        try { const v = await (await fetch('api.php?a=v2', {cache: 'no-store'})).json(); if (v.last_attempt && v.last_attempt.finished_at) done = v.last_attempt; } catch (e) { /* keep waiting */ }
+      }
+      if (!done) { kind = 'error'; text = 'A pull was already running and has not finished after 5 minutes. Try again in a moment.'; }
+      else if (Number(done.ok) === 1) { text = 'Updated. Fresh numbers are in.'; }
+      else { kind = 'error'; text = 'Refresh failed. ' + (done.message || 'The pull from Meta did not finish.') + ' You are seeing the last saved data.'; }
+    }
+    else if (j.skipped) { kind = 'info'; text = (j.message || 'Data was pulled a few minutes ago.') + ' The page shows that pull.'; }
     else if (j.ok) { text = 'Updated. Fresh numbers are in' + (j.message ? '. ' + j.message : '.'); }
     else { kind = 'error'; text = 'Refresh failed. ' + (j.message || 'The pull from Meta did not finish.') + ' You are seeing the last saved data.'; }
   } catch (e) { kind = 'error'; text = 'Refresh failed. The page could not reach the server. Check your connection and try again.'; }

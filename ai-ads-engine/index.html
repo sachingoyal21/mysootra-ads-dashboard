@@ -261,7 +261,7 @@ function draw() {
   $('run').disabled = busy || AI.running || !AI.has_key || !AI.has_pin;
   $('run').textContent = AI.running ? 'Running' : 'Run now';
   $('status').hidden = !AI.running;
-  if (AI.running) $('status').textContent = (AI.step ? AI.step + '. ' : 'The engine is working. ') + (AI.running_seconds != null ? AI.running_seconds + ' seconds so far. ' : '') + 'You can leave this page. The answer is saved on the server.';
+  if (AI.running) $('status').textContent = (AI.step ? AI.step + '. ' : 'The engine is working. ') + (AI.running_seconds != null ? AI.running_seconds + ' seconds so far. ' : '') + (AI.step_age > 45 ? 'No news from the server for ' + AI.step_age + ' seconds. ' : '') + 'You can leave this page. The answer is saved on the server.';
   showError(AI.last_error ? 'The last run on ' + when(AI.last_error.at) + ' did not finish. ' + AI.last_error.message : '');
   if (document.activeElement !== $('playbook')) $('playbook').value = AI.playbook;
   ['log', 'play', 'test'].forEach((k) => { $('s-' + k).open = open.has(k); });

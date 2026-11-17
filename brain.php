@@ -338,6 +338,7 @@ function claude_post(array $body, string $key, ?callable $onProgress = null, int
     $buf = '';
     $raw = '';
     $text = '';
+    $notes = 0; // characters of thinking that have arrived
     $out = ['model' => (string)$body['model'], 'stop_reason' => null, 'usage' => ['input_tokens' => 0, 'output_tokens' => 0]];
     $err = null;
     $last = 0;
@@ -345,7 +346,7 @@ function claude_post(array $body, string $key, ?callable $onProgress = null, int
     curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_TIMEOUT => $timeout, CURLOPT_CONNECTTIMEOUT => 15, CURLOPT_NOSIGNAL => true,
         CURLOPT_HTTPHEADER => ['x-api-key: ' . $key, 'anthropic-version: 2023-06-01', 'content-type: application/json', 'accept: text/event-stream'],
         CURLOPT_POSTFIELDS => json_encode($body),
-        CURLOPT_WRITEFUNCTION => function ($ch, $chunk) use (&$buf, &$raw, &$text, &$out, &$err, &$last, $onProgress) {
+        CURLOPT_WRITEFUNCTION => function ($ch, $chunk) use (&$buf, &$raw, &$text, &$notes, &$out, &$err, &$last, $onProgress) {
             if (strlen($raw) < 4000) $raw .= $chunk;
             $buf .= $chunk;
             while (($pos = strpos($buf, "\n")) !== false) {
@@ -360,6 +361,8 @@ function claude_post(array $body, string $key, ?callable $onProgress = null, int
                     $out['usage']['input_tokens'] = (int)($e['message']['usage']['input_tokens'] ?? 0);
                 } elseif ($type === 'content_block_delta' && ($e['delta']['type'] ?? '') === 'text_delta') {
                     $text .= $e['delta']['text'];
+                } elseif ($type === 'content_block_delta') {
+                    $notes += strlen((string)($e['delta']['thinking'] ?? ''));
                 } elseif ($type === 'message_delta') {
                     if (isset($e['delta']['stop_reason'])) $out['stop_reason'] = $e['delta']['stop_reason'];
                     if (isset($e['usage']['output_tokens'])) $out['usage']['output_tokens'] = (int)$e['usage']['output_tokens'];
@@ -367,7 +370,7 @@ function claude_post(array $body, string $key, ?callable $onProgress = null, int
                     $err = (string)($e['error']['message'] ?? 'Unknown error');
                 }
             }
-            if ($onProgress && time() - $last >= 3) { $last = time(); $onProgress(strlen($text)); }
+            if ($onProgress && time() - $last >= 3) { $last = time(); $onProgress(strlen($text), $notes); }
             return strlen($chunk);
         }]);
     $ok = curl_exec($ch);
@@ -415,7 +418,8 @@ function brain_call(array $facts, ?callable $onProgress = null): array {
     $key = brain_secret()['key'] ?? '';
     if ($key === '' && !getenv('MS_CLAUDE_MOCK')) throw new BrainError('The Claude API key is not saved yet.');
     $model = cfg()['brain_model'] ?? BRAIN_MODEL;
-    $body = ['model' => $model, 'max_tokens' => 8000, 'system' => brain_system(),
+    // Thinking counts toward max_tokens, so leave room for it on top of the answer.
+    $body = ['model' => $model, 'max_tokens' => 16000, 'system' => brain_system(),
         'messages' => [['role' => 'user', 'content' => "Fact sheet for today:\n" . json_encode($facts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]],
         'output_config' => ['format' => ['type' => 'json_schema', 'schema' => brain_schema()]]];
     $resp = claude_post($body, $key, $onProgress);
@@ -600,7 +604,7 @@ function brain_finish(int $runId): void {
         $save(['facts_json' => json_encode($facts)]);
         $step('Sent to Claude, waiting for the first words');
         if (!$facts['live_ads']) throw new BrainError('There are no live ads to judge right now.');
-        $res = brain_call($facts, fn(int $chars) => $step($chars ? 'Claude is writing the answer, ' . $chars . ' characters so far' : 'Claude is thinking'));
+        $res = brain_call($facts, fn(int $chars, int $notes) => $step($chars ? 'Claude is writing the answer, ' . $chars . ' characters so far' : 'Claude is thinking' . ($notes ? ', ' . $notes . ' characters of notes so far' : '')));
         $step('Checking the answer');
         $clean = brain_guard($res['output'], $facts);
         $clean['seconds'] = (int)round(microtime(true) - $t0);
@@ -735,7 +739,7 @@ function brain_state(): array {
     $st = $pdo->prepare('SELECT COUNT(*) FROM brain_runs WHERE day = ?');
     $st->execute([date('Y-m-d')]);
     return [
-        'has_key' => !empty($sec['key']) || (bool)getenv('MS_CLAUDE_MOCK'), 'has_pin' => !empty($sec['pin_hash']), 'running' => $running, 'step' => $running ? (kv_get('brain_progress')['step'] ?? null) : null, 'test' => kv_get('brain_test'), 'running_seconds' => $running && $startedAt ? time() - strtotime($startedAt) : null,
+        'has_key' => !empty($sec['key']) || (bool)getenv('MS_CLAUDE_MOCK'), 'has_pin' => !empty($sec['pin_hash']), 'running' => $running, 'step' => $running ? (kv_get('brain_progress')['step'] ?? null) : null, 'step_age' => $running && !empty(kv_get('brain_progress')['at']) ? time() - strtotime(kv_get('brain_progress')['at']) : null, 'test' => kv_get('brain_test'), 'running_seconds' => $running && $startedAt ? time() - strtotime($startedAt) : null,
         'run' => $run ? ['id' => (int)$run['id'], 'run_at' => $run['run_at'], 'day' => $run['day'], 'source' => $run['source'], 'model' => $run['model'], 'cost_usd' => (float)$run['cost_usd'], 'tokens_in' => (int)$run['tokens_in'], 'tokens_out' => (int)$run['tokens_out'], 'output' => json_decode($run['output_json'], true)] : null,
         'last_error' => $fail && $fail['message'] !== '' && (!$run || $fail['run_at'] > $run['run_at']) ? ['at' => $fail['run_at'], 'message' => $fail['message']] : null,
         'decided' => $decided, 'log' => $log,

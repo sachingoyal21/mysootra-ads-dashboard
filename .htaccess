@@ -7,3 +7,9 @@ Header set X-Robots-Tag "noindex, nofollow"
 Require all denied
 </FilesMatch>
 RedirectMatch 404 /\.git
+
+# The AI run carries on after the page has its reply. Without this, LiteSpeed stops a PHP script as soon as the browser disconnects.
+<IfModule Litespeed>
+RewriteEngine On
+RewriteRule .* - [E=noabort:1,E=noconntimeout:1]
+</IfModule>

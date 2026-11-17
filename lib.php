@@ -37,8 +37,11 @@ function token(): ?string {
     return is_string($t) && $t !== '' ? $t : null;
 }
 
-function db(): PDO {
+// Pass true to drop the old connection and open a new one. MySQL on this host closes a connection that sits idle,
+// and a long wait for Claude is exactly that.
+function db(bool $fresh = false): PDO {
     static $pdo = null;
+    if ($fresh) $pdo = null;
     if ($pdo === null) {
         $c = cfg()['db'];
         $pdo = new PDO($c['dsn'], $c['user'] ?? null, $c['pass'] ?? null, [

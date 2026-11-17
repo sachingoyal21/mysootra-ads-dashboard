@@ -596,10 +596,12 @@ function brain_claim(): ?int {
 function brain_finish(int $runId): void {
     @set_time_limit(PHP_SAPI === 'cli' ? 0 : 340);
     @ignore_user_abort(true);
-    $pdo = db();
-    $save = function (array $f) use ($pdo, $runId) {
+    // Every write here opens a new database connection if the old one has gone. The wait for Claude can outlast it.
+    $save = function (array $f) use ($runId) {
         $set = implode(', ', array_map(fn($k) => "$k = ?", array_keys($f)));
-        $pdo->prepare("UPDATE brain_runs SET $set WHERE id = ?")->execute(array_merge(array_values($f), [$runId]));
+        $args = array_merge(array_values($f), [$runId]);
+        try { db()->prepare("UPDATE brain_runs SET $set WHERE id = ?")->execute($args); }
+        catch (PDOException $e) { db(true)->prepare("UPDATE brain_runs SET $set WHERE id = ?")->execute($args); }
     };
     // If PHP itself dies, say why instead of leaving the row on Running.
     $done = false;
@@ -609,7 +611,11 @@ function brain_finish(int $runId): void {
         try { $save(['message' => 'The server stopped the run. ' . ($e ? $e['message'] : 'No reason was given.')]); } catch (Throwable $x) { /* nothing more can be done */ }
     });
     $t0 = microtime(true);
-    $step = function (string $what) use ($runId, $t0) { kv_set('brain_progress', ['run' => $runId, 'step' => $what, 'seconds' => (int)round(microtime(true) - $t0), 'at' => date('Y-m-d H:i:s')]); };
+    $step = function (string $what) use ($runId, $t0) {
+        $note = ['run' => $runId, 'step' => $what, 'seconds' => (int)round(microtime(true) - $t0), 'at' => date('Y-m-d H:i:s')];
+        try { kv_set('brain_progress', $note); }
+        catch (Throwable $e) { try { db(true); kv_set('brain_progress', $note); } catch (Throwable $x) { /* a progress note must never stop a run */ } }
+    };
     try {
         $step('Checking for fresh numbers');
         // Fresh numbers first.
@@ -622,6 +628,7 @@ function brain_finish(int $runId): void {
         $step('Sent to Claude, waiting for the first words');
         if (!$facts['live_ads']) throw new BrainError('There are no live ads to judge right now.');
         $res = brain_call($facts, fn(int $chars, int $notes) => $step($chars ? 'Claude is writing the answer, ' . $chars . ' characters so far' : 'Claude is thinking' . ($notes ? ', ' . $notes . ' characters of notes so far' : '')));
+        db(true); // the old connection has usually timed out by now
         $step('Checking the answer');
         $clean = brain_guard($res['output'], $facts);
         $clean['seconds'] = (int)round(microtime(true) - $t0);
@@ -632,6 +639,7 @@ function brain_finish(int $runId): void {
         $save(['model' => $res['model'], 'ok' => 1, 'tokens_in' => $res['tokens_in'], 'tokens_out' => $res['tokens_out'], 'cost_usd' => $res['cost_usd'], 'output_json' => json_encode($clean), 'message' => '']);
         $step('Done');
     } catch (Throwable $e) {
+        try { db(true); } catch (Throwable $x) { /* the save below reports it */ }
         $save(['message' => $e->getMessage() . ' (after ' . (int)round(microtime(true) - $t0) . ' seconds)']);
         $step('Failed');
     }

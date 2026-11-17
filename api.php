@@ -41,7 +41,7 @@ try {
             'stopped_ads' => count($f['ads_stopped_in_last_7_days']), 'organic_posts' => count($f['organic_posts']), 'ads_linked_to_a_post' => count(array_filter($f['live_ads'], fn($x) => $x['post'] !== null)),
             'audiences' => array_map(fn($x) => $x['audience'], $f['ad_sets']), 'account' => $f['account'], 'php_time_limit' => ini_get('max_execution_time'), 'curl' => function_exists('curl_init'), 'sapi' => PHP_SAPI, 'can_finish_request' => function_exists('litespeed_finish_request') ? 'litespeed' : (function_exists('fastcgi_finish_request') ? 'fastcgi' : 'no'),
             'recent_runs' => db()->query('SELECT id, run_at, source, model, ok, tokens_in, tokens_out, cost_usd, message FROM brain_runs ORDER BY id DESC LIMIT 6')->fetchAll(),
-            'progress' => kv_get('brain_progress'), 'connection_test' => kv_get('brain_test'), 'worker_seen_seconds_ago' => kv_get('brain_worker_seen') ? time() - (int)kv_get('brain_worker_seen') : null,
+            'db_idle_timeout_seconds' => is_mysql() ? (int)(db()->query("SHOW VARIABLES LIKE 'wait_timeout'")->fetch()['Value'] ?? 0) : null, 'progress' => kv_get('brain_progress'), 'connection_test' => kv_get('brain_test'), 'worker_seen_seconds_ago' => kv_get('brain_worker_seen') ? time() - (int)kv_get('brain_worker_seen') : null,
             'creative_samples' => db()->query("SELECT name, creative_json FROM ads WHERE status = 'ACTIVE' LIMIT 4")->fetchAll(), 'post_link_samples' => db()->query('SELECT media_id, permalink FROM ig_media ORDER BY posted_at DESC LIMIT 4')->fetchAll()]);
         exit;
     }

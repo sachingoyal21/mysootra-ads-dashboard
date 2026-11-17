@@ -36,7 +36,7 @@ try {
     if ($a === 'bg_test') {
         // Checks that this server lets a script carry on after the reply has gone. It waits 25 seconds and notes the time. It calls nothing outside and spends nothing.
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') { json_out(['last' => kv_get('bg_test')]); exit; }
-        if ((int)(kv_get('bg_test')['started'] ?? 0) > time() - 40) { json_out(['error' => 'Wait a little between checks.'], 429); exit; }
+        if ((int)(kv_get('bg_test')['started'] ?? 0) > time() - 40 && empty(kv_get('bg_test')['finished'])) { json_out(['error' => 'Wait a little between checks.'], 429); exit; }
         kv_set('bg_test', ['started' => time(), 'ticks' => 0, 'finished' => null]);
         @ignore_user_abort(true);
         $body = json_encode(['started' => true]);
@@ -48,7 +48,9 @@ try {
         elseif (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
         else { while (ob_get_level() > 0) @ob_end_flush(); @flush(); }
         $t = kv_get('bg_test');
-        for ($i = 1; $i <= 5; $i++) { sleep(5); $t['ticks'] = $i; kv_set('bg_test', $t); }
+        @set_time_limit(340);
+        $n = max(5, min(40, (int)($_GET['n'] ?? 5))); // 5 seconds each, up to 200 seconds
+        for ($i = 1; $i <= $n; $i++) { sleep(5); $t['ticks'] = $i; kv_set('bg_test', $t); }
         $t['finished'] = time();
         kv_set('bg_test', $t);
         exit;

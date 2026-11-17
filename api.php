@@ -33,6 +33,15 @@ try {
         json_out($r + ['last_pull' => last_pull()]);
         exit;
     }
+    if ($a === 'brain_check') {
+        // Health check for the engine. Builds the fact sheet and reports its size. It does not call Claude and shows no key.
+        $t0 = microtime(true);
+        $f = brain_facts();
+        json_out(['ok' => true, 'seconds' => round(microtime(true) - $t0, 2), 'fact_sheet_bytes' => strlen(json_encode($f)), 'live_ads' => count($f['live_ads']), 'ad_sets' => count($f['ad_sets']),
+            'stopped_ads' => count($f['ads_stopped_in_last_7_days']), 'organic_posts' => count($f['organic_posts']), 'ads_linked_to_a_post' => count(array_filter($f['live_ads'], fn($x) => $x['post'] !== null)),
+            'audiences' => array_map(fn($x) => $x['audience'], $f['ad_sets']), 'account' => $f['account'], 'php_time_limit' => ini_get('max_execution_time'), 'curl' => function_exists('curl_init')]);
+        exit;
+    }
     if ($a === 'brain') {
         // AI decisions: the latest run, what the team decided, the log and the scorecard.
         json_out(brain_state());

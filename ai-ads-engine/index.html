@@ -95,6 +95,11 @@ table.t .n{text-align:right}
 .note{font-size:12px;color:var(--muted);margin:0}
 #playbook{width:100%;min-height:240px;font:inherit;font-size:14px;line-height:1.55;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);resize:vertical}
 .tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pick{font:inherit;font-size:14px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink)}
+.sugline{font-size:14px;margin:0} .sugline b{font-weight:600;display:inline-block;min-width:76px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.item textarea{width:100%;font:inherit;font-size:14px;line-height:1.5;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);resize:vertical;min-height:64px}
+.mini-h{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:10px 0 4px}
+.was{color:var(--bad);text-decoration:line-through} .now{color:var(--good)}
 .foot{font-size:12px;color:var(--muted);text-align:center}
 @media (max-width:760px){
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -151,10 +156,28 @@ table.t .n{text-align:right}
     <p class="note" id="log-none" hidden>No decisions logged yet. Results appear 3 days after a decision.</p>
   </div></details>
 
+  <details class="card sec" id="s-sug" data-k="sug"><summary><h2>Playbook suggestions</h2><span class="pill" id="sug-n"></span><span class="teaser" id="sug-t"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary><div class="in">
+    <p class="sub">The engine reads the team's decisions, reasons and results, then suggests changes to the playbook. Nothing changes until you accept it.</p>
+    <div class="tools">
+      <label class="note" for="sug-days">Review the playbook</label>
+      <select id="sug-days" class="pick"></select>
+      <button class="btn ghost" type="button" id="sug-run">Review now</button>
+      <span class="note" id="sug-note"></span>
+    </div>
+    <p class="note" id="sug-last"></p>
+    <div id="sug" style="display:flex;flex-direction:column;gap:12px"></div>
+    <p class="note" id="sug-none" hidden>No suggestions waiting.</p>
+    <div class="tbl" id="sug-done-wrap" hidden><table class="t"><thead><tr><th>Date</th><th>Answer</th><th>Line</th></tr></thead><tbody id="sug-done"></tbody></table></div>
+  </div></details>
+
   <details class="card sec" id="s-play" data-k="play"><summary><h2>Playbook</h2><span class="teaser">How the team wants calls made</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary><div class="in">
     <p class="sub">Plain words. The engine reads this on every run. Edit it when the goal or the budget changes.</p>
     <textarea id="playbook" spellcheck="false" aria-label="Playbook"></textarea>
     <div class="tools"><button class="btn ghost" type="button" id="play-save">Save playbook</button><span class="note" id="play-note"></span></div>
+    <div id="hist-wrap" hidden>
+      <h3 class="mini-h">Changes so far</h3>
+      <div class="tbl"><table class="t"><thead><tr><th>Date</th><th>How</th><th>What changed</th><th></th></tr></thead><tbody id="hist"></tbody></table></div>
+    </div>
   </div></details>
 
   <details class="card sec" id="s-test" data-k="test"><summary><h2>Connection test</h2><span class="teaser" id="test-t">Check the key, the model and the link to Claude</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary><div class="in">
@@ -264,7 +287,8 @@ function draw() {
   if (AI.running) $('status').textContent = (AI.step ? AI.step + '. ' : 'The engine is working. ') + (AI.running_seconds != null ? AI.running_seconds + ' seconds so far. ' : '') + (AI.step_age > 45 ? 'No news from the server for ' + AI.step_age + ' seconds. ' : '') + 'You can leave this page. The answer is saved on the server.';
   showError(AI.last_error ? 'The last run on ' + when(AI.last_error.at) + ' did not finish. ' + AI.last_error.message : '');
   if (document.activeElement !== $('playbook')) $('playbook').value = AI.playbook;
-  ['log', 'play', 'test'].forEach((k) => { $('s-' + k).open = open.has(k); });
+  ['log', 'play', 'test', 'sug'].forEach((k) => { $('s-' + k).open = open.has(k); });
+  drawReview();
   const T = AI.test;
   $('test-t').textContent = T ? (T.steps.every((x) => x.ok) && T.steps.length === 3 ? 'All 3 tests passed on ' + when(T.at) : 'A test failed on ' + when(T.at)) : 'Check the key, the model and the link to Claude';
   $('test').replaceChildren(...(T ? T.steps : []).map((x) => { const tr = el('tr'); const r = el('td'); r.appendChild(el('span', 'pill ' + (x.ok ? 'good' : 'warn'), x.ok ? 'Passed' : 'Failed')); tr.append(el('td', '', x.test), r, el('td', 'n', String(x.seconds)), el('td', '', x.ok ? x.model + ' · ' + x.tokens_in + ' tokens in, ' + x.tokens_out + ' out' : x.error)); return tr; }));
@@ -358,6 +382,64 @@ function draw() {
     return tr;
   }));
 }
+// Playbook suggestions and playbook history.
+const dayWords = {0: 'Off', 1: 'Every day', 3: 'Every 3 days', 5: 'Every 5 days', 7: 'Once a week'};
+function drawReview() {
+  const R = AI.review; if (!R) return;
+  const sel = $('sug-days');
+  if (!sel.options.length) R.choices.forEach((d) => { const o = el('option', '', dayWords[d]); o.value = String(d); sel.appendChild(o); });
+  if (document.activeElement !== sel) sel.value = String(R.days);
+  $('sug-run').disabled = R.running || !AI.has_key || !AI.has_pin;
+  $('sug-run').textContent = R.running ? 'Reviewing' : 'Review now';
+  $('sug-n').textContent = String(R.open.length); $('sug-n').className = 'pill' + (R.open.length ? ' warn' : '');
+  $('sug-t').textContent = R.running ? 'A review is running' : R.open.length ? R.open.length + ' waiting for your answer' : R.last ? 'Last reviewed ' + when(R.last.at) : 'No review yet';
+  const L = R.last;
+  $('sug-last').textContent = !L ? (R.days ? 'The first review runs after the next engine run, once a decision has been logged.' : 'Reviews are off.')
+    : L.ok ? 'Last review ' + when(L.at) + ', read ' + L.decisions_read + (L.decisions_read === 1 ? ' decision' : ' decisions') + ', cost $' + L.cost_usd.toFixed(2) + '. ' + L.summary
+    : 'The last review on ' + when(L.at) + ' did not finish. ' + L.message;
+  $('sug-none').hidden = R.open.length > 0;
+  $('sug').replaceChildren(...R.open.map((x) => {
+    const d = el('div', 'item');
+    const a = el('p', 'sugline'); a.append(el('b', '', 'Now'), document.createTextNode(x.current_line || 'Nothing. This would be a new line.'));
+    const b = el('p', 'sugline'); b.appendChild(el('b', '', 'Proposed'));
+    const ta = el('textarea'); ta.value = x.proposed_line; ta.setAttribute('aria-label', 'Proposed line. You can edit it before accepting.');
+    const w = el('p', 'sugline'); w.append(el('b', '', 'Why'), document.createTextNode(x.why));
+    const e = el('p', 'sugline'); e.append(el('b', '', 'Evidence'), document.createTextNode(x.evidence + ' (' + x.decisions_supporting + (Number(x.decisions_supporting) === 1 ? ' decision)' : ' decisions)')));
+    const line = el('div', 'tools');
+    const yes = el('button', 'btn sm', 'Accept'); yes.type = 'button'; yes.addEventListener('click', () => answer(x.id, 'accept', ta.value, yes));
+    const no = el('button', 'btn sm ghost', 'Reject'); no.type = 'button'; no.addEventListener('click', () => answer(x.id, 'reject', '', no));
+    line.append(yes, no, el('span', 'note', 'You can edit the proposed line before accepting.'));
+    d.append(a, b, ta, w, e, line);
+    return d;
+  }));
+  $('sug-done-wrap').hidden = !R.decided.length;
+  $('sug-done').replaceChildren(...R.decided.map((x) => { const tr = el('tr'); const st = el('td'); st.appendChild(el('span', 'pill ' + (x.status === 'rejected' ? '' : 'good'), x.status === 'edited' ? 'Accepted with edits' : cap(x.status))); tr.append(el('td', '', when(x.decided_at)), st, el('td', '', x.status === 'rejected' ? x.proposed_line : x.final_line)); return tr; }));
+  $('hist-wrap').hidden = !R.history.length;
+  const how = {manual: 'Edited by hand', suggestion: 'Accepted suggestion', restore: 'Restored'};
+  $('hist').replaceChildren(...R.history.map((h) => {
+    const tr = el('tr'); const what = el('td');
+    h.removed.forEach((l) => what.appendChild(el('div', 'was', l))); h.added.forEach((l) => what.appendChild(el('div', 'now', l)));
+    if (!h.removed.length && !h.added.length) what.textContent = 'Lines reordered';
+    const act = el('td'); const b = el('button', 'btn sm ghost', 'Undo this'); b.type = 'button';
+    b.addEventListener('click', async () => { if (!window.confirm('Put the playbook back to how it was before this change?')) return; try { AI = await post('brain_playbook_restore', {id: h.id}); draw(); } catch (e) { showError('The playbook was not restored. ' + e.message); } });
+    act.appendChild(b);
+    tr.append(el('td', '', when(h.at)), el('td', '', how[h.source] || h.source), what, act);
+    return tr;
+  }));
+}
+async function answer(id, what, line, btn) {
+  showError(''); btn.disabled = true;
+  try { AI = await post('brain_suggestion', {id, what, line}); draw(); } catch (e) { showError('That was not saved. ' + e.message); btn.disabled = false; }
+}
+$('sug-days').addEventListener('change', async () => {
+  const n = $('sug-note');
+  try { AI = await post('brain_review_days', {days: Number($('sug-days').value)}); draw(); n.textContent = 'Saved.'; } catch (e) { n.textContent = 'Not saved. ' + e.message; await load(); }
+});
+$('sug-run').addEventListener('click', async () => {
+  const n = $('sug-note'); n.textContent = '';
+  try { AI = await post('brain_review'); draw(); n.textContent = 'Queued. It starts within a minute and takes a minute or two.'; } catch (e) { n.textContent = e.message; }
+});
+
 async function load() {
   try { AI = await getState(); draw(); } catch (e) { showError('The engine could not be loaded. ' + e.message); }
 }
@@ -382,7 +464,7 @@ $('play-save').addEventListener('click', async () => {
 load();
 // Coming back to this tab, for example after finishing setup, refreshes the state so the Run button wakes up.
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !busy) load(); });
-setInterval(() => { if (!document.hidden && !busy && AI && AI.running) load(); }, 5000);
+setInterval(() => { if (!document.hidden && !busy && AI && (AI.running || (AI.review && AI.review.running))) load(); }, 5000);
 </script>
 </body>
 </html>

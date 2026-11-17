@@ -50,7 +50,7 @@ try {
         json_out(brain_state());
         exit;
     }
-    if ($a === 'brain_run' || $a === 'brain_decide' || $a === 'brain_playbook' || $a === 'brain_test') {
+    if (in_array($a, ['brain_run', 'brain_decide', 'brain_playbook', 'brain_test', 'brain_review', 'brain_review_days', 'brain_suggestion', 'brain_playbook_restore'], true)) {
         // These three write to our own database or spend API money, so they need the team PIN.
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') { json_out(['error' => 'Use POST.'], 405); exit; }
         try {
@@ -71,11 +71,20 @@ try {
                 brain_test();
             }
             elseif ($a === 'brain_decide') brain_decide($in);
-            else {
-                $text = trim((string)($in['playbook'] ?? ''));
-                if (strlen($text) > 6000) throw new BrainError('Keep the playbook under 6,000 characters.');
-                kv_set('brain_playbook', $text);
+            elseif ($a === 'brain_review') {
+                // Queues a playbook review. The worker runs it, because it is another slow call to Claude.
+                if ((int)kv_get('brain_worker_seen', 0) < time() - 180) throw new BrainError('The background worker on the server is not running, so the review cannot start. Tell Claude this exact line.');
+                if (!db()->query('SELECT COUNT(*) FROM brain_decisions')->fetchColumn()) throw new BrainError('Log a few decisions first. The review learns from them.');
+                kv_set('brain_review_queued', time());
             }
+            elseif ($a === 'brain_review_days') {
+                $d = (int)($in['days'] ?? -1);
+                if (!in_array($d, REVIEW_DAY_CHOICES, true)) throw new BrainError('Choose off, 1, 3, 5 or 7 days.');
+                kv_set('brain_review_days', $d);
+            }
+            elseif ($a === 'brain_suggestion') suggestion_decide($in);
+            elseif ($a === 'brain_playbook_restore') playbook_restore((int)($in['id'] ?? 0));
+            else playbook_save((string)($in['playbook'] ?? ''), 'manual', 'Edited by hand');
             json_out(brain_state());
         } catch (BrainError $e) {
             json_out(['error' => $e->getMessage()], 400);

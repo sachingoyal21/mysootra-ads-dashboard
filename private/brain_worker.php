@@ -17,9 +17,18 @@ try {
         $st->execute([date('Y-m-d')]);
         if (!(int)$st->fetchColumn()) { brain_start('daily'); $id = brain_claim(); }
     }
-    if (!$id) exit(0);
-    brain_finish($id);
-    echo date('c') . ' finished run ' . $id . "\n";
+    if ($id) {
+        brain_finish($id);
+        echo date('c') . ' finished run ' . $id . "\n";
+        db(true);
+    }
+    // Playbook review. Runs when someone asked for it on the page, or right after a run when one is due.
+    $asked = (int)kv_get('brain_review_queued', 0) > time() - 600;
+    if ($asked || ($id && review_due())) {
+        kv_set('brain_review_queued', 0);
+        $rid = brain_review($asked ? 'button' : 'auto');
+        echo date('c') . ' finished playbook review ' . $rid . "\n";
+    }
 } catch (Throwable $e) {
     echo date('c') . ' FAILED ' . $e->getMessage() . "\n";
 }

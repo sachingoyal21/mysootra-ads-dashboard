@@ -416,14 +416,14 @@ function brain_test(): array {
     return $res;
 }
 
-function brain_call(array $facts, ?callable $onProgress = null): array {
+// Asks Claude one question and gets JSON back in a fixed shape.
+function claude_json(string $system, string $user, array $schema, ?callable $onProgress = null): array {
     $key = brain_secret()['key'] ?? '';
     if ($key === '' && !getenv('MS_CLAUDE_MOCK')) throw new BrainError('The Claude API key is not saved yet.');
     $model = cfg()['brain_model'] ?? BRAIN_MODEL;
     // Thinking counts toward max_tokens, so leave room for it on top of the answer.
-    $body = ['model' => $model, 'max_tokens' => 16000, 'system' => brain_system(),
-        'messages' => [['role' => 'user', 'content' => "Fact sheet for today:\n" . json_encode($facts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]],
-        'output_config' => ['format' => ['type' => 'json_schema', 'schema' => brain_schema()]]];
+    $body = ['model' => $model, 'max_tokens' => 16000, 'system' => $system, 'messages' => [['role' => 'user', 'content' => $user]],
+        'output_config' => ['format' => ['type' => 'json_schema', 'schema' => $schema]]];
     $resp = claude_post($body, $key, $onProgress, 420);
     if (($resp['stop_reason'] ?? '') === 'max_tokens') throw new BrainError('The answer was cut off before it finished. Try again.');
     if (($resp['stop_reason'] ?? '') === 'refusal') throw new BrainError('Claude declined to answer this run.');
@@ -434,6 +434,10 @@ function brain_call(array $facts, ?callable $onProgress = null): array {
     $in = (int)($resp['usage']['input_tokens'] ?? 0);
     $o = (int)($resp['usage']['output_tokens'] ?? 0);
     return ['output' => $out, 'model' => (string)($resp['model'] ?? $model), 'tokens_in' => $in, 'tokens_out' => $o, 'cost_usd' => round($in * BRAIN_PRICE['in'] / 1e6 + $o * BRAIN_PRICE['out'] / 1e6, 4)];
+}
+
+function brain_call(array $facts, ?callable $onProgress = null): array {
+    return claude_json(brain_system(), "Fact sheet for today:\n" . json_encode($facts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), brain_schema(), $onProgress);
 }
 
 // ---------- Guardrails: nothing reaches the screen unchecked ----------
@@ -771,6 +775,182 @@ function brain_state(): array {
         'decided' => $decided, 'log' => $log,
         'score' => ['decisions' => (int)$s['n'], 'agreed' => (int)$s['agreed'], 'turned_out_well' => $good, 'turned_out_badly' => $bad],
         'content' => brain_content_table(), 'playbook' => brain_playbook(), 'runs_today' => (int)$st->fetchColumn(), 'runs_per_day' => BRAIN_RUNS_PER_DAY,
-        'actions' => AD_ACTIONS,
+        'actions' => AD_ACTIONS, 'review' => review_state(),
+    ];
+}
+
+// ---------- Playbook review: the playbook improves from the team's decisions, with the team approving every change ----------
+
+const REVIEW_DAY_CHOICES = [0, 1, 3, 5, 7]; // 0 means off
+const REVIEWS_PER_DAY = 3;
+
+function playbook_lines(string $text): array {
+    return array_values(array_filter(array_map('trim', preg_split('/\r?\n/', $text)), fn($l) => $l !== ''));
+}
+
+// Saves a new playbook and keeps the old one in the history.
+function playbook_save(string $text, string $source, string $note): void {
+    $text = trim($text);
+    if (strlen($text) > 6000) throw new BrainError('Keep the playbook under 6,000 characters.');
+    if ($text === '') throw new BrainError('The playbook cannot be empty.');
+    $before = brain_playbook();
+    if ($before === $text) return;
+    db()->prepare('INSERT INTO playbook_history (changed_at, source, note, before_text, after_text) VALUES (?,?,?,?,?)')->execute([date('Y-m-d H:i:s'), $source, substr($note, 0, 250), $before, $text]);
+    kv_set('brain_playbook', $text);
+}
+
+function review_days(): int {
+    $d = kv_get('brain_review_days');
+    return in_array($d, REVIEW_DAY_CHOICES, true) ? $d : 1; // daily to begin with, as the team asked
+}
+
+// A review is due when the chosen number of days has passed and the team has logged something new since the last one.
+function review_due(): bool {
+    $days = review_days();
+    if ($days === 0) return false;
+    $pdo = db();
+    $last = $pdo->query('SELECT run_at FROM brain_reviews WHERE ok = 1 ORDER BY id DESC LIMIT 1')->fetchColumn();
+    if ($last && substr($last, 0, 10) > date('Y-m-d', strtotime("-$days days"))) return false;
+    $st = $pdo->prepare('SELECT COUNT(*) FROM brain_decisions WHERE decided_at > ?');
+    $st->execute([$last ?: '2000-01-01 00:00:00']);
+    return (int)$st->fetchColumn() > 0;
+}
+
+function review_schema(): array {
+    $str = ['type' => 'string'];
+    return ['type' => 'object', 'additionalProperties' => false, 'required' => ['summary', 'suggestions'], 'properties' => [
+        'summary' => $str,
+        'suggestions' => ['type' => 'array', 'items' => ['type' => 'object', 'additionalProperties' => false,
+            'required' => ['current_line', 'proposed_line', 'why', 'evidence', 'decisions_supporting'],
+            'properties' => ['current_line' => $str, 'proposed_line' => $str, 'why' => $str, 'evidence' => $str, 'decisions_supporting' => ['type' => 'integer']]]],
+    ]];
+}
+
+function review_system(): string {
+    return implode("\n", [
+        'You look after the playbook of the MySootra AI Ads Engine. The playbook is a short list of plain lines that tells the engine how the team wants ad calls made.',
+        'You get the current playbook, the calls the engine made, what the team decided instead, the team\'s reasons, and how each decision turned out 3 days later.',
+        'Your job is to suggest changes to the playbook so that future calls match how the team really decides, where the results back it up. The team will accept, edit or reject each suggestion. Nothing changes without them.',
+        '',
+        'Rules:',
+        '- An empty list of suggestions is a good answer. Suggest only when the evidence is real: the same kind of override more than once, or a clear rule the team wrote in a reason.',
+        '- One decision with no stated rule is not a pattern. Say in the summary that you are watching it.',
+        '- Do not turn a team habit into a rule if it turned out badly. If the team\'s overrides led to costlier followers, say so in the summary.',
+        '- Where the team agreed with the engine and it turned out well, that line of the playbook is working. Leave it alone.',
+        '- current_line must be an exact copy of one line from playbook_lines, or an empty string to add a new line.',
+        '- proposed_line is the full new line, in the same plain style as the others, starting with a short label and a full stop. One line only.',
+        '- At most 3 suggestions. Do not repeat anything in rejected_suggestions unless new decisions support it, and say what is new. Do not repeat anything in open_suggestions.',
+        '- Stay with how to judge ads, budgets, audiences and content. Never suggest anything about changing the ad account automatically, access, PINs or run limits.',
+        '- evidence names the decisions: the ad, the date, what the engine said, what the team did, and the result if there is one. decisions_supporting is how many decisions back the suggestion.',
+        '- why is one or two sentences on what would be different in future calls.',
+        '- summary is 1 to 3 sentences on what you looked at and what you found. Short sentences, everyday words, no jargon, no em dashes.',
+    ]);
+}
+
+// Runs one review. Called by the worker, never from a web request.
+function brain_review(string $source = 'auto'): int {
+    @set_time_limit(PHP_SAPI === 'cli' ? 0 : 340);
+    $pdo = db();
+    $st = $pdo->prepare('SELECT COUNT(*) FROM brain_reviews WHERE run_at >= ?');
+    $st->execute([date('Y-m-d 00:00:00')]);
+    $today = (int)$st->fetchColumn();
+    $st->closeCursor(); // nothing may stay open on this connection, a fresh one is opened after the wait for Claude
+    unset($st);
+    if ($today >= REVIEWS_PER_DAY) throw new BrainError('The playbook has already been reviewed ' . REVIEWS_PER_DAY . ' times today. That is the daily limit.');
+    brain_outcomes();
+    $decisions = [];
+    foreach ($pdo->query('SELECT * FROM brain_decisions ORDER BY decided_at DESC LIMIT 60') as $d) {
+        $o = $d['outcome_json'] ? json_decode($d['outcome_json'], true) : null;
+        $decisions[] = ['date' => $d['day'], 'kind' => $d['kind'], 'item' => $d['item_name'],
+            'engine_said' => trim($d['ai_action'] . ($d['ai_budget'] ? ' to ₹' . $d['ai_budget'] : '')), 'team_did' => trim($d['final_action'] . ($d['final_budget'] ? ' to ₹' . $d['final_budget'] : '')),
+            'agreed' => (bool)$d['agreed'], 'team_reason' => (string)$d['reason'], 'numbers_at_the_time' => $d['context_json'] ? json_decode($d['context_json'], true) : null,
+            'result_after_3_days' => $o['note'] ?? 'not in yet', 'turned_out_well' => $o['good'] ?? null];
+    }
+    $pdo->prepare("INSERT INTO brain_reviews (run_at, source, ok, decisions_read, message) VALUES (?, ?, 0, ?, 'Running')")->execute([date('Y-m-d H:i:s'), $source, count($decisions)]);
+    $id = (int)$pdo->lastInsertId();
+    $save = function (array $f) use ($id) {
+        $set = implode(', ', array_map(fn($k) => "$k = ?", array_keys($f)));
+        db(true)->prepare("UPDATE brain_reviews SET $set WHERE id = ?")->execute(array_merge(array_values($f), [$id]));
+    };
+    try {
+        if (!$decisions) throw new BrainError('There are no logged decisions to learn from yet.');
+        $lines = playbook_lines(brain_playbook());
+        $sug = fn(string $status) => array_map(fn($r) => ['current_line' => $r['current_line'], 'proposed_line' => $r['proposed_line'], 'date' => substr($r['created_at'], 0, 10)],
+            $pdo->query("SELECT current_line, proposed_line, created_at FROM playbook_suggestions WHERE status = '$status' ORDER BY id DESC LIMIT 20")->fetchAll());
+        $input = ['today' => date('Y-m-d'), 'playbook_lines' => $lines, 'decisions' => $decisions, 'open_suggestions' => $sug('open'), 'rejected_suggestions' => $sug('rejected')];
+        $res = claude_json(review_system(), "Playbook and decisions:\n" . json_encode($input, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), review_schema());
+        db(true); // the old connection has usually timed out by now
+        $known = [];
+        foreach (db()->query("SELECT proposed_line FROM playbook_suggestions WHERE status IN ('open', 'rejected')") as $r) $known[trim($r['proposed_line'])] = true;
+        $kept = 0;
+        foreach ((array)($res['output']['suggestions'] ?? []) as $x) {
+            $cur = trim((string)($x['current_line'] ?? ''));
+            $new = trim(preg_replace('/\s+/u', ' ', (string)($x['proposed_line'] ?? '')));
+            // Checks in code: the line being replaced must exist, the new line must be new, short, and one we have not already seen.
+            if ($new === '' || strlen($new) > 500 || $new === $cur || isset($known[$new]) || $kept >= 3) continue;
+            if ($cur !== '' && !in_array($cur, $lines, true)) continue;
+            db()->prepare('INSERT INTO playbook_suggestions (review_id, created_at, current_line, proposed_line, why, evidence, decisions_supporting) VALUES (?,?,?,?,?,?,?)')
+                ->execute([$id, date('Y-m-d H:i:s'), $cur, $new, substr((string)($x['why'] ?? ''), 0, 1000), substr((string)($x['evidence'] ?? ''), 0, 1500), max(0, (int)($x['decisions_supporting'] ?? 0))]);
+            $known[$new] = true;
+            $kept++;
+        }
+        $save(['ok' => 1, 'model' => $res['model'], 'tokens_in' => $res['tokens_in'], 'tokens_out' => $res['tokens_out'], 'cost_usd' => $res['cost_usd'], 'summary' => substr((string)($res['output']['summary'] ?? ''), 0, 1500), 'message' => '']);
+    } catch (Throwable $e) {
+        $save(['message' => $e->getMessage()]);
+    }
+    return $id;
+}
+
+// The team's answer to one suggestion.
+function suggestion_decide(array $in): void {
+    $pdo = db();
+    $st = $pdo->prepare("SELECT * FROM playbook_suggestions WHERE id = ? AND status = 'open'");
+    $st->execute([(int)($in['id'] ?? 0)]);
+    $s = $st->fetch();
+    if (!$s) throw new BrainError('That suggestion is not open any more.');
+    $what = (string)($in['what'] ?? '');
+    $final = '';
+    if ($what === 'accept') {
+        $final = trim(preg_replace('/\s+/u', ' ', (string)($in['line'] ?? ''))) ?: trim($s['proposed_line']);
+        if (strlen($final) > 500) throw new BrainError('Keep the line under 500 characters.');
+        $lines = playbook_lines(brain_playbook());
+        $cur = trim((string)$s['current_line']);
+        if ($cur === '') $lines[] = $final;
+        else {
+            $i = array_search($cur, $lines, true);
+            if ($i === false) throw new BrainError('The line this suggestion wanted to replace is no longer in the playbook. Reject it, or edit the playbook by hand.');
+            $lines[$i] = $final;
+        }
+        playbook_save(implode("\n", $lines), 'suggestion', $cur === '' ? 'Added a line' : 'Changed a line');
+    } elseif ($what !== 'reject') throw new BrainError('Choose accept or reject.');
+    $status = $what === 'reject' ? 'rejected' : ($final === trim($s['proposed_line']) ? 'accepted' : 'edited');
+    $pdo->prepare('UPDATE playbook_suggestions SET status = ?, final_line = ?, decided_by = ?, decided_at = ? WHERE id = ?')->execute([$status, $final, 'Team', date('Y-m-d H:i:s'), $s['id']]);
+}
+
+function playbook_restore(int $historyId): void {
+    $st = db()->prepare('SELECT before_text FROM playbook_history WHERE id = ?');
+    $st->execute([$historyId]);
+    $text = $st->fetchColumn();
+    if ($text === false) throw new BrainError('That version was not found.');
+    playbook_save((string)$text, 'restore', 'Went back to an earlier version');
+}
+
+function review_state(): array {
+    $pdo = db();
+    $last = $pdo->query('SELECT run_at, source, ok, model, cost_usd, decisions_read, summary, message FROM brain_reviews ORDER BY id DESC LIMIT 1')->fetch() ?: null;
+    $queued = (int)kv_get('brain_review_queued', 0) > time() - BRAIN_STALE_SECONDS;
+    $running = $queued || ($last && $last['message'] === 'Running' && strtotime($last['run_at']) > time() - BRAIN_STALE_SECONDS);
+    $hist = [];
+    foreach ($pdo->query('SELECT id, changed_at, source, note, before_text, after_text FROM playbook_history ORDER BY id DESC LIMIT 12') as $h) {
+        $b = playbook_lines((string)$h['before_text']);
+        $a = playbook_lines((string)$h['after_text']);
+        $hist[] = ['id' => (int)$h['id'], 'at' => $h['changed_at'], 'source' => $h['source'], 'note' => $h['note'], 'removed' => array_values(array_diff($b, $a)), 'added' => array_values(array_diff($a, $b))];
+    }
+    return [
+        'days' => review_days(), 'choices' => REVIEW_DAY_CHOICES, 'running' => (bool)$running, 'due' => review_due(),
+        'last' => $last && $last['message'] !== 'Running' ? ['at' => $last['run_at'], 'ok' => (bool)$last['ok'], 'cost_usd' => (float)$last['cost_usd'], 'decisions_read' => (int)$last['decisions_read'], 'summary' => (string)$last['summary'], 'message' => (string)$last['message']] : null,
+        'open' => $pdo->query("SELECT id, created_at, current_line, proposed_line, why, evidence, decisions_supporting FROM playbook_suggestions WHERE status = 'open' ORDER BY id")->fetchAll(),
+        'decided' => $pdo->query("SELECT id, status, current_line, proposed_line, final_line, decided_at FROM playbook_suggestions WHERE status <> 'open' ORDER BY decided_at DESC LIMIT 8")->fetchAll(),
+        'history' => $hist,
     ];
 }

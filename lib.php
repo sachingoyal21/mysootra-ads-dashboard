@@ -112,6 +112,16 @@ function migrate(): void {
             ai_action VARCHAR(20), ai_budget INT NOT NULL DEFAULT 0, final_action VARCHAR(20), final_budget INT NOT NULL DEFAULT 0, agreed INT NOT NULL DEFAULT 0,
             reason $text, decided_by VARCHAR(60), decided_at DATETIME NOT NULL, context_json $text, outcome_json $text, outcome_at DATETIME)$tail",
         // Content labels for each ad and post, so results can be grouped by kind of content later.
+        // Playbook reviews. Each review reads the team's decisions and may suggest changes to the playbook. The team accepts or rejects each one.
+        "CREATE TABLE IF NOT EXISTS brain_reviews (
+            id $auto, run_at DATETIME NOT NULL, source VARCHAR(20), ok INT NOT NULL DEFAULT 0, model VARCHAR(60), tokens_in INT NOT NULL DEFAULT 0, tokens_out INT NOT NULL DEFAULT 0,
+            cost_usd DECIMAL(10,4) NOT NULL DEFAULT 0, decisions_read INT NOT NULL DEFAULT 0, summary $text, message $text)$tail",
+        "CREATE TABLE IF NOT EXISTS playbook_suggestions (
+            id $auto, review_id INT NOT NULL, created_at DATETIME NOT NULL, current_line $text, proposed_line $text, why $text, evidence $text, decisions_supporting INT NOT NULL DEFAULT 0,
+            status VARCHAR(12) NOT NULL DEFAULT 'open', final_line $text, decided_by VARCHAR(60), decided_at DATETIME)$tail",
+        // Every version of the playbook, so any change can be seen and undone.
+        "CREATE TABLE IF NOT EXISTS playbook_history (
+            id $auto, changed_at DATETIME NOT NULL, source VARCHAR(20) NOT NULL, note VARCHAR(255), before_text $text, after_text $text)$tail",
         "CREATE TABLE IF NOT EXISTS content_tags (
             item_kind VARCHAR(8) NOT NULL, item_id VARCHAR(40) NOT NULL, pillar VARCHAR(40), hook VARCHAR(20), topic VARCHAR(80), updated_at DATETIME NOT NULL,
             PRIMARY KEY (item_kind, item_id))$tail",

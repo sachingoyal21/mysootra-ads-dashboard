@@ -3,7 +3,7 @@ DirectoryIndex index.html
 <IfModule mod_headers.c>
 Header set X-Robots-Tag "noindex, nofollow"
 </IfModule>
-<Files "lib.php">
+<FilesMatch "^(lib|report|names)\.php$">
 Require all denied
-</Files>
+</FilesMatch>
 RedirectMatch 404 /\.git

@@ -1,6 +1,7 @@
 <?php
 // Read-only JSON for the dashboard. The only write it can trigger is a fresh pull from Meta into our own database.
 require __DIR__ . '/lib.php';
+require __DIR__ . '/report.php';
 
 $a = $_GET['a'] ?? 'data';
 
@@ -29,6 +30,48 @@ try {
         }
         $r = collect('button');
         json_out($r + ['last_pull' => last_pull()]);
+        exit;
+    }
+    if ($a === 'reports') {
+        // Daily reports: which dates can be picked and which reports are already saved.
+        json_out(['today' => date('Y-m-d'), 'window' => report_window(), 'has_token' => (bool)token(),
+            'snapshot_start' => db()->query('SELECT MIN(day) FROM ig_media_daily')->fetchColumn() ?: null, 'saved' => report_list()]);
+        exit;
+    }
+    if ($a === 'report') {
+        $day = (string)($_GET['date'] ?? '');
+        $rep = preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) ? report_get($day) : null;
+        if (!$rep) { json_out(['error' => 'No saved report for this date.'], 404); exit; }
+        json_out(['report' => $rep, 'changed' => report_changed($rep), 'from_saved' => true]);
+        exit;
+    }
+    if ($a === 'report_generate') {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') { json_out(['error' => 'Use POST.'], 405); exit; }
+        $day = (string)($_GET['date'] ?? '');
+        if (!report_day_ok($day)) { $w = report_window(); json_out(['error' => 'Pick a date from ' . day_label($w['min']) . ' to ' . day_label($w['max']) . '. Today cannot be picked because the day is still running.'], 400); exit; }
+        $saved = report_get($day);
+        if ($saved && empty($_GET['force'])) { json_out(['report' => $saved, 'changed' => report_changed($saved), 'from_saved' => true]); exit; }
+        if (!token()) { json_out(['error' => 'Setup is not finished.'], 409); exit; }
+        try {
+            $rep = report_build($day);
+        } catch (GraphError $e) {
+            json_out(['error' => 'Meta did not answer the reach request. ' . $e->getMessage()], 502); exit;
+        }
+        report_save($rep);
+        json_out(['report' => $rep, 'changed' => false, 'from_saved' => false]);
+        exit;
+    }
+    if ($a === 'report_xlsx') {
+        $day = (string)($_GET['date'] ?? '');
+        $rep = preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) ? report_get($day) : null;
+        if (!$rep) { json_out(['error' => 'No saved report for this date. Generate it first.'], 404); exit; }
+        $bytes = report_xlsx($rep);
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="MySootra daily report ' . date('j M Y', strtotime($day)) . '.xlsx"');
+        header('Content-Length: ' . strlen($bytes));
+        header('Cache-Control: no-store');
+        header('X-Robots-Tag: noindex, nofollow');
+        echo $bytes;
         exit;
     }
     if ($a === 'v2') {
@@ -106,7 +149,7 @@ try {
                 $kind = ($m['media_product_type'] ?? '?') . '/' . ($m['media_type'] ?? '?');
                 if (isset($seen[$kind])) continue;
                 $seen[$kind] = true;
-                foreach (['reach', 'views', 'saved', 'shares', 'total_interactions', 'likes', 'comments', 'follows', 'profile_visits', 'ig_reels_avg_watch_time'] as $metric) {
+                foreach (['reach', 'views', 'saved', 'shares', 'total_interactions', 'likes', 'comments', 'follows', 'profile_visits', 'ig_reels_avg_watch_time', 'reposts'] as $metric) {
                     try {
                         $r = graph($m['id'] . '/insights', ['metric' => $metric]);
                         $out['post_insights'][$kind][$metric] = $r['data'][0]['values'][0]['value'] ?? ($r['data'] ?? null);
@@ -164,7 +207,7 @@ try {
         }
         ksort($days); ksort($types);
         $counts = [];
-        foreach (['ad_daily', 'ads', 'adsets', 'ig_followers', 'pulls'] as $t) $counts[$t] = (int)db()->query("SELECT COUNT(*) FROM $t")->fetchColumn();
+        foreach (['ad_daily', 'ads', 'adsets', 'ig_followers', 'ig_media', 'ig_media_daily', 'reports', 'pulls'] as $t) $counts[$t] = (int)db()->query("SELECT COUNT(*) FROM $t")->fetchColumn();
         json_out(['has_token' => (bool)token(), 'last_pull' => last_pull(), 'counts' => $counts, 'field_errors' => kv_get('field_errors'), 'ig_error' => kv_get('ig_error'), 'by_day_last_7' => $days, 'metric_totals_last_7' => $types, 'first_day' => db()->query('SELECT MIN(day) FROM ad_daily')->fetchColumn()]);
         exit;
     }

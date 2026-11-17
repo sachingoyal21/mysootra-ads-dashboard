@@ -149,6 +149,31 @@ td small{display:block;color:var(--muted)}
 .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tag{font-family:var(--mono);font-size:11px;border-radius:6px;padding:2px 6px;background:var(--soft);color:var(--muted)}
 .tag.live{background:var(--good-bg);color:var(--good)}
+/* Daily reports */
+.rp-table table{min-width:980px;font-variant-numeric:tabular-nums}
+.rp-table th,.rp-table td{border:1px solid var(--line);padding:7px 10px;text-align:center;vertical-align:middle;white-space:nowrap}
+.rp-table th:first-child,.rp-table td:first-child{text-align:left;white-space:normal;min-width:240px}
+.rp-table tr.rp-title th{background:var(--soft);color:var(--ink);font-weight:600}
+.rp-table tr.rp-title th:first-child{background:none;border-color:transparent}
+.rp-table tr.rp-head th{background:var(--blue-soft);color:var(--ink);font-weight:600}
+.rp-table tr.rp-total td{background:var(--soft);font-weight:600}
+.rp-table tr.rp-bold td{font-weight:600}
+.rp-table td.rp-fol{font-weight:600;background:var(--panel)}
+.rp-table td.rp-nc{color:var(--muted);font-style:italic}
+.rp-notes{margin:0;padding-left:18px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+a.btn{text-decoration:none;display:inline-block}
+.rp-load{position:fixed;inset:0;z-index:80;background:rgba(23,24,28,.55);display:grid;place-items:center;padding:20px}
+.rp-box{background:var(--panel);border-radius:var(--r);padding:26px;width:min(480px,100%);display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(23,24,28,.3)}
+.rp-box h2{margin:0;font-size:18px;font-weight:600}
+.rp-pct{font-family:var(--mono);font-size:30px;font-weight:600;letter-spacing:-.02em}
+.rp-track{height:8px;border-radius:999px;background:var(--soft);overflow:hidden}
+.rp-track i{display:block;height:100%;width:0;background:var(--blue);border-radius:999px;transition:width .4s ease-out}
+.rp-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.rp-steps li{display:flex;gap:10px;align-items:flex-start;color:var(--muted)}
+.rp-steps li.run{color:var(--ink);font-weight:500} .rp-steps li.ok{color:var(--good)}
+.rp-steps .dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none;margin-top:1px;display:grid;place-items:center;font-size:11px;line-height:1}
+.rp-steps li.run .dot{border-color:rgba(29,79,216,.25);border-top-color:var(--blue);animation:spin .7s linear infinite}
+.rp-steps li.ok .dot{border-color:var(--good);background:var(--good);color:#fff}
 .view[hidden]{display:none}
 .view{display:flex;flex-direction:column;gap:16px}
 .empty{color:var(--muted);font-size:13px;margin:0}
@@ -178,6 +203,7 @@ td small{display:block;color:var(--muted)}
     <a href="#followers" data-v="followers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7M17 4a4 4 0 0 1 0 8M22 21c0-3-2-6-5-7"/></svg>Followers</a>
     <a href="#content" data-v="content"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m10 8 6 4-6 4z"/></svg>Content</a>
     <a href="#analyse" data-v="analyse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-7"/></svg>Analyse live ad</a>
+    <a href="#reports" data-v="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Daily reports</a>
     <a href="#decisions" data-v="decisions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Decision center<span class="count" id="nav-count" hidden></span></a>
   </nav>
   <div class="rail-foot">Reads Meta only. Never changes an ad.</div>
@@ -332,6 +358,34 @@ td small{display:block;color:var(--muted)}
       <div class="card"><h2>Cost per profile visit, last 7 days</h2><div class="chart" id="c-an-cpv"></div><p class="note">The dashed line is the ₹1.00 target. Today is still running, so its point can move.</p></div>
       <div class="card"><h2>Followers gained by this ad, last 7 days</h2><div class="chart" id="c-an-fol"></div><p class="note" id="an-fol-note"></p></div>
       <div class="card" style="grid-column:1 / -1"><h2>Ad spend, last 7 days</h2><div class="chart" id="c-an-spend"></div><p class="note" id="an-spend-note"></p></div>
+    </div>
+  </section>
+
+  <section class="view" id="v-reports" hidden>
+    <div class="card">
+      <h2>Generate a daily report</h2>
+      <p class="sub">Pick a date and get the day's sheet as an Excel file, in the same layout the team shares in the group.</p>
+      <div class="tools">
+        <label>Report date <input type="date" id="rp-date"></label>
+        <button class="btn" type="button" id="rp-go">Generate report</button>
+      </div>
+      <p class="note" id="rp-hint"></p>
+      <p class="banner" id="rp-error" role="alert" hidden></p>
+    </div>
+    <div class="card" id="rp-view" hidden>
+      <h2><span id="rp-title"></span><span class="chip" id="rp-state"></span></h2>
+      <div class="tools">
+        <a class="btn" id="rp-dl" href="#">Download Excel</a>
+        <button class="btn ghost" type="button" id="rp-regen" hidden>Regenerate with new numbers</button>
+        <span class="note" id="rp-saved"></span>
+      </div>
+      <div class="tbl rp-table"><table id="rp-table"></table></div>
+      <ul class="rp-notes" id="rp-notes"></ul>
+    </div>
+    <div class="card">
+      <h2>Saved reports <span class="tag" id="rp-count"></span></h2>
+      <div class="tbl"><table><thead><tr><th>Report date</th><th>Saved on</th><th>Status</th><th></th></tr></thead><tbody id="rp-list"></tbody></table></div>
+      <p class="empty" id="rp-none" hidden>No reports saved yet. Pick a date above and press Generate report.</p>
     </div>
   </section>
 
@@ -998,12 +1052,148 @@ $('refresh').addEventListener('click', async () => {
   clearInterval(tick); busy = false; setBtn(); setBar(kind === 'error' ? 'fail' : 'ok'); setStat(kind, text);
 });
 
-const TITLES = {overview: 'Overview', spend: 'Spend', followers: 'Followers', content: 'Content', analyse: 'Analyse live ad', decisions: 'Decision center'};
+// ---------- Daily reports ----------
+// A report is built once on the server and saved. Asking for the same date again serves the saved copy at once.
+let RP = null, rpBusy = false, rpOpen = null;
+const rpDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
+const rpWhen = (s) => new Date(s.replace(' ', 'T')).toLocaleString('en-IN', {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'});
+const rpJson = async (url, opt) => {
+  const r = await fetch(url, Object.assign({cache: 'no-store'}, opt || {}));
+  let j = null; try { j = await r.json(); } catch (e) { j = null; }
+  if (!j) throw new Error('The server gave an answer the page could not read.');
+  if (j.error) throw new Error(j.error);
+  return j;
+};
+function rpError(text) { const b = $('rp-error'); b.hidden = !text; b.textContent = text || ''; }
+async function rpLoadList() {
+  try { RP = await rpJson('api.php?a=reports'); } catch (e) { rpError('Saved reports could not be loaded. ' + e.message); return; }
+  const inp = $('rp-date');
+  inp.min = RP.window.min; inp.max = RP.window.max;
+  if (!inp.value || inp.value < inp.min || inp.value > inp.max) inp.value = RP.window.max;
+  let hint = 'You can pick any of the last 7 days, from ' + rpDate(RP.window.min) + ' to ' + rpDate(RP.window.max) + '. Today is not offered because the day is still running.';
+  if (!RP.snapshot_start) hint += ' Organic post numbers by day will start from the first night this feature is live.';
+  else if (RP.snapshot_start > RP.window.min) hint += ' Organic post numbers were saved daily from ' + rpDate(RP.snapshot_start) + '. Earlier dates show paid numbers only.';
+  $('rp-hint').textContent = hint;
+  $('rp-count').textContent = RP.saved.length ? String(RP.saved.length) : '';
+  $('rp-none').hidden = RP.saved.length > 0;
+  $('rp-list').replaceChildren(...RP.saved.map((s) => {
+    const tr = el('tr');
+    const st = el('td'); st.appendChild(el('span', 'chip ' + (s.changed ? 'warn' : 'good'), s.changed ? 'Numbers changed since saved' : 'Up to date'));
+    const act = el('td'); const tools = el('div', 'tools');
+    const view = el('button', 'btn ghost', 'View'); view.type = 'button'; view.addEventListener('click', () => rpShowSaved(s.day));
+    const dl = el('a', 'btn ghost', 'Download Excel'); dl.href = 'api.php?a=report_xlsx&date=' + s.day;
+    tools.append(view, dl);
+    if (s.changed && s.day >= RP.window.min && s.day <= RP.window.max) { const rg = el('button', 'btn ghost', 'Regenerate'); rg.type = 'button'; rg.addEventListener('click', () => rpGenerate(s.day, true)); tools.appendChild(rg); }
+    act.appendChild(tools);
+    tr.append(el('td', '', rpDate(s.day)), el('td', '', rpWhen(s.generated_at)), st, act);
+    return tr;
+  }));
+}
+function rpCell(v, paid, money) {
+  if (v === 'nc') return el('td', 'rp-nc', 'n/c');
+  if (v == null) return el('td', '', paid ? '' : '-');
+  return el('td', '', money ? '₹ ' + Number(v).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : nf.format(v));
+}
+function rpRender(res) {
+  const rep = res.report; rpOpen = rep.day;
+  $('rp-view').hidden = false;
+  $('rp-title').textContent = 'Report for ' + rpDate(rep.day);
+  const inWindow = RP && rep.day >= RP.window.min && rep.day <= RP.window.max;
+  $('rp-state').className = 'chip ' + (res.changed ? 'warn' : 'good');
+  $('rp-state').textContent = res.changed ? 'Numbers changed since saved' : 'Up to date';
+  $('rp-regen').hidden = !(res.changed && inWindow);
+  $('rp-dl').href = 'api.php?a=report_xlsx&date=' + rep.day;
+  $('rp-saved').textContent = 'Saved on ' + rpWhen(rep.generated_at) + (res.changed ? '. Meta has updated some numbers since then.' + (inWindow ? '' : ' This date is older than 7 days, so it cannot be regenerated.') : '.');
+  const heads = ['Post Name', 'Amount', 'Unique View', 'Profile Visits', 'Clicks', 'Like', 'comment', 'share', 'Repost', 'Follower Gain', 'Followers'];
+  const body = el('tbody');
+  const block = (title, rows, total, fol) => {
+    const t = el('tr', 'rp-title'); t.appendChild(el('th', '', '')); const th = el('th', '', title); th.colSpan = heads.length - 1; t.appendChild(th); body.appendChild(t);
+    const h = el('tr', 'rp-head'); heads.forEach((x) => h.appendChild(el('th', '', x))); body.appendChild(h);
+    rows.forEach((r, i) => {
+      const paid = r.kind === 'paid';
+      const tr = el('tr', r.bold ? 'rp-bold' : '');
+      tr.append(el('td', '', r.name), rpCell(r.amount, paid, true), rpCell(r.views, paid), rpCell(r.visits, paid), rpCell(r.clicks, paid), rpCell(r.likes, paid), rpCell(r.comments, paid), rpCell(r.shares, paid), rpCell(r.reposts, paid), rpCell(r.follower_gain, false));
+      if (i === 0) { const f = el('td', 'rp-fol', fol); f.rowSpan = rows.length; tr.appendChild(f); }
+      body.appendChild(tr);
+    });
+    const tt = el('tr', 'rp-total');
+    tt.append(el('td', '', 'Total'), rpCell(total.amount, true, true), rpCell(total.views, true), rpCell(total.visits, true), rpCell(total.clicks, true), el('td'), el('td'), el('td'), el('td'), rpCell(total.follower_gain, true), el('td'));
+    tt.firstChild.style.textAlign = 'center';
+    body.appendChild(tt);
+  };
+  block(rep.title_day, rep.day_rows, rep.day_total, rep.followers.text_day);
+  block(rep.title_till, rep.till_rows, rep.till_total, rep.followers.text_till);
+  $('rp-table').replaceChildren(body);
+  $('rp-notes').replaceChildren(...(rep.notes || []).map((n) => el('li', '', n)));
+}
+async function rpShowSaved(day) {
+  rpError('');
+  try { rpRender(await rpJson('api.php?a=report&date=' + day)); $('rp-date').value = day >= $('rp-date').min && day <= $('rp-date').max ? day : $('rp-date').value; $('rp-view').scrollIntoView({behavior: 'smooth', block: 'start'}); }
+  catch (e) { rpError('The saved report could not be opened. ' + e.message); }
+}
+// Loader. Three real steps. The percentage moves when a step ends, and creeps slowly while the long first step runs.
+const RP_STEPS = [
+  ['Pulling the latest numbers from Meta and Instagram', 0, 60],
+  ['Reading lifetime reach per ad and building the report', 60, 90],
+  ['Saving the report and preparing the Excel sheet', 90, 100],
+];
+let rpCreep = null;
+function rpStep(i) {
+  clearInterval(rpCreep);
+  $('rp-steps').replaceChildren(...RP_STEPS.map(([text], k) => { const li = el('li', k < i ? 'ok' : k === i ? 'run' : ''); li.append(el('span', 'dot', k < i ? '✓' : ''), el('span', '', text)); return li; }));
+  const set = (p) => { $('rp-bar').style.width = p + '%'; $('rp-pct').textContent = Math.round(p) + '%'; };
+  if (i >= RP_STEPS.length) { set(100); return; }
+  const [, from, to] = RP_STEPS[i]; let p = from; set(p);
+  rpCreep = setInterval(() => { p += (to - 2 - p) * 0.04; set(p); }, 500);
+}
+async function rpPull() {
+  const j = await rpJson('api.php?a=refresh', {method: 'POST'});
+  if (j.running) {
+    const t1 = Date.now();
+    while (Date.now() - t1 < 300000) {
+      await new Promise((res) => setTimeout(res, 5000));
+      let v = null; try { v = await rpJson('api.php?a=v2'); } catch (e) { continue; }
+      if (v.last_attempt && v.last_attempt.finished_at) { if (Number(v.last_attempt.ok) === 1) return; throw new Error(v.last_attempt.message || 'The pull from Meta did not finish.'); }
+    }
+    throw new Error('A pull was already running and has not finished after 5 minutes.');
+  }
+  if (j.skipped || j.ok) return;
+  throw new Error(j.message || 'The pull from Meta did not finish.');
+}
+async function rpGenerate(day, force) {
+  if (rpBusy) return;
+  rpError('');
+  if (!RP) await rpLoadList();
+  if (!day || !RP || day < RP.window.min || day > RP.window.max) { rpError('Pick a date from ' + (RP ? rpDate(RP.window.min) + ' to ' + rpDate(RP.window.max) : 'the last 7 days') + '. Today cannot be picked.'); return; }
+  if (!force && RP.saved.some((s) => s.day === day)) { await rpShowSaved(day); return; }
+  rpBusy = true; $('rp-go').disabled = true; $('rp-load').hidden = false;
+  $('rp-load-title').textContent = (force ? 'Regenerating report for ' : 'Generating report for ') + rpDate(day);
+  try {
+    rpStep(0); await rpPull();
+    rpStep(1); const res = await rpJson('api.php?a=report_generate&date=' + day + '&force=1', {method: 'POST'});
+    rpStep(2);
+    const file = await fetch('api.php?a=report_xlsx&date=' + day, {cache: 'no-store'});
+    if (!file.ok) throw new Error('The Excel sheet could not be prepared.');
+    const url = URL.createObjectURL(await file.blob());
+    rpStep(3);
+    const a = el('a'); a.href = url; a.download = 'MySootra daily report ' + rpDate(day) + '.xlsx'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    await rpLoadList(); rpRender(res);
+    await new Promise((r) => setTimeout(r, 500));
+  } catch (e) { rpError('The report was not generated. ' + (e.message || e) + ' Nothing was saved. Try again.'); }
+  clearInterval(rpCreep); $('rp-load').hidden = true; rpBusy = false; $('rp-go').disabled = false;
+  load();
+}
+$('rp-go').addEventListener('click', () => rpGenerate($('rp-date').value, false));
+$('rp-regen').addEventListener('click', () => { if (rpOpen) rpGenerate(rpOpen, true); });
+
+const TITLES = {overview: 'Overview', spend: 'Spend', followers: 'Followers', content: 'Content', analyse: 'Analyse live ad', reports: 'Daily reports', decisions: 'Decision center'};
 function route() {
   const v = TITLES[location.hash.slice(1)] ? location.hash.slice(1) : 'overview';
   Object.keys(TITLES).forEach((k) => { $('v-' + k).hidden = k !== v; });
   document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('on', a.dataset.v === v));
   $('view-title').textContent = TITLES[v];
+  if (v === 'reports') rpLoadList();
   draw();
 }
 window.addEventListener('hashchange', route);
@@ -1012,5 +1202,14 @@ window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw
 route(); load();
 setInterval(load, 15 * 60 * 1000);
 </script>
+<div class="rp-load" id="rp-load" role="dialog" aria-modal="true" aria-labelledby="rp-load-title" hidden>
+  <div class="rp-box">
+    <h2 id="rp-load-title">Generating report</h2>
+    <div class="rp-pct" id="rp-pct" aria-live="polite">0%</div>
+    <div class="rp-track"><i id="rp-bar"></i></div>
+    <ol class="rp-steps" id="rp-steps"></ol>
+    <p class="note">Keep this tab open. The first step can take up to a minute.</p>
+  </div>
+</div>
 </body>
 </html>

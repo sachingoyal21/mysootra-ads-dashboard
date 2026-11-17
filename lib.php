@@ -5,7 +5,11 @@
 date_default_timezone_set('Asia/Kolkata');
 
 // Raise this number when the way numbers are read changes. The next pull then reloads all history.
-const COLLECTOR_VERSION = 2;
+const COLLECTOR_VERSION = 3;
+// Raise this number when a table gets a new column.
+const SCHEMA_VERSION = 2;
+// How many recent Instagram posts are read and saved at every pull.
+const MEDIA_LIMIT = 60;
 // Ad budget plan. ₹25,000 for the whole of November 2026.
 const PLAN = ['start' => '2026-11-01', 'end' => '2026-11-30', 'budget' => 25000];
 // Follower target for launch day.
@@ -86,8 +90,22 @@ function migrate(): void {
             updated_at DATETIME NOT NULL)$tail",
         "CREATE TABLE IF NOT EXISTS kv (
             k VARCHAR(64) NOT NULL PRIMARY KEY, v $text, updated_at DATETIME NOT NULL)$tail",
+        // One row per post per day. The last pull of the day wins, so each row is the post's lifetime numbers at the end of that day.
+        "CREATE TABLE IF NOT EXISTS ig_media_daily (
+            day DATE NOT NULL, media_id VARCHAR(40) NOT NULL, likes INT, comments INT, reach INT, views INT, saved INT, shares INT,
+            reposts INT, follows INT, updated_at DATETIME NOT NULL,
+            PRIMARY KEY (day, media_id))$tail",
+        // Daily reports that were generated once and are served again without rebuilding.
+        "CREATE TABLE IF NOT EXISTS reports (
+            day DATE NOT NULL PRIMARY KEY, generated_at DATETIME NOT NULL, fingerprint VARCHAR(64) NOT NULL, data_json $text)$tail",
     ];
     foreach ($sql as $q) db()->exec($q);
+    if ((int)kv_get('schema_version', 1) < SCHEMA_VERSION) {
+        foreach ([['ad_daily', 'clicks', 'INT NOT NULL DEFAULT 0'], ['ig_media', 'reposts', 'INT']] as [$t, $c, $def]) {
+            try { db()->exec("ALTER TABLE $t ADD COLUMN $c $def"); } catch (Throwable $e) { /* the column is already there */ }
+        }
+        kv_set('schema_version', SCHEMA_VERSION);
+    }
 }
 
 function upsert(string $table, array $row, array $keys): void {
@@ -255,7 +273,7 @@ function collect(string $source = 'cron'): array {
         $fieldErrors = [];
         foreach ($chunks as [$a, $b]) {
             $p = ['time_increment' => 1, 'time_range' => range_param($a, $b)];
-            $rows = insights('ad', $p, 'ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,spend,impressions,reach,actions');
+            $rows = insights('ad', $p, 'ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,spend,impressions,reach,clicks,actions');
             $extra = [];
             foreach ($optional as $f) {
                 if (isset($fieldErrors[$f])) continue;
@@ -275,7 +293,7 @@ function collect(string $source = 'cron'): array {
                     'day' => $r['date_start'], 'ad_id' => $r['ad_id'], 'ad_name' => $r['ad_name'] ?? '',
                     'adset_id' => $r['adset_id'] ?? '', 'adset_name' => $r['adset_name'] ?? '',
                     'campaign_id' => $r['campaign_id'] ?? '', 'campaign_name' => $r['campaign_name'] ?? '',
-                    'spend' => (float)($r['spend'] ?? 0), 'impressions' => (int)($r['impressions'] ?? 0), 'reach' => (int)($r['reach'] ?? 0),
+                    'spend' => (float)($r['spend'] ?? 0), 'impressions' => (int)($r['impressions'] ?? 0), 'reach' => (int)($r['reach'] ?? 0), 'clicks' => (int)($r['clicks'] ?? 0),
                     'visits' => pick_visits($actions, $ex), 'follows' => pick_follows($actions, $ex),
                     'actions_json' => json_encode($actions), 'extra_json' => json_encode($ex), 'updated_at' => $now,
                 ], ['day', 'ad_id']);
@@ -417,27 +435,42 @@ function collect_organic(string $igId, string $now): array {
         }
     }
     kv_set('ig_account', $acct);
-    // Recent posts with their numbers.
-    $media = graph("$igId/media", ['fields' => 'id,caption,media_type,media_product_type,timestamp,like_count,comments_count,permalink', 'limit' => 40])['data'] ?? [];
+    // Recent posts with their numbers. Each post is also saved under today's date, so a day's change can be worked out later.
+    $media = graph("$igId/media", ['fields' => 'id,caption,media_type,media_product_type,timestamp,like_count,comments_count,permalink', 'limit' => MEDIA_LIMIT])['data'] ?? [];
     $failed = 0;
+    $today = date('Y-m-d');
+    $repostsOk = true; $repostMisses = 0;
     foreach ($media as $m) {
         $isReel = ($m['media_product_type'] ?? '') === 'REELS';
         $base = 'reach,views,saved,shares,total_interactions';
-        $v = [];
-        foreach ([$base . ($isReel ? ',ig_reels_avg_watch_time' : ',follows,profile_visits'), $base, 'reach,saved,total_interactions'] as $metrics) {
-            try { $v = insight_values(graph($m['id'] . '/insights', ['metric' => $metrics])); break; } catch (GraphError $e) { $v = []; }
+        $more = $isReel ? ',ig_reels_avg_watch_time' : ',follows,profile_visits';
+        // Ask for the fullest set first. If Meta refuses a metric, fall back to a smaller set.
+        $sets = $repostsOk ? [$base . ',reposts' . $more, $base . $more, $base . ',reposts', $base] : [$base . $more, $base];
+        $sets[] = 'reach,saved,total_interactions';
+        $v = []; $used = '';
+        foreach ($sets as $metrics) {
+            try { $v = insight_values(graph($m['id'] . '/insights', ['metric' => $metrics])); $used = $metrics; break; } catch (GraphError $e) { $v = []; }
         }
         if (!$v) $failed++;
+        if ($repostsOk && $v && strpos($used, 'reposts') === false) {
+            if (++$repostMisses >= 3) { $repostsOk = false; $notes[] = 'Meta did not give reposts for posts.'; }
+        }
         $cap = trim(preg_replace('/\s+/u', ' ', (string)($m['caption'] ?? '')));
         if (function_exists('mb_substr')) $cap = mb_substr($cap, 0, 90); else $cap = substr($cap, 0, 90);
+        $likes = (int)($m['like_count'] ?? 0); $comments = (int)($m['comments_count'] ?? 0);
         upsert('ig_media', [
             'media_id' => $m['id'], 'product_type' => $m['media_product_type'] ?? '', 'media_type' => $m['media_type'] ?? '',
             'permalink' => $m['permalink'] ?? '', 'posted_at' => date('Y-m-d H:i:s', strtotime($m['timestamp'] ?? 'now')), 'caption' => $cap,
-            'likes' => (int)($m['like_count'] ?? 0), 'comments' => (int)($m['comments_count'] ?? 0),
+            'likes' => $likes, 'comments' => $comments,
             'reach' => $v['reach'] ?? null, 'views' => $v['views'] ?? null, 'saved' => $v['saved'] ?? null, 'shares' => $v['shares'] ?? null,
             'interactions' => $v['total_interactions'] ?? null, 'follows' => $v['follows'] ?? null, 'profile_visits' => $v['profile_visits'] ?? null,
-            'avg_watch_ms' => $v['ig_reels_avg_watch_time'] ?? null, 'updated_at' => $now,
+            'avg_watch_ms' => $v['ig_reels_avg_watch_time'] ?? null, 'reposts' => $v['reposts'] ?? null, 'updated_at' => $now,
         ], ['media_id']);
+        upsert('ig_media_daily', [
+            'day' => $today, 'media_id' => $m['id'], 'likes' => $likes, 'comments' => $comments,
+            'reach' => $v['reach'] ?? null, 'views' => $v['views'] ?? null, 'saved' => $v['saved'] ?? null, 'shares' => $v['shares'] ?? null,
+            'reposts' => $v['reposts'] ?? null, 'follows' => $v['follows'] ?? null, 'updated_at' => $now,
+        ], ['day', 'media_id']);
     }
     if ($failed) $notes[] = "$failed posts returned no insight numbers.";
     return $notes;

@@ -39,7 +39,8 @@ try {
         $f = brain_facts();
         json_out(['ok' => true, 'seconds' => round(microtime(true) - $t0, 2), 'fact_sheet_bytes' => strlen(json_encode($f)), 'live_ads' => count($f['live_ads']), 'ad_sets' => count($f['ad_sets']),
             'stopped_ads' => count($f['ads_stopped_in_last_7_days']), 'organic_posts' => count($f['organic_posts']), 'ads_linked_to_a_post' => count(array_filter($f['live_ads'], fn($x) => $x['post'] !== null)),
-            'audiences' => array_map(fn($x) => $x['audience'], $f['ad_sets']), 'account' => $f['account'], 'php_time_limit' => ini_get('max_execution_time'), 'curl' => function_exists('curl_init')]);
+            'audiences' => array_map(fn($x) => $x['audience'], $f['ad_sets']), 'account' => $f['account'], 'php_time_limit' => ini_get('max_execution_time'), 'curl' => function_exists('curl_init'),
+            'creative_samples' => db()->query("SELECT name, creative_json FROM ads WHERE status = 'ACTIVE' LIMIT 4")->fetchAll(), 'post_link_samples' => db()->query('SELECT media_id, permalink FROM ig_media ORDER BY posted_at DESC LIMIT 4')->fetchAll()]);
         exit;
     }
     if ($a === 'brain') {

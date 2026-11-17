@@ -7,7 +7,7 @@ date_default_timezone_set('Asia/Kolkata');
 // Raise this number when the way numbers are read changes. The next pull then reloads all history.
 const COLLECTOR_VERSION = 3;
 // Raise this number when a table gets a new column.
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 // How many recent Instagram posts are read and saved at every pull.
 const MEDIA_LIMIT = 60;
 // Ad budget plan. ₹25,000 for the whole of November 2026.
@@ -98,10 +98,24 @@ function migrate(): void {
         // Daily reports that were generated once and are served again without rebuilding.
         "CREATE TABLE IF NOT EXISTS reports (
             day DATE NOT NULL PRIMARY KEY, generated_at DATETIME NOT NULL, fingerprint VARCHAR(64) NOT NULL, data_json $text)$tail",
+        // AI decisions. One row per run of the brain, with the facts it was given and what it answered.
+        "CREATE TABLE IF NOT EXISTS brain_runs (
+            id $auto, run_at DATETIME NOT NULL, day DATE NOT NULL, source VARCHAR(20), model VARCHAR(60), ok INT NOT NULL DEFAULT 0,
+            tokens_in INT NOT NULL DEFAULT 0, tokens_out INT NOT NULL DEFAULT 0, cost_usd DECIMAL(10,4) NOT NULL DEFAULT 0,
+            facts_json $text, output_json $text, message $text)$tail",
+        // What the team finally decided for each call, why, and how it turned out.
+        "CREATE TABLE IF NOT EXISTS brain_decisions (
+            id $auto, run_id INT NOT NULL, day DATE NOT NULL, kind VARCHAR(12) NOT NULL, item_id VARCHAR(60) NOT NULL, item_name VARCHAR(255),
+            ai_action VARCHAR(20), ai_budget INT NOT NULL DEFAULT 0, final_action VARCHAR(20), final_budget INT NOT NULL DEFAULT 0, agreed INT NOT NULL DEFAULT 0,
+            reason $text, decided_by VARCHAR(60), decided_at DATETIME NOT NULL, context_json $text, outcome_json $text, outcome_at DATETIME)$tail",
+        // Content labels for each ad and post, so results can be grouped by kind of content later.
+        "CREATE TABLE IF NOT EXISTS content_tags (
+            item_kind VARCHAR(8) NOT NULL, item_id VARCHAR(40) NOT NULL, pillar VARCHAR(40), hook VARCHAR(20), topic VARCHAR(80), updated_at DATETIME NOT NULL,
+            PRIMARY KEY (item_kind, item_id))$tail",
     ];
     foreach ($sql as $q) db()->exec($q);
     if ((int)kv_get('schema_version', 1) < SCHEMA_VERSION) {
-        foreach ([['ad_daily', 'clicks', 'INT NOT NULL DEFAULT 0'], ['ig_media', 'reposts', 'INT']] as [$t, $c, $def]) {
+        foreach ([['ad_daily', 'clicks', 'INT NOT NULL DEFAULT 0'], ['ig_media', 'reposts', 'INT'], ['ads', 'creative_json', $text], ['adsets', 'targeting_json', $text]] as [$t, $c, $def]) {
             try { db()->exec("ALTER TABLE $t ADD COLUMN $c $def"); } catch (Throwable $e) { /* the column is already there */ }
         }
         kv_set('schema_version', SCHEMA_VERSION);
@@ -247,17 +261,30 @@ function collect(string $source = 'cron'): array {
         $acct = 'act_' . cfg()['ad_account_id'];
 
         // 1. Ad sets and ads, with status and budget.
-        $sets = graph_all("$acct/adsets", ['fields' => 'id,name,effective_status,daily_budget,campaign_id', 'limit' => 200]);
+        // Targeting and creative are extra. If Meta refuses them, the pull carries on with the basic fields.
+        try {
+            $sets = graph_all("$acct/adsets", ['fields' => 'id,name,effective_status,daily_budget,campaign_id,targeting', 'limit' => 200]);
+        } catch (GraphError $e) {
+            $notes[] = 'Ad set targeting was not available.';
+            $sets = graph_all("$acct/adsets", ['fields' => 'id,name,effective_status,daily_budget,campaign_id', 'limit' => 200]);
+        }
         foreach ($sets as $s) {
             $budget = isset($s['daily_budget']) ? ((float)$s['daily_budget']) / 100 : 0;
             upsert('adsets', ['adset_id' => $s['id'], 'name' => $s['name'] ?? '', 'status' => $s['effective_status'] ?? '', 'daily_budget' => $budget, 'campaign_id' => $s['campaign_id'] ?? '', 'updated_at' => $now], ['adset_id']);
+            if (isset($s['targeting'])) $pdo->prepare('UPDATE adsets SET targeting_json=? WHERE adset_id=?')->execute([json_encode($s['targeting']), $s['id']]);
             $pdo->prepare('INSERT INTO snapshots (pulled_at, kind, entity_id, status, daily_budget) VALUES (?,?,?,?,?)')->execute([$now, 'adset', $s['id'], $s['effective_status'] ?? '', $budget]);
         }
-        $ads = graph_all("$acct/ads", ['fields' => 'id,name,effective_status,created_time,adset_id,campaign_id', 'limit' => 200]);
+        try {
+            $ads = graph_all("$acct/ads", ['fields' => 'id,name,effective_status,created_time,adset_id,campaign_id,creative{id,instagram_permalink_url,source_instagram_media_id,effective_instagram_media_id}', 'limit' => 200]);
+        } catch (GraphError $e) {
+            $notes[] = 'Ad creative links were not available.';
+            $ads = graph_all("$acct/ads", ['fields' => 'id,name,effective_status,created_time,adset_id,campaign_id', 'limit' => 200]);
+        }
         $known = [];
         foreach ($ads as $a) {
             $known[$a['id']] = true;
             upsert('ads', ['ad_id' => $a['id'], 'name' => $a['name'] ?? '', 'status' => $a['effective_status'] ?? '', 'created_time' => $a['created_time'] ?? '', 'adset_id' => $a['adset_id'] ?? '', 'campaign_id' => $a['campaign_id'] ?? '', 'updated_at' => $now], ['ad_id']);
+            if (isset($a['creative'])) $pdo->prepare('UPDATE ads SET creative_json=? WHERE ad_id=?')->execute([json_encode($a['creative']), $a['id']]);
             $pdo->prepare('INSERT INTO snapshots (pulled_at, kind, entity_id, status, daily_budget) VALUES (?,?,?,?,NULL)')->execute([$now, 'ad', $a['id'], $a['effective_status'] ?? '']);
         }
 

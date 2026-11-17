@@ -174,6 +174,28 @@ a.btn{text-decoration:none;display:inline-block}
 .rp-steps .dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none;margin-top:1px;display:grid;place-items:center;font-size:11px;line-height:1}
 .rp-steps li.run .dot{border-color:rgba(29,79,216,.25);border-top-color:var(--blue);animation:spin .7s linear infinite}
 .rp-steps li.ok .dot{border-color:var(--good);background:var(--good);color:#fff}
+/* AI decisions */
+.ai-top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between}
+.ai-top h2{font-size:20px;line-height:1.3;margin:0;max-width:70ch}
+.ai-list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:13px}
+.ai-calls table{min-width:1080px}
+.ai-calls td{vertical-align:top}
+.ai-calls td.why{min-width:320px;white-space:normal}
+.ai-calls td.why ul{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:3px}
+.ai-calls td small,.ai-item small{display:block;color:var(--muted);font-size:12px;margin-top:2px;white-space:normal}
+.ai-flag{color:var(--warn);font-size:12px;margin-top:4px;white-space:normal}
+.call{display:inline-block;font-weight:600;font-size:12px;border-radius:8px;padding:3px 9px;text-transform:uppercase;letter-spacing:.04em}
+.call.scale{background:var(--good-bg);color:var(--good)} .call.stop{background:var(--bad-bg);color:var(--bad)} .call.cut{background:var(--warn-bg);color:var(--warn)}
+.call.hold,.call.wait,.call.skip{background:var(--soft);color:var(--muted)} .call.boost,.call.change{background:var(--blue-soft);color:var(--blue)}
+.ai-decide{display:flex;flex-direction:column;gap:6px;min-width:190px}
+.ai-decide .row{display:flex;gap:6px;flex-wrap:wrap}
+.ai-decide select,.ai-decide input{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);width:100%}
+.btn.sm{padding:6px 10px;font-size:13px;border-radius:8px}
+.ai-done{font-size:13px;white-space:normal} .ai-done b{font-weight:600}
+.ai-item{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.ai-item p{margin:0;font-size:13px}
+.ai-stack{display:flex;flex-direction:column;gap:10px}
+#ai-playbook{width:100%;min-height:230px;font:inherit;font-size:13px;line-height:1.5;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);resize:vertical}
 .view[hidden]{display:none}
 .view{display:flex;flex-direction:column;gap:16px}
 .empty{color:var(--muted);font-size:13px;margin:0}
@@ -204,6 +226,7 @@ a.btn{text-decoration:none;display:inline-block}
     <a href="#content" data-v="content"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m10 8 6 4-6 4z"/></svg>Content</a>
     <a href="#analyse" data-v="analyse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-7"/></svg>Analyse live ad</a>
     <a href="#reports" data-v="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Daily reports</a>
+    <a href="#brain" data-v="brain"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>AI decisions</a>
     <a href="#decisions" data-v="decisions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Decision center<span class="count" id="nav-count" hidden></span></a>
   </nav>
   <div class="rail-foot">Reads Meta only. Never changes an ad.</div>
@@ -386,6 +409,50 @@ a.btn{text-decoration:none;display:inline-block}
       <h2>Saved reports <span class="tag" id="rp-count"></span></h2>
       <div class="tbl"><table><thead><tr><th>Report date</th><th>Saved on</th><th>Status</th><th></th></tr></thead><tbody id="rp-list"></tbody></table></div>
       <p class="empty" id="rp-none" hidden>No reports saved yet. Pick a date above and press Generate report.</p>
+    </div>
+  </section>
+
+  <section class="view" id="v-brain" hidden>
+    <p class="banner" id="ai-setup" hidden></p>
+    <p class="banner" id="ai-error" role="alert" hidden></p>
+    <div class="card" id="ai-head">
+      <div class="ai-top">
+        <div>
+          <span class="eyebrow" id="ai-when">AI decisions</span>
+          <h2 id="ai-headline">No run yet</h2>
+        </div>
+        <button class="btn" type="button" id="ai-run">Run now</button>
+      </div>
+      <p class="sub" id="ai-summary">The AI reads every live ad, the budget and your past decisions, then says what to do. It never changes anything in Meta.</p>
+      <div class="kpis" id="ai-kpis"></div>
+      <ul class="ai-list" id="ai-warnings"></ul>
+    </div>
+    <div class="card" id="ai-calls-card" hidden>
+      <h2>What to do with each live ad <span class="tag" id="ai-count"></span></h2>
+      <p class="sub">Log what the team finally decides. The AI reads your decisions and reasons before its next run.</p>
+      <div class="tbl ai-calls"><table><thead><tr><th>Ad</th><th>AI call</th><th>Ad set budget</th><th class="n">Cost per follower</th><th>Why</th><th>Your decision</th></tr></thead><tbody id="ai-calls"></tbody></table></div>
+    </div>
+    <div class="grid g2" id="ai-next" hidden>
+      <div class="card"><h2>Boost next</h2><div class="ai-stack" id="ai-boost"></div><p class="empty" id="ai-boost-none" hidden>No post stands out to boost today.</p></div>
+      <div class="card"><h2>Audience changes</h2><div class="ai-stack" id="ai-aud"></div><p class="empty" id="ai-aud-none" hidden>No audience change suggested today.</p></div>
+    </div>
+    <div class="card" id="ai-content-card" hidden>
+      <h2>What the ads say about content</h2>
+      <ul class="ai-list" id="ai-learn"></ul>
+      <div class="tbl"><table><thead><tr><th>Pillar</th><th>Hook</th><th class="n">Ads</th><th class="n">Ad spend</th><th class="n">Followers from ads</th><th class="n">Cost per follower</th><th class="n">Organic posts</th><th class="n">Views per post</th><th class="n">Shares per post</th></tr></thead><tbody id="ai-content"></tbody></table></div>
+      <p class="note">This table is worked out from saved numbers and the content label on each ad and post. It fills up as more ads and posts run.</p>
+    </div>
+    <div class="card">
+      <h2>Decision log <span class="tag" id="ai-log-count"></span></h2>
+      <div class="kpis" id="ai-score"></div>
+      <div class="tbl"><table><thead><tr><th>Date</th><th>Ad or item</th><th>AI said</th><th>Team did</th><th>Reason</th><th>How it turned out</th></tr></thead><tbody id="ai-log"></tbody></table></div>
+      <p class="empty" id="ai-log-none" hidden>No decisions logged yet. Results appear 3 days after a decision.</p>
+    </div>
+    <div class="card">
+      <h2>Playbook</h2>
+      <p class="sub">How the team wants calls made, in plain words. The AI reads this on every run. Edit it when the goal or the budget changes.</p>
+      <textarea id="ai-playbook" spellcheck="false"></textarea>
+      <div class="tools"><button class="btn ghost" type="button" id="ai-playbook-save">Save playbook</button><span class="note" id="ai-playbook-note"></span></div>
     </div>
   </section>
 
@@ -1187,13 +1254,164 @@ async function rpGenerate(day, force) {
 $('rp-go').addEventListener('click', () => rpGenerate($('rp-date').value, false));
 $('rp-regen').addEventListener('click', () => { if (rpOpen) rpGenerate(rpOpen, true); });
 
-const TITLES = {overview: 'Overview', spend: 'Spend', followers: 'Followers', content: 'Content', analyse: 'Analyse live ad', reports: 'Daily reports', decisions: 'Decision center'};
+// ---------- AI decisions ----------
+// The server builds the facts, asks Claude, checks the answer and saves it. This page shows it and records what the team decides.
+let AI = null, aiBusy = false;
+const aiPin = (ask) => {
+  let p = ''; try { p = localStorage.getItem('teamPin') || ''; } catch (e) { p = ''; }
+  if (!p || ask) { p = (window.prompt('Team PIN') || '').trim(); try { if (p) localStorage.setItem('teamPin', p); } catch (e) { /* storage not allowed */ } }
+  return p;
+};
+async function aiPost(action, body, retry) {
+  const pin = aiPin(retry);
+  if (!pin) throw new Error('The team PIN is needed for this.');
+  const r = await fetch('api.php?a=' + action, {method: 'POST', cache: 'no-store', headers: {'content-type': 'application/json', 'x-team-pin': pin}, body: JSON.stringify(body || {})});
+  let j = null; try { j = await r.json(); } catch (e) { j = null; }
+  if (!j) throw new Error('The server gave an answer the page could not read.');
+  if (j.pin && !retry) { try { localStorage.removeItem('teamPin'); } catch (e) { /* storage not allowed */ } return aiPost(action, body, true); }
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+function aiError(t) { const b = $('ai-error'); b.hidden = !t; b.textContent = t || ''; }
+const aiMoney = (v) => v == null ? '—' : '₹' + Number(v).toFixed(2);
+const aiCallText = (action, budget) => action + (budget ? ' to ₹' + nf.format(budget) : '');
+function aiDecision(kind, id, aiAction, aiBudget, actions) {
+  const d = AI.decided[kind + ':' + id];
+  const box = el('div', 'ai-decide');
+  const form = () => {
+    box.replaceChildren();
+    const sel = el('select'); actions.forEach((a) => { const o = el('option', '', a.charAt(0).toUpperCase() + a.slice(1)); o.value = a; sel.appendChild(o); }); sel.value = d ? d.final_action : aiAction; sel.setAttribute('aria-label', 'Team decision');
+    const amt = el('input'); amt.type = 'number'; amt.min = '0'; amt.step = '10'; amt.placeholder = 'New daily budget ₹'; amt.value = d && Number(d.final_budget) ? d.final_budget : (aiBudget || ''); amt.setAttribute('aria-label', 'New daily budget in rupees');
+    const why = el('input'); why.type = 'text'; why.placeholder = 'Why? The AI learns from this'; why.maxLength = 300; why.value = d ? d.reason || '' : ''; why.setAttribute('aria-label', 'Reason');
+    const row = el('div', 'row');
+    const save = el('button', 'btn sm', 'Save'); save.type = 'button';
+    const cancel = el('button', 'btn sm ghost', 'Cancel'); cancel.type = 'button'; cancel.addEventListener('click', show);
+    save.addEventListener('click', () => aiSave(kind, id, sel.value, Number(amt.value) || 0, why.value.trim(), save));
+    row.append(save, cancel);
+    const needsAmt = () => { amt.hidden = !(sel.value === 'scale' || sel.value === 'cut' || sel.value === 'boost'); };
+    sel.addEventListener('change', needsAmt); needsAmt();
+    box.append(sel, amt, why, row);
+  };
+  const show = () => {
+    box.replaceChildren();
+    if (d) {
+      const t = el('div', 'ai-done'); t.append(el('b', '', Number(d.agreed) ? 'Agreed. ' : 'Team chose ' + aiCallText(d.final_action, Number(d.final_budget)) + '. '), document.createTextNode(d.reason || ''));
+      const ch = el('button', 'btn sm ghost', 'Change'); ch.type = 'button'; ch.addEventListener('click', form);
+      const row = el('div', 'row'); row.appendChild(ch); box.append(t, row);
+    } else {
+      const row = el('div', 'row');
+      const yes = el('button', 'btn sm', 'Agree'); yes.type = 'button'; yes.addEventListener('click', () => aiSave(kind, id, aiAction, aiBudget, '', yes));
+      const no = el('button', 'btn sm ghost', 'Decide differently'); no.type = 'button'; no.addEventListener('click', form);
+      row.append(yes, no); box.appendChild(row);
+    }
+  };
+  show();
+  return box;
+}
+async function aiSave(kind, id, action, budget, reason, btn) {
+  aiError(''); btn.disabled = true;
+  try { AI = await aiPost('brain_decide', {run_id: AI.run.id, kind, item_id: id, final_action: action, final_budget: budget, reason}); aiDraw(); }
+  catch (e) { aiError('The decision was not saved. ' + e.message); btn.disabled = false; }
+}
+function aiDraw() {
+  if (!AI) return;
+  const setup = $('ai-setup');
+  setup.hidden = AI.has_key && AI.has_pin;
+  setup.textContent = !AI.has_key ? 'The AI is not set up yet. Open setup.php, paste the Claude API key and choose a team PIN.' : 'The team PIN is not set yet. Open setup.php to choose one.';
+  $('ai-run').disabled = aiBusy || !AI.has_key || !AI.has_pin;
+  aiError(AI.last_error ? 'The last run on ' + rpWhen(AI.last_error.at) + ' did not finish. ' + AI.last_error.message : '');
+  $('ai-playbook').value = AI.playbook;
+  const run = AI.run, o = run ? run.output : null;
+  ['ai-calls-card', 'ai-next', 'ai-content-card'].forEach((id) => { $(id).hidden = !o; });
+  if (o) {
+    $('ai-when').textContent = 'Run on ' + rpWhen(run.run_at) + (run.source === 'cron' ? ', daily run' : '') + ' · ' + run.model + ' · ' + AI.runs_today + ' of ' + AI.runs_per_day + ' runs today';
+    $('ai-headline').textContent = o.headline;
+    $('ai-summary').textContent = o.summary;
+    const m = o.money, gap = m.budget_after - m.per_day_to_spend_it_all;
+    $('ai-kpis').replaceChildren(...[
+      ['Live budgets now', '₹' + nf.format(m.budget_now) + ' a day', ''],
+      ['After these calls', '₹' + nf.format(m.budget_after) + ' a day', gap > 0 ? '₹' + nf.format(gap) + ' over the daily plan' : '₹' + nf.format(-gap) + ' under the daily plan'],
+      ['Plan allows', '₹' + nf.format(m.per_day_to_spend_it_all) + ' a day', '₹' + nf.format(Math.round(m.budget_left)) + ' left, ' + m.days_left + ' days'],
+      ['Followers to go', nf.format(m.followers_to_go), nf.format(m.followers_now) + ' now'],
+    ].map(([k, v, sub]) => { const d = el('div', 'kpi'); d.append(el('span', '', k), el('b', '', v), el('em', '', sub)); return d; }));
+    $('ai-warnings').replaceChildren(...o.warnings.map((w) => el('li', '', w)));
+    $('ai-count').textContent = String(o.ads.length);
+    const order = {scale: 0, stop: 1, cut: 2, hold: 3, wait: 4};
+    $('ai-calls').replaceChildren(...o.ads.slice().sort((a, b) => order[a.action] - order[b.action]).map((c) => {
+      const tr = el('tr');
+      const ad = el('td', '', c.name); ad.appendChild(el('small', '', c.adset_name)); ad.appendChild(el('small', '', [c.pillar, c.hook, c.topic].filter(Boolean).join(' · ')));
+      const call = el('td'); call.appendChild(el('span', 'call ' + c.action, c.action)); call.appendChild(el('small', '', c.confidence + ' confidence'));
+      const bud = el('td', '', c.action === 'stop' ? 'Pause the ad' : c.budget_after ? '₹' + nf.format(c.budget_now) + ' to ₹' + nf.format(c.budget_after) : '₹' + nf.format(c.budget_now) + ', no change');
+      const n = c.numbers, cpf = el('td', 'n', aiMoney(n.last_3_days.cost_per_follower));
+      cpf.appendChild(el('small', '', 'last ' + n.last_3_days.days + ' finished ' + (n.last_3_days.days === 1 ? 'day' : 'days') + ', ' + nf.format(n.last_3_days.follows) + ' follows'));
+      cpf.appendChild(el('small', '', 'yesterday ' + aiMoney(n.yesterday.cost_per_follower)));
+      cpf.appendChild(el('small', '', 'today so far ' + aiMoney(n.today.cost_per_follower)));
+      const why = el('td', 'why'); const ul = el('ul'); c.reasons.forEach((r) => ul.appendChild(el('li', '', r))); why.appendChild(ul);
+      if (c.watch) why.appendChild(el('small', '', 'This changes if. ' + c.watch));
+      c.flags.forEach((f) => why.appendChild(el('div', 'ai-flag', 'Check. ' + f)));
+      const dec = el('td'); dec.appendChild(aiDecision('ad', c.ad_id, c.action, c.budget_after, AI.actions));
+      tr.append(ad, call, bud, cpf, why, dec);
+      return tr;
+    }));
+    $('ai-boost-none').hidden = o.boost_next.length > 0;
+    $('ai-boost').replaceChildren(...o.boost_next.map((b) => {
+      const d = el('div', 'ai-item'); const h = el('div'); h.append(el('b', '', b.name), el('small', '', 'Posted ' + rpDate(b.posted) + ' · ' + (b.views == null ? '—' : nf.format(b.views)) + ' views · ' + (b.shares == null ? '—' : nf.format(b.shares)) + ' shares · ' + (b.saves == null ? '—' : nf.format(b.saves)) + ' saves'));
+      d.append(h, el('p', '', b.why), el('p', '', 'Start at ₹' + nf.format(b.daily_budget) + ' a day. Audience. ' + b.audience), aiDecision('boost', b.media_id, 'boost', b.daily_budget, ['boost', 'skip']));
+      return d;
+    }));
+    $('ai-aud-none').hidden = o.audience_changes.length > 0;
+    $('ai-aud').replaceChildren(...o.audience_changes.map((x) => {
+      const d = el('div', 'ai-item'); d.append(el('b', '', x.adset_name), el('p', '', x.change), el('p', '', x.why), aiDecision('audience', x.key, 'change', 0, ['change', 'skip']));
+      return d;
+    }));
+    $('ai-learn').replaceChildren(...o.content_learnings.map((t) => el('li', '', t)));
+  } else {
+    $('ai-kpis').replaceChildren(); $('ai-warnings').replaceChildren();
+  }
+  $('ai-content').replaceChildren(...AI.content.map((c) => { const tr = el('tr'); tr.append(el('td', '', c.pillar), el('td', '', c.hook), el('td', 'n', c.ads ? String(c.ads) : '—'), el('td', 'n', c.ads ? inr(c.spend) : '—'), el('td', 'n', c.ads ? nf.format(c.follows) : '—'), el('td', 'n', aiMoney(c.cost_per_follower)), el('td', 'n', c.posts ? String(c.posts) : '—'), el('td', 'n', c.views_per_post == null ? '—' : nf.format(c.views_per_post)), el('td', 'n', c.shares_per_post == null ? '—' : String(c.shares_per_post))); return tr; }));
+  const s = AI.score;
+  $('ai-score').replaceChildren(...[
+    ['Decisions logged', String(s.decisions), ''],
+    ['Team agreed with the AI', s.decisions ? Math.round(100 * s.agreed / s.decisions) + '%' : '—', s.agreed + ' of ' + s.decisions],
+    ['Turned out well', String(s.turned_out_well), 'follower cost held or fell'],
+    ['Turned out badly', String(s.turned_out_badly), 'follower cost rose'],
+  ].map(([k, v, sub]) => { const d = el('div', 'kpi'); d.append(el('span', '', k), el('b', '', v), el('em', '', sub)); return d; }));
+  $('ai-log-count').textContent = AI.log.length ? String(AI.log.length) : '';
+  $('ai-log-none').hidden = AI.log.length > 0;
+  $('ai-log').replaceChildren(...AI.log.map((d) => {
+    const tr = el('tr');
+    const did = el('td'); did.appendChild(el('span', 'call ' + d.final_action, aiCallText(d.final_action, d.final_budget))); if (!d.agreed) did.appendChild(el('small', '', 'Different from the AI'));
+    const said = el('td'); said.appendChild(el('span', 'call ' + d.ai_action, aiCallText(d.ai_action, d.ai_budget)));
+    const res = el('td', '', d.result || 'Waiting for 3 days of numbers'); res.style.whiteSpace = 'normal';
+    const why = el('td', '', d.reason || '—'); why.style.whiteSpace = 'normal';
+    const item = el('td', '', d.item); item.style.whiteSpace = 'normal';
+    tr.append(el('td', '', rpDate(d.day)), item, said, did, why, res);
+    return tr;
+  }));
+}
+async function aiLoad() {
+  try { AI = await rpJson('api.php?a=brain'); aiDraw(); } catch (e) { aiError('AI decisions could not be loaded. ' + e.message); }
+}
+$('ai-run').addEventListener('click', async () => {
+  if (aiBusy) return;
+  aiBusy = true; aiError(''); const b = $('ai-run'); b.disabled = true; b.textContent = 'Thinking. This takes about a minute';
+  try { AI = await aiPost('brain_run'); } catch (e) { await aiLoad(); aiError('The run did not finish. ' + e.message); }
+  aiBusy = false; b.textContent = 'Run now'; aiDraw();
+});
+$('ai-playbook-save').addEventListener('click', async () => {
+  const n = $('ai-playbook-note'); n.textContent = '';
+  try { AI = await aiPost('brain_playbook', {playbook: $('ai-playbook').value}); aiDraw(); n.textContent = 'Saved. The next run will use it.'; }
+  catch (e) { n.textContent = 'Not saved. ' + e.message; }
+});
+
+const TITLES = {overview: 'Overview', spend: 'Spend', followers: 'Followers', content: 'Content', analyse: 'Analyse live ad', reports: 'Daily reports', brain: 'AI decisions', decisions: 'Decision center'};
 function route() {
   const v = TITLES[location.hash.slice(1)] ? location.hash.slice(1) : 'overview';
   Object.keys(TITLES).forEach((k) => { $('v-' + k).hidden = k !== v; });
   document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('on', a.dataset.v === v));
   $('view-title').textContent = TITLES[v];
   if (v === 'reports') rpLoadList();
+  if (v === 'brain') aiLoad();
   draw();
 }
 window.addEventListener('hashchange', route);

@@ -1,6 +1,7 @@
 <?php
 // One-time page to save the Meta token on the server. The token is never shown again and never sent to the browser.
 require __DIR__ . '/lib.php';
+require __DIR__ . '/brain.php';
 header('X-Robots-Tag: noindex, nofollow');
 header('Cache-Control: no-store');
 
@@ -19,7 +20,50 @@ function note_attempt(string $f): void {
     @file_put_contents($f, json_encode(array_slice($a, -30)));
 }
 
-if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+$aiMsg = '';
+$aiGood = false;
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['form'] ?? '') === 'ai') {
+    // Saves the Claude API key and the team PIN. Neither is ever shown again or sent to the browser.
+    $code = strtoupper(trim((string)($_POST['code'] ?? '')));
+    $key = trim((string)($_POST['key'] ?? ''));
+    $pin = trim((string)($_POST['pin'] ?? ''));
+    $have = brain_secret();
+    if (attempts_left($lockFile) <= 0) {
+        $aiMsg = 'Too many tries. Wait an hour and try again.';
+    } elseif (!password_verify($code, cfg()['setup_code_hash'])) {
+        note_attempt($lockFile);
+        $aiMsg = 'That setup code is not right.';
+    } elseif ($key === '' && empty($have['key'])) {
+        $aiMsg = 'Paste the Claude API key.';
+    } elseif ($key !== '' && !preg_match('/^sk-ant-[A-Za-z0-9_\-]{20,300}$/', $key)) {
+        $aiMsg = 'That does not look like a Claude API key. It starts with sk-ant- and has no spaces.';
+    } elseif ($pin === '' && empty($have['pin_hash'])) {
+        $aiMsg = 'Choose a team PIN of 4 to 8 digits.';
+    } elseif ($pin !== '' && !preg_match('/^\d{4,8}$/', $pin)) {
+        $aiMsg = 'The team PIN must be 4 to 8 digits.';
+    } else {
+        $problem = '';
+        if ($key !== '') {
+            // One free call to Anthropic to confirm the key works before it is saved.
+            $ch = curl_init('https://api.anthropic.com/v1/models?limit=1');
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_HTTPHEADER => ['x-api-key: ' . $key, 'anthropic-version: 2023-06-01']]);
+            $raw = curl_exec($ch);
+            $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            $j = is_string($raw) ? json_decode($raw, true) : null;
+            if ($status !== 200) $problem = 'Anthropic did not accept this key. ' . htmlspecialchars((string)($j['error']['message'] ?? 'No answer from the server.'));
+        }
+        if ($problem !== '') {
+            note_attempt($lockFile);
+            $aiMsg = $problem;
+        } else {
+            if ($key !== '') $have['key'] = $key;
+            if ($pin !== '') $have['pin_hash'] = password_hash($pin, PASSWORD_DEFAULT);
+            if (brain_secret_save($have)) { $aiGood = true; $aiMsg = 'Saved. Open the dashboard, go to AI decisions and press Run now.'; }
+            else $aiMsg = 'The server could not save the key. Tell Claude this exact line.';
+        }
+    }
+} elseif (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $code = strtoupper(trim((string)($_POST['code'] ?? '')));
     $tok = trim((string)($_POST['token'] ?? ''));
     if (attempts_left($lockFile) <= 0) {
@@ -72,6 +116,20 @@ button{margin-top:18px;font:inherit;font-weight:600;padding:10px 16px;border:0;b
 <label for="code">Setup code</label><input id="code" name="code" required autocomplete="off">
 <label for="token">Meta token</label><textarea id="token" name="token" required spellcheck="false"></textarea>
 <button type="submit">Save token and pull data</button>
+</form>
+<?php endif; ?>
+</main>
+<main style="margin-top:20px">
+<h1>AI decisions setup</h1>
+<p><?= !empty(brain_secret()['key']) ? 'A Claude API key is already saved. Fill a field only to replace it.' : 'Paste the Claude API key and choose a team PIN. The PIN is asked on the dashboard before anyone runs the AI, logs a decision or edits the playbook.' ?></p>
+<?php if ($aiMsg): ?><div class="note <?= $aiGood ? 'ok' : '' ?>"><?= $aiMsg ?></div><?php endif; ?>
+<?php if ($aiGood): ?><p><a href="./#brain">Open AI decisions</a></p><?php else: ?>
+<form method="post" autocomplete="off">
+<input type="hidden" name="form" value="ai">
+<label for="code2">Setup code</label><input id="code2" name="code" required autocomplete="off">
+<label for="key">Claude API key</label><textarea id="key" name="key" spellcheck="false" style="min-height:60px"></textarea>
+<label for="pin">Team PIN, 4 to 8 digits</label><input id="pin" name="pin" inputmode="numeric" autocomplete="off">
+<button type="submit">Save</button>
 </form>
 <?php endif; ?>
 </main></body></html>

@@ -2,6 +2,7 @@
 // Read-only JSON for the dashboard. The only write it can trigger is a fresh pull from Meta into our own database.
 require __DIR__ . '/lib.php';
 require __DIR__ . '/report.php';
+require __DIR__ . '/brain.php';
 
 $a = $_GET['a'] ?? 'data';
 
@@ -30,6 +31,32 @@ try {
         }
         $r = collect('button');
         json_out($r + ['last_pull' => last_pull()]);
+        exit;
+    }
+    if ($a === 'brain') {
+        // AI decisions: the latest run, what the team decided, the log and the scorecard.
+        json_out(brain_state());
+        exit;
+    }
+    if ($a === 'brain_run' || $a === 'brain_decide' || $a === 'brain_playbook') {
+        // These three write to our own database or spend API money, so they need the team PIN.
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') { json_out(['error' => 'Use POST.'], 405); exit; }
+        try {
+            if (empty(brain_secret()['pin_hash'])) { json_out(['error' => 'The team PIN is not set yet. Finish the AI setup first.'], 409); exit; }
+            if (!pin_ok((string)($_SERVER['HTTP_X_TEAM_PIN'] ?? ''))) { json_out(['error' => 'That PIN is not right.', 'pin' => true], 403); exit; }
+            $in = json_decode((string)file_get_contents('php://input'), true);
+            if (!is_array($in)) $in = [];
+            if ($a === 'brain_run') brain_run('button');
+            elseif ($a === 'brain_decide') brain_decide($in);
+            else {
+                $text = trim((string)($in['playbook'] ?? ''));
+                if (strlen($text) > 6000) throw new BrainError('Keep the playbook under 6,000 characters.');
+                kv_set('brain_playbook', $text);
+            }
+            json_out(brain_state());
+        } catch (BrainError $e) {
+            json_out(['error' => $e->getMessage()], 400);
+        }
         exit;
     }
     if ($a === 'reports') {
@@ -207,7 +234,7 @@ try {
         }
         ksort($days); ksort($types);
         $counts = [];
-        foreach (['ad_daily', 'ads', 'adsets', 'ig_followers', 'ig_media', 'ig_media_daily', 'reports', 'pulls'] as $t) $counts[$t] = (int)db()->query("SELECT COUNT(*) FROM $t")->fetchColumn();
+        foreach (['ad_daily', 'ads', 'adsets', 'ig_followers', 'ig_media', 'ig_media_daily', 'reports', 'brain_runs', 'brain_decisions', 'content_tags', 'pulls'] as $t) $counts[$t] = (int)db()->query("SELECT COUNT(*) FROM $t")->fetchColumn();
         json_out(['has_token' => (bool)token(), 'last_pull' => last_pull(), 'counts' => $counts, 'field_errors' => kv_get('field_errors'), 'ig_error' => kv_get('ig_error'), 'by_day_last_7' => $days, 'metric_totals_last_7' => $types, 'first_day' => db()->query('SELECT MIN(day) FROM ad_daily')->fetchColumn()]);
         exit;
     }

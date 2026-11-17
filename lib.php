@@ -275,7 +275,7 @@ function collect(string $source = 'cron'): array {
             $pdo->prepare('INSERT INTO snapshots (pulled_at, kind, entity_id, status, daily_budget) VALUES (?,?,?,?,?)')->execute([$now, 'adset', $s['id'], $s['effective_status'] ?? '', $budget]);
         }
         try {
-            $ads = graph_all("$acct/ads", ['fields' => 'id,name,effective_status,created_time,adset_id,campaign_id,creative{id,instagram_permalink_url,source_instagram_media_id,effective_instagram_media_id}', 'limit' => 200]);
+            $ads = graph_all("$acct/ads", ['fields' => 'id,name,effective_status,created_time,adset_id,campaign_id,creative{id,body,instagram_permalink_url,source_instagram_media_id,effective_instagram_media_id}', 'limit' => 200]);
         } catch (GraphError $e) {
             $notes[] = 'Ad creative links were not available.';
             $ads = graph_all("$acct/ads", ['fields' => 'id,name,effective_status,created_time,adset_id,campaign_id', 'limit' => 200]);

@@ -138,12 +138,21 @@ function brain_facts(): array {
     foreach ($pdo->query('SELECT * FROM adsets') as $r) $sets[(string)$r['adset_id']] = $r;
 
     // Posts, to link an ad to the post it boosts.
+    // Most ads here are made as new ads, not boosts of the post, so Meta gives no id that ties them together. The caption is the fallback link.
+    $capKey = function (string $t): string {
+        $t = function_exists('mb_strtolower') ? mb_strtolower($t) : strtolower($t);
+        $t = trim(preg_replace('/\s+/u', ' ', $t));
+        return function_exists('mb_substr') ? mb_substr($t, 0, 45) : substr($t, 0, 45);
+    };
     $media = [];
     $byCode = [];
+    $byCap = [];
     foreach ($pdo->query('SELECT * FROM ig_media ORDER BY posted_at DESC') as $m) {
         $media[(string)$m['media_id']] = $m;
         $c = shortcode((string)$m['permalink']);
         if ($c !== '') $byCode[$c] = (string)$m['media_id'];
+        $k = $capKey((string)$m['caption']);
+        if (strlen($k) >= 25 && !isset($byCap[$k])) $byCap[$k] = (string)$m['media_id'];
     }
     $tags = [];
     foreach ($pdo->query('SELECT * FROM content_tags') as $t) $tags[$t['item_kind'] . ':' . $t['item_id']] = ['pillar' => $t['pillar'], 'hook' => $t['hook'], 'topic' => $t['topic']];
@@ -180,6 +189,8 @@ function brain_facts(): array {
         $cr = !empty($a['creative_json']) ? json_decode($a['creative_json'], true) : [];
         $mid = (string)($cr['source_instagram_media_id'] ?? '');
         if (!isset($media[$mid])) $mid = $byCode[shortcode((string)($cr['instagram_permalink_url'] ?? ''))] ?? '';
+        $adText = trim(preg_replace('/\s+/u', ' ', (string)($cr['body'] ?? '')));
+        if ($mid === '' && $adText !== '') $mid = $byCap[$capKey($adText)] ?? '';
         $post = $media[$mid] ?? null;
         if ($post && $isLive) $boosted[$mid] = true;
         $lf = $life[$id] ?? null;
@@ -188,6 +199,7 @@ function brain_facts(): array {
             'adset_id' => (string)$a['adset_id'], 'adset_name' => $set['name'] ?? '',
             'first_day_with_spend' => $first[$id]['d'] ?? null, 'days_with_spend' => (int)($first[$id]['n'] ?? 0),
             'post' => $post ? ['media_id' => $mid, 'caption' => $post['caption'], 'type' => $post['product_type'] === 'REELS' ? 'Reel' : 'Post', 'posted' => substr((string)$post['posted_at'], 0, 10)] : null,
+            'ad_text' => $adText !== '' ? (function_exists('mb_substr') ? mb_substr($adText, 0, 160) : substr($adText, 0, 160)) : null,
             'known_tags' => $tags['ad:' . $id] ?? null,
             'since_meta_reported_follows' => $lf ? ['days' => (int)$lf['days'], 'spend' => r2($lf['spend']), 'follows' => (int)$lf['follows'], 'visits' => (int)$lf['visits'], 'cost_per_follower' => per($lf['spend'], $lf['follows']), 'cost_per_visit' => per($lf['spend'], $lf['visits'])] : null,
         ];

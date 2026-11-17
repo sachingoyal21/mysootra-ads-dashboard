@@ -59,7 +59,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['form'] ?? '') === 
         } else {
             if ($key !== '') $have['key'] = $key;
             if ($pin !== '') $have['pin_hash'] = password_hash($pin, PASSWORD_DEFAULT);
-            if (brain_secret_save($have)) { $aiGood = true; $aiMsg = 'Saved. Open the dashboard, go to AI decisions and press Run now.'; }
+            if (brain_secret_save($have)) { $aiGood = true; $aiMsg = 'Saved. Open the AI Ads Engine and press Run now.'; }
             else $aiMsg = 'The server could not save the key. Tell Claude this exact line.';
         }
     }
@@ -123,7 +123,7 @@ button{margin-top:18px;font:inherit;font-weight:600;padding:10px 16px;border:0;b
 <h1>AI decisions setup</h1>
 <p><?= !empty(brain_secret()['key']) ? 'A Claude API key is already saved. Fill a field only to replace it.' : 'Paste the Claude API key and choose a team PIN. The PIN is asked on the dashboard before anyone runs the AI, logs a decision or edits the playbook.' ?></p>
 <?php if ($aiMsg): ?><div class="note <?= $aiGood ? 'ok' : '' ?>"><?= $aiMsg ?></div><?php endif; ?>
-<?php if ($aiGood): ?><p><a href="./#brain">Open AI decisions</a></p><?php else: ?>
+<?php if ($aiGood): ?><p><a href="./ai-ads-engine/">Open the AI Ads Engine</a></p><?php else: ?>
 <form method="post" autocomplete="off">
 <input type="hidden" name="form" value="ai">
 <label for="code2">Setup code</label><input id="code2" name="code" required autocomplete="off">

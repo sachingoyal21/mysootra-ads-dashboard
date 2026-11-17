@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>MySootra AI Ads Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one calm column. The overview is always open. Everything deeper sits in rows and sections that open on a click. */
+:root{
+  --bg:#F2F3F8; --panel:#FCFCFE; --ink:#17181C; --muted:#5F6472; --line:#DDDFE9; --soft:#ECEEF5;
+  --blue:#1D4FD8; --blue-soft:#DCE5FB;
+  --good:#15803D; --good-bg:#DDF3E3; --warn:#A8650A; --warn-bg:#FBEFD6; --bad:#C8322B; --bad-bg:#FBE3E1;
+  --sans:"Geist","Segoe UI",system-ui,-apple-system,sans-serif; --mono:"Geist Mono",ui-monospace,Menlo,monospace;
+  --r:16px; color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
+a{color:var(--blue)}
+.top{position:sticky;top:0;z-index:5;background:rgba(252,252,254,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1040px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;margin-right:auto}
+.brand small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.mark{width:32px;height:32px;border-radius:10px;background:var(--blue);color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.meta{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right}
+.btn{font:inherit;font-weight:600;font-size:14px;border:0;border-radius:10px;padding:9px 14px;background:var(--blue);color:#fff;cursor:pointer;white-space:nowrap}
+.btn:disabled{opacity:.7;cursor:default}
+.btn.ghost{background:var(--panel);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line);font-weight:500}
+.btn.sm{padding:6px 11px;font-size:13px;border-radius:8px}
+.btn:focus-visible,summary:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;padding:22px 20px 60px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px}
+.banner{border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:12px;padding:10px 14px;font-size:14px;margin:0}
+.eyebrow{font-family:var(--mono);font-size:12px;color:var(--blue);letter-spacing:.06em;text-transform:uppercase}
+h1{font-size:26px;line-height:1.25;font-weight:600;letter-spacing:-.015em;margin:6px 0 8px;text-wrap:balance}
+h2{font-size:17px;font-weight:600;margin:0}
+.sub{color:var(--muted);margin:0;max-width:75ch}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:18px}
+.kpi{background:var(--soft);border-radius:12px;padding:12px 14px}
+.kpi span{font-size:12px;color:var(--muted);display:block}
+.kpi b{display:block;font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em;margin-top:2px}
+.kpi em{font-style:normal;font-size:12px;color:var(--muted)}
+.kpi em.over{color:var(--warn)}
+.head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.head .right{margin-left:auto;font-size:13px;color:var(--muted)}
+.pill{font-size:12px;font-weight:500;border-radius:999px;padding:2px 9px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.pill.good{background:var(--good-bg);color:var(--good)} .pill.warn{background:var(--warn-bg);color:var(--warn)}
+.call{display:inline-block;font-weight:600;font-size:11px;border-radius:7px;padding:4px 0;width:58px;text-align:center;text-transform:uppercase;letter-spacing:.05em}
+.call.scale{background:var(--good-bg);color:var(--good)} .call.stop{background:var(--bad-bg);color:var(--bad)} .call.cut{background:var(--warn-bg);color:var(--warn)}
+.call.hold,.call.wait,.call.skip{background:var(--soft);color:var(--muted)} .call.boost,.call.change{background:var(--blue-soft);color:var(--blue)}
+/* Rows that open */
+details>summary{list-style:none;cursor:pointer}
+details>summary::-webkit-details-marker{display:none}
+.chev{width:18px;height:18px;flex:none;color:var(--muted);transition:transform .15s}
+details[open]>summary .chev{transform:rotate(90deg)}
+.rows{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.row{border-bottom:1px solid var(--line)}
+.row>summary{display:grid;grid-template-columns:58px minmax(0,1.5fr) minmax(0,1fr) 96px 132px 18px;gap:14px;align-items:center;padding:13px 4px}
+.row>summary:hover{background:var(--soft)}
+.row .name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .name small,.row .num small{display:block;font-weight:400;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .move{font-size:14px;font-variant-numeric:tabular-nums}
+.row .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+.row .state{text-align:right}
+.body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px;padding:6px 4px 20px 76px}
+.body h3{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px}
+.body ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.body p{margin:8px 0 0;font-size:13px;color:var(--muted)}
+.flag{margin-top:8px;font-size:13px;color:var(--warn);background:var(--warn-bg);border-radius:8px;padding:6px 10px}
+.mini{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;margin-bottom:14px}
+.mini td{padding:4px 0;border-bottom:1px solid var(--line)} .mini td:last-child{text-align:right}
+.decide{display:flex;flex-direction:column;gap:6px}
+.decide .line{display:flex;gap:6px;flex-wrap:wrap}
+.decide select,.decide input{font:inherit;font-size:14px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);width:100%}
+.done{font-size:14px} .done b{font-weight:600}
+/* Sections that open */
+.sec{padding:0}
+.sec>summary{display:flex;align-items:center;gap:10px;padding:18px 22px}
+.sec>summary .teaser{margin-left:auto;font-size:13px;color:var(--muted);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%}
+.sec .in{padding:0 22px 22px;display:flex;flex-direction:column;gap:12px}
+.item{border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.item b{font-weight:600} .item small{color:var(--muted);font-size:12px} .item p{margin:0;font-size:14px}
+.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.tbl{overflow-x:auto}
+table.t{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;min-width:640px}
+table.t th{text-align:left;font-weight:500;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.t td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.t .n{text-align:right}
+.note{font-size:12px;color:var(--muted);margin:0}
+#playbook{width:100%;min-height:240px;font:inherit;font-size:14px;line-height:1.55;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);resize:vertical}
+.tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.foot{font-size:12px;color:var(--muted);text-align:center}
+@media (max-width:760px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .row>summary{grid-template-columns:58px minmax(0,1fr) 18px;row-gap:4px}
+  .row .move,.row .num,.row .state{grid-column:2;text-align:left}
+  .row .chev{grid-column:3;grid-row:1}
+  .body{grid-template-columns:minmax(0,1fr);padding-left:4px}
+  .sec>summary .teaser{display:none}
+  .meta{text-align:left}
+}
+@media (prefers-reduced-motion:reduce){.chev{transition:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <div class="brand"><span class="mark">M</span><span>MySootra<small>AI Ads Engine</small></span></div>
+  <div class="meta" id="meta"></div>
+  <button class="btn" type="button" id="run">Run now</button>
+</div></header>
+
+<main class="wrap">
+  <p class="banner" id="setup" hidden></p>
+  <p class="banner" id="error" role="alert" hidden></p>
+
+  <section class="card">
+    <span class="eyebrow" id="eyebrow">Today's call</span>
+    <h1 id="headline">No run yet</h1>
+    <p class="sub" id="summary">The engine reads every live ad, the budget and the team's past decisions, then says what to do. It never changes anything in Meta. Press Run now for the first call.</p>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section class="card" id="actions" hidden>
+    <div class="head"><h2>Actions for today</h2><span id="tally"></span><span class="right" id="logged"></span></div>
+    <div class="rows" id="rows"></div>
+    <p class="note" style="margin-top:12px">Open a row to see why, then log what the team decides. The engine reads your decisions and reasons before its next run.</p>
+  </section>
+
+  <details class="card sec" id="s-check" data-k="check" hidden><summary><h2>Things to check</h2><span class="pill warn" id="check-n"></span><span class="teaser" id="check-t"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary><div class="in"><ul class="plain" id="check"></ul></div></details>
+
+  <details class="card sec" id="s-boost" data-k="boost" hidden><summary><h2>Boost next</h2><span class="pill" id="boost-n"></span><span class="teaser" id="boost-t"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary><div class="in" id="boost"></div></details>
+
+  <details class="card sec" id="s-aud" data-k="aud" hidden><summary><h2>Audience changes</h2><span class="pill" id="aud-n"></span><span class="teaser" id="aud-t"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary><div class="in" id="aud"></div></details>
+
+  <details class="card sec" id="s-content" data-k="content" hidden><summary><h2>What the ads say about content</h2><span class="teaser" id="content-t"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary><div class="in">
+    <ul class="plain" id="learn"></ul>
+    <div class="tbl"><table class="t"><thead><tr><th>Pillar</th><th>Hook</th><th class="n">Ads</th><th class="n">Ad spend</th><th class="n">Followers</th><th class="n">Cost per follower</th><th class="n">Posts</th><th class="n">Views per post</th><th class="n">Shares per post</th></tr></thead><tbody id="content"></tbody></table></div>
+    <p class="note">Worked out from saved numbers and the content label on each ad and post. It fills up as more ads and posts run.</p>
+  </div></details>
+
+  <details class="card sec" id="s-log" data-k="log"><summary><h2>Decision log</h2><span class="pill" id="log-n"></span><span class="teaser" id="log-t"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary><div class="in">
+    <div class="kpis" id="score" style="margin-top:0"></div>
+    <div class="tbl"><table class="t"><thead><tr><th>Date</th><th>Ad or item</th><th>Engine said</th><th>Team did</th><th>Reason</th><th>How it turned out</th></tr></thead><tbody id="log"></tbody></table></div>
+    <p class="note" id="log-none" hidden>No decisions logged yet. Results appear 3 days after a decision.</p>
+  </div></details>
+
+  <details class="card sec" id="s-play" data-k="play"><summary><h2>Playbook</h2><span class="teaser">How the team wants calls made</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary><div class="in">
+    <p class="sub">Plain words. The engine reads this on every run. Edit it when the goal or the budget changes.</p>
+    <textarea id="playbook" spellcheck="false" aria-label="Playbook"></textarea>
+    <div class="tools"><button class="btn ghost" type="button" id="play-save">Save playbook</button><span class="note" id="play-note"></span></div>
+  </div></details>
+
+  <p class="foot">Reads Meta only. Never changes an ad. <a href="../">Open the growth console</a></p>
+</main>
+
+<script>
+// The server builds the facts, asks Claude, checks the answer and saves it. This page shows it and records what the team decides.
+const API = '../api.php';
+const $ = (id) => document.getElementById(id);
+const nf = new Intl.NumberFormat('en-IN');
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const money = (v) => v == null ? '—' : '₹' + Number(v).toFixed(2);
+const day = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', {day: 'numeric', month: 'short'});
+const when = (s) => new Date(s.replace(' ', 'T')).toLocaleString('en-IN', {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'});
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const callText = (action, budget) => action + (budget ? ' to ₹' + nf.format(budget) : '');
+const chev = () => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('class', 'chev'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '2'); const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', 'M9 6l6 6-6 6'); s.appendChild(p); return s; };
+
+let AI = null, busy = false;
+const open = new Set(); // which rows and sections are open, so a redraw keeps them open
+document.addEventListener('toggle', (e) => { const k = e.target.dataset && e.target.dataset.k; if (!k) return; if (e.target.open) open.add(k); else open.delete(k); }, true);
+
+function pin(ask) {
+  let p = ''; try { p = localStorage.getItem('teamPin') || ''; } catch (e) { p = ''; }
+  if (!p || ask) { p = (window.prompt('Team PIN') || '').trim(); try { if (p) localStorage.setItem('teamPin', p); } catch (e) { /* storage not allowed */ } }
+  return p;
+}
+async function getState() {
+  const r = await fetch(API + '?a=brain', {cache: 'no-store'});
+  const j = await r.json();
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+async function post(action, body, retry) {
+  const p = pin(retry);
+  if (!p) throw new Error('The team PIN is needed for this.');
+  const r = await fetch(API + '?a=' + action, {method: 'POST', cache: 'no-store', headers: {'content-type': 'application/json', 'x-team-pin': p}, body: JSON.stringify(body || {})});
+  let j = null; try { j = await r.json(); } catch (e) { j = null; }
+  if (!j) throw new Error('The server gave an answer the page could not read.');
+  if (j.pin && !retry) { try { localStorage.removeItem('teamPin'); } catch (e) { /* storage not allowed */ } return post(action, body, true); }
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+function showError(t) { const b = $('error'); b.hidden = !t; b.textContent = t || ''; }
+
+// Agree, or decide differently with a reason.
+function decision(kind, id, aiAction, aiBudget, actions) {
+  const d = AI.decided[kind + ':' + id];
+  const box = el('div', 'decide');
+  const form = () => {
+    box.replaceChildren();
+    const sel = el('select'); actions.forEach((a) => { const o = el('option', '', cap(a)); o.value = a; sel.appendChild(o); }); sel.value = d ? d.final_action : aiAction; sel.setAttribute('aria-label', 'Team decision');
+    const amt = el('input'); amt.type = 'number'; amt.min = '0'; amt.step = '10'; amt.placeholder = 'New daily budget in ₹'; amt.value = d && Number(d.final_budget) ? d.final_budget : (aiBudget || ''); amt.setAttribute('aria-label', 'New daily budget in rupees');
+    const why = el('input'); why.type = 'text'; why.placeholder = 'Why? The engine learns from this'; why.maxLength = 300; why.value = d ? d.reason || '' : ''; why.setAttribute('aria-label', 'Reason');
+    const line = el('div', 'line');
+    const save = el('button', 'btn sm', 'Save'); save.type = 'button';
+    const cancel = el('button', 'btn sm ghost', 'Cancel'); cancel.type = 'button'; cancel.addEventListener('click', show);
+    save.addEventListener('click', () => saveDecision(kind, id, sel.value, Number(amt.value) || 0, why.value.trim(), save));
+    line.append(save, cancel);
+    const needs = () => { amt.hidden = !(sel.value === 'scale' || sel.value === 'cut' || sel.value === 'boost'); };
+    sel.addEventListener('change', needs); needs();
+    box.append(sel, amt, why, line);
+  };
+  const show = () => {
+    box.replaceChildren();
+    if (d) {
+      const t = el('div', 'done'); t.append(el('b', '', Number(d.agreed) ? 'Team agreed. ' : 'Team chose ' + callText(d.final_action, Number(d.final_budget)) + '. '), document.createTextNode(d.reason || ''));
+      const ch = el('button', 'btn sm ghost', 'Change'); ch.type = 'button'; ch.addEventListener('click', form);
+      const line = el('div', 'line'); line.appendChild(ch); box.append(t, line);
+    } else {
+      const line = el('div', 'line');
+      const yes = el('button', 'btn sm', 'Agree'); yes.type = 'button'; yes.addEventListener('click', () => saveDecision(kind, id, aiAction, aiBudget, '', yes));
+      const no = el('button', 'btn sm ghost', 'Decide differently'); no.type = 'button'; no.addEventListener('click', form);
+      line.append(yes, no); box.appendChild(line);
+    }
+  };
+  show();
+  return box;
+}
+async function saveDecision(kind, id, action, budget, reason, btn) {
+  showError(''); btn.disabled = true;
+  try { AI = await post('brain_decide', {run_id: AI.run.id, kind, item_id: id, final_action: action, final_budget: budget, reason}); draw(); }
+  catch (e) { showError('The decision was not saved. ' + e.message); btn.disabled = false; }
+}
+const statePill = (kind, id) => {
+  const d = AI.decided[kind + ':' + id];
+  if (!d) return el('span', 'pill', 'Not logged');
+  return el('span', 'pill ' + (Number(d.agreed) ? 'good' : 'warn'), Number(d.agreed) ? 'Agreed' : 'Team: ' + d.final_action);
+};
+const tiles = (list) => list.map(([k, v, sub, cls]) => { const d = el('div', 'kpi'); d.append(el('span', '', k), el('b', '', v), el('em', cls || '', sub)); return d; });
+const section = (id, n, teaser) => { const s = $('s-' + id); s.hidden = false; s.open = open.has(id); if ($(id + '-n')) $(id + '-n').textContent = String(n); if ($(id + '-t')) $(id + '-t').textContent = teaser; };
+
+function draw() {
+  if (!AI) return;
+  const setup = $('setup');
+  setup.hidden = AI.has_key && AI.has_pin;
+  setup.textContent = !AI.has_key ? 'The engine is not set up yet. Open setup.php on this site, paste the Claude API key and choose a team PIN.' : 'The team PIN is not set yet. Open setup.php on this site to choose one.';
+  $('run').disabled = busy || !AI.has_key || !AI.has_pin;
+  showError(AI.last_error ? 'The last run on ' + when(AI.last_error.at) + ' did not finish. ' + AI.last_error.message : '');
+  if (document.activeElement !== $('playbook')) $('playbook').value = AI.playbook;
+  ['log', 'play'].forEach((k) => { $('s-' + k).open = open.has(k); });
+
+  const run = AI.run, o = run ? run.output : null;
+  $('actions').hidden = !o;
+  if (!o) { ['check', 'boost', 'aud', 'content'].forEach((k) => { $('s-' + k).hidden = true; }); }
+  if (o) {
+    $('meta').textContent = 'Run ' + when(run.run_at) + ' · ' + run.model + ' · ' + AI.runs_today + ' of ' + AI.runs_per_day + ' runs today';
+    $('eyebrow').textContent = "Today's call, " + day(run.day);
+    $('headline').textContent = o.headline;
+    $('summary').textContent = o.summary;
+    const m = o.money, gap = m.budget_after - m.per_day_to_spend_it_all;
+    $('kpis').replaceChildren(...tiles([
+      ['Live budgets now', '₹' + nf.format(m.budget_now) + ' a day', 'across all live ad sets'],
+      ['After these calls', '₹' + nf.format(m.budget_after) + ' a day', gap > 0 ? '₹' + nf.format(gap) + ' over the daily plan' : '₹' + nf.format(-gap) + ' under the daily plan', gap > 0 ? 'over' : ''],
+      ['Plan allows', '₹' + nf.format(m.per_day_to_spend_it_all) + ' a day', '₹' + nf.format(Math.round(m.budget_left)) + ' left, ' + m.days_left + ' days'],
+      ['Followers to go', nf.format(m.followers_to_go), nf.format(m.followers_now) + ' now'],
+    ]));
+
+    // Actions. One line per ad. Open a line for the reasons, the numbers and the decision.
+    const order = {scale: 0, stop: 1, cut: 2, hold: 3, wait: 4};
+    const ads = o.ads.slice().sort((a, b) => order[a.action] - order[b.action]);
+    const count = {}; ads.forEach((c) => { count[c.action] = (count[c.action] || 0) + 1; });
+    $('tally').replaceChildren(...Object.keys(order).filter((a) => count[a]).map((a) => { const s = el('span', 'pill', count[a] + ' ' + a); s.style.marginRight = '6px'; return s; }));
+    const done = ads.filter((c) => AI.decided['ad:' + c.ad_id]).length;
+    $('logged').textContent = done + ' of ' + ads.length + ' logged';
+    $('rows').replaceChildren(...ads.map((c) => {
+      const k = 'ad-' + c.ad_id, n = c.numbers;
+      const d = el('details', 'row'); d.dataset.k = k; d.open = open.has(k);
+      const sum = el('summary');
+      const name = el('div', 'name', c.name); name.appendChild(el('small', '', [c.pillar, c.hook, c.topic].filter(Boolean).join(' · ')));
+      const move = el('div', 'move', c.action === 'stop' ? 'Pause the ad' : c.budget_after ? '₹' + nf.format(c.budget_now) + ' to ₹' + nf.format(c.budget_after) + ' a day' : 'Keep ₹' + nf.format(c.budget_now) + ' a day');
+      const num = el('div', 'num', money(n.last_3_days.cost_per_follower)); num.appendChild(el('small', '', 'a follower'));
+      const st = el('div', 'state'); st.appendChild(statePill('ad', c.ad_id));
+      sum.append(el('span', 'call ' + c.action, c.action), name, move, num, st, chev());
+      const body = el('div', 'body');
+      const left = el('div'); left.appendChild(el('h3', '', 'Why'));
+      const ul = el('ul'); c.reasons.forEach((r) => ul.appendChild(el('li', '', r))); left.appendChild(ul);
+      if (c.watch) left.appendChild(el('p', '', 'This changes if. ' + c.watch));
+      c.flags.forEach((f) => left.appendChild(el('div', 'flag', 'Check. ' + f)));
+      const right = el('div'); right.appendChild(el('h3', '', 'Cost per follower'));
+      const t = el('table', 'mini');
+      [['Last ' + n.last_3_days.days + ' finished ' + (n.last_3_days.days === 1 ? 'day' : 'days'), money(n.last_3_days.cost_per_follower) + ' · ' + nf.format(n.last_3_days.follows) + ' follows'], ['Yesterday', money(n.yesterday.cost_per_follower) + ' · ₹' + nf.format(Math.round(n.yesterday.spend)) + ' spent'], ['Today so far', money(n.today.cost_per_follower)], ['Ad set', c.adset_name], ['Confidence', cap(c.confidence)]].forEach(([a, b]) => { const tr = el('tr'); tr.append(el('td', '', a), el('td', '', b)); t.appendChild(tr); });
+      right.appendChild(t);
+      right.appendChild(el('h3', '', 'Team decision'));
+      right.appendChild(decision('ad', c.ad_id, c.action, c.budget_after, AI.actions));
+      body.append(left, right);
+      d.append(sum, body);
+      return d;
+    }));
+
+    $('s-check').hidden = !o.warnings.length;
+    if (o.warnings.length) { section('check', o.warnings.length, 'Read before acting'); $('check').replaceChildren(...o.warnings.map((w) => el('li', '', w))); }
+
+    $('s-boost').hidden = !o.boost_next.length;
+    if (o.boost_next.length) {
+      section('boost', o.boost_next.length, o.boost_next.map((b) => b.name).join(', '));
+      $('boost').replaceChildren(...o.boost_next.map((b) => {
+        const d = el('div', 'item'); const line = el('div', 'tools'); line.append(el('b', '', b.name), statePill('boost', b.media_id));
+        d.append(line, el('small', '', 'Posted ' + day(b.posted) + ' · ' + (b.views == null ? '—' : nf.format(b.views)) + ' views · ' + (b.shares == null ? '—' : nf.format(b.shares)) + ' shares · ' + (b.saves == null ? '—' : nf.format(b.saves)) + ' saves'),
+          el('p', '', b.why), el('p', '', 'Start at ₹' + nf.format(b.daily_budget) + ' a day. Audience. ' + b.audience), decision('boost', b.media_id, 'boost', b.daily_budget, ['boost', 'skip']));
+        return d;
+      }));
+    }
+    $('s-aud').hidden = !o.audience_changes.length;
+    if (o.audience_changes.length) {
+      section('aud', o.audience_changes.length, o.audience_changes.map((x) => x.adset_name).join(', '));
+      $('aud').replaceChildren(...o.audience_changes.map((x) => {
+        const d = el('div', 'item'); const line = el('div', 'tools'); line.append(el('b', '', x.adset_name), statePill('audience', x.key));
+        d.append(line, el('p', '', x.change), el('p', '', x.why), decision('audience', x.key, 'change', 0, ['change', 'skip']));
+        return d;
+      }));
+    }
+    section('content', 0, o.content_learnings.length ? o.content_learnings[0] : '');
+    $('learn').replaceChildren(...o.content_learnings.map((t) => el('li', '', t)));
+  }
+  $('content').replaceChildren(...AI.content.map((c) => { const tr = el('tr'); tr.append(el('td', '', c.pillar), el('td', '', c.hook), el('td', 'n', c.ads ? String(c.ads) : '—'), el('td', 'n', c.ads ? '₹' + nf.format(Math.round(c.spend)) : '—'), el('td', 'n', c.ads ? nf.format(c.follows) : '—'), el('td', 'n', money(c.cost_per_follower)), el('td', 'n', c.posts ? String(c.posts) : '—'), el('td', 'n', c.views_per_post == null ? '—' : nf.format(c.views_per_post)), el('td', 'n', c.shares_per_post == null ? '—' : String(c.shares_per_post))); return tr; }));
+
+  const s = AI.score, pct = s.decisions ? Math.round(100 * s.agreed / s.decisions) + '%' : '—';
+  $('log-n').textContent = String(s.decisions);
+  $('log-t').textContent = s.decisions ? 'Team agreed ' + pct + ' of the time · ' + s.turned_out_well + ' turned out well · ' + s.turned_out_badly + ' badly' : 'Nothing logged yet';
+  $('score').replaceChildren(...tiles([['Decisions logged', String(s.decisions), ''], ['Team agreed', pct, s.agreed + ' of ' + s.decisions], ['Turned out well', String(s.turned_out_well), 'follower cost held or fell'], ['Turned out badly', String(s.turned_out_badly), 'follower cost rose']]));
+  $('log-none').hidden = AI.log.length > 0;
+  $('log').replaceChildren(...AI.log.map((d) => {
+    const tr = el('tr');
+    const said = el('td'); said.appendChild(el('span', 'pill', callText(d.ai_action, d.ai_budget)));
+    const did = el('td'); did.appendChild(el('span', 'pill ' + (d.agreed ? 'good' : 'warn'), callText(d.final_action, d.final_budget)));
+    tr.append(el('td', '', day(d.day)), el('td', '', d.item), said, did, el('td', '', d.reason || '—'), el('td', '', d.result || 'Waiting for 3 days of numbers'));
+    return tr;
+  }));
+}
+async function load() {
+  try { AI = await getState(); draw(); } catch (e) { showError('The engine could not be loaded. ' + e.message); }
+}
+$('run').addEventListener('click', async () => {
+  if (busy) return;
+  busy = true; showError(''); const b = $('run'); b.disabled = true; b.textContent = 'Thinking, about a minute';
+  try { AI = await post('brain_run'); } catch (e) { await load(); showError('The run did not finish. ' + e.message); }
+  busy = false; b.textContent = 'Run now'; draw();
+});
+$('play-save').addEventListener('click', async () => {
+  const n = $('play-note'); n.textContent = '';
+  try { AI = await post('brain_playbook', {playbook: $('playbook').value}); draw(); n.textContent = 'Saved. The next run will use it.'; }
+  catch (e) { n.textContent = 'Not saved. ' + e.message; }
+});
+load();
+</script>
+</body>
+</html>

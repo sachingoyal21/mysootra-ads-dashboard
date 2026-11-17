@@ -277,10 +277,11 @@ function draw() {
     $('eyebrow').textContent = "Today's call, " + day(run.day);
     $('headline').textContent = o.headline;
     $('summary').textContent = o.summary;
-    const m = o.money, gap = m.budget_after - m.per_day_to_spend_it_all;
+    // The server's total includes the suggested boosts. Show the ad calls on their own, and the boosts as an extra, so the tile matches the summary.
+    const m = o.money, boosts = o.boost_next.reduce((a, b) => a + b.daily_budget, 0), afterAds = m.budget_after - boosts, gap = afterAds - m.per_day_to_spend_it_all;
     $('kpis').replaceChildren(...tiles([
       ['Live budgets now', '₹' + nf.format(m.budget_now) + ' a day', 'across all live ad sets'],
-      ['After these calls', '₹' + nf.format(m.budget_after) + ' a day', gap > 0 ? '₹' + nf.format(gap) + ' over the daily plan' : '₹' + nf.format(-gap) + ' under the daily plan', gap > 0 ? 'over' : ''],
+      ['After these calls', '₹' + nf.format(afterAds) + ' a day', (gap > 0 ? '₹' + nf.format(gap) + ' over the daily plan' : '₹' + nf.format(-gap) + ' under the daily plan') + (boosts ? '. Add ₹' + nf.format(boosts) + ' if every boost runs' : ''), gap > 0 ? 'over' : ''],
       ['Plan allows', '₹' + nf.format(m.per_day_to_spend_it_all) + ' a day', '₹' + nf.format(Math.round(m.budget_left)) + ' left, ' + m.days_left + ' days'],
       ['Followers to go', nf.format(m.followers_to_go), nf.format(m.followers_now) + ' now'],
     ]));

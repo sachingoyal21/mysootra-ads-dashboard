@@ -157,6 +157,12 @@ table.t .n{text-align:right}
     <div class="tools"><button class="btn ghost" type="button" id="play-save">Save playbook</button><span class="note" id="play-note"></span></div>
   </div></details>
 
+  <details class="card sec" id="s-test" data-k="test"><summary><h2>Connection test</h2><span class="teaser" id="test-t">Check the key, the model and the link to Claude</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary><div class="in">
+    <p class="sub">Sends three tiny requests to Claude and times each one. Use it when a run does not finish.</p>
+    <div class="tools"><button class="btn ghost" type="button" id="test-run">Test the connection</button><span class="note" id="test-note"></span></div>
+    <div class="tbl"><table class="t"><thead><tr><th>Test</th><th>Result</th><th class="n">Seconds</th><th>Detail</th></tr></thead><tbody id="test"></tbody></table></div>
+  </div></details>
+
   <p class="foot">Reads Meta only. Never changes an ad. <a href="../">Open the growth console</a></p>
 </main>
 
@@ -255,10 +261,13 @@ function draw() {
   $('run').disabled = busy || AI.running || !AI.has_key || !AI.has_pin;
   $('run').textContent = AI.running ? 'Running' : 'Run now';
   $('status').hidden = !AI.running;
-  if (AI.running) $('status').textContent = 'The engine is reading the numbers and asking Claude. ' + (AI.running_seconds != null ? AI.running_seconds + ' seconds so far. ' : '') + 'It usually takes 1 to 3 minutes. You can leave this page. The answer is saved on the server.';
+  if (AI.running) $('status').textContent = (AI.step ? AI.step + '. ' : 'The engine is working. ') + (AI.running_seconds != null ? AI.running_seconds + ' seconds so far. ' : '') + 'You can leave this page. The answer is saved on the server.';
   showError(AI.last_error ? 'The last run on ' + when(AI.last_error.at) + ' did not finish. ' + AI.last_error.message : '');
   if (document.activeElement !== $('playbook')) $('playbook').value = AI.playbook;
-  ['log', 'play'].forEach((k) => { $('s-' + k).open = open.has(k); });
+  ['log', 'play', 'test'].forEach((k) => { $('s-' + k).open = open.has(k); });
+  const T = AI.test;
+  $('test-t').textContent = T ? (T.steps.every((x) => x.ok) && T.steps.length === 3 ? 'All 3 tests passed on ' + when(T.at) : 'A test failed on ' + when(T.at)) : 'Check the key, the model and the link to Claude';
+  $('test').replaceChildren(...(T ? T.steps : []).map((x) => { const tr = el('tr'); const r = el('td'); r.appendChild(el('span', 'pill ' + (x.ok ? 'good' : 'warn'), x.ok ? 'Passed' : 'Failed')); tr.append(el('td', '', x.test), r, el('td', 'n', String(x.seconds)), el('td', '', x.ok ? x.model + ' · ' + x.tokens_in + ' tokens in, ' + x.tokens_out + ' out' : x.error)); return tr; }));
 
   const run = AI.run, o = run ? run.output : null;
   $('actions').hidden = !o;
@@ -358,6 +367,11 @@ $('run').addEventListener('click', async () => {
   try { AI = await post('brain_run'); } catch (e) { failed = e.message; await load(); }
   busy = false; draw();
   if (failed) showError('The run did not start. ' + failed);
+});
+$('test-run').addEventListener('click', async () => {
+  const b = $('test-run'), n = $('test-note'); b.disabled = true; n.textContent = 'Testing. This can take a minute or two.';
+  try { AI = await post('brain_test'); draw(); n.textContent = 'Done.'; } catch (e) { await load(); n.textContent = 'The test did not finish. ' + e.message; }
+  b.disabled = false;
 });
 $('play-save').addEventListener('click', async () => {
   const n = $('play-note'); n.textContent = '';

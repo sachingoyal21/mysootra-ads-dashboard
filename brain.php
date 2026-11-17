@@ -324,7 +324,9 @@ function brain_system(): string {
     ]);
 }
 
-function claude_post(array $body, string $key): array {
+// Sends one request to Claude and reads the answer as a stream. Streaming keeps bytes flowing, so a long answer is not dropped
+// by a timeout on the way, and $onProgress can report how far the answer has got.
+function claude_post(array $body, string $key, ?callable $onProgress = null, int $timeout = 240): array {
     $mock = getenv('MS_CLAUDE_MOCK');
     if ($mock) {
         $fn = require $mock;
@@ -332,28 +334,91 @@ function claude_post(array $body, string $key): array {
         if (isset($j['error'])) throw new BrainError('Claude error. ' . ($j['error']['message'] ?? 'Unknown error'));
         return $j;
     }
-    $ch = curl_init('https://api.anthropic.com/v1/messages');
-    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_TIMEOUT => 280, CURLOPT_CONNECTTIMEOUT => 15,
-        CURLOPT_HTTPHEADER => ['x-api-key: ' . $key, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
-        CURLOPT_POSTFIELDS => json_encode($body)]);
-    $raw = curl_exec($ch);
-    $err = curl_error($ch);
+    $body['stream'] = true;
+    $buf = '';
+    $raw = '';
+    $text = '';
+    $out = ['model' => (string)$body['model'], 'stop_reason' => null, 'usage' => ['input_tokens' => 0, 'output_tokens' => 0]];
+    $err = null;
+    $last = 0;
+    $ch = curl_init(getenv('MS_CLAUDE_URL') ?: 'https://api.anthropic.com/v1/messages');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_TIMEOUT => $timeout, CURLOPT_CONNECTTIMEOUT => 15, CURLOPT_NOSIGNAL => true,
+        CURLOPT_HTTPHEADER => ['x-api-key: ' . $key, 'anthropic-version: 2023-06-01', 'content-type: application/json', 'accept: text/event-stream'],
+        CURLOPT_POSTFIELDS => json_encode($body),
+        CURLOPT_WRITEFUNCTION => function ($ch, $chunk) use (&$buf, &$raw, &$text, &$out, &$err, &$last, $onProgress) {
+            if (strlen($raw) < 4000) $raw .= $chunk;
+            $buf .= $chunk;
+            while (($pos = strpos($buf, "\n")) !== false) {
+                $line = rtrim(substr($buf, 0, $pos), "\r");
+                $buf = substr($buf, $pos + 1);
+                if (strncmp($line, 'data:', 5) !== 0) continue;
+                $e = json_decode(trim(substr($line, 5)), true);
+                if (!is_array($e)) continue;
+                $type = $e['type'] ?? '';
+                if ($type === 'message_start') {
+                    $out['model'] = (string)($e['message']['model'] ?? $out['model']);
+                    $out['usage']['input_tokens'] = (int)($e['message']['usage']['input_tokens'] ?? 0);
+                } elseif ($type === 'content_block_delta' && ($e['delta']['type'] ?? '') === 'text_delta') {
+                    $text .= $e['delta']['text'];
+                } elseif ($type === 'message_delta') {
+                    if (isset($e['delta']['stop_reason'])) $out['stop_reason'] = $e['delta']['stop_reason'];
+                    if (isset($e['usage']['output_tokens'])) $out['usage']['output_tokens'] = (int)$e['usage']['output_tokens'];
+                } elseif ($type === 'error') {
+                    $err = (string)($e['error']['message'] ?? 'Unknown error');
+                }
+            }
+            if ($onProgress && time() - $last >= 3) { $last = time(); $onProgress(strlen($text)); }
+            return strlen($chunk);
+        }]);
+    $ok = curl_exec($ch);
+    $curlErr = curl_error($ch);
+    $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    if ($raw === false) throw new BrainError('Could not reach Claude. ' . $err);
-    $j = json_decode($raw, true);
-    if (!is_array($j)) throw new BrainError('Claude sent an answer that could not be read.');
-    if (isset($j['error'])) throw new BrainError('Claude error. ' . ($j['error']['message'] ?? 'Unknown error'));
-    return $j;
+    if ($err !== null) throw new BrainError('Claude error. ' . $err);
+    if ($status !== 200) {
+        $j = json_decode($raw, true); // a refused request comes back as plain JSON, not as a stream
+        if (isset($j['error']['message'])) throw new BrainError('Claude error ' . $status . '. ' . $j['error']['message']);
+        throw new BrainError($ok === false ? 'Could not reach Claude. ' . $curlErr : 'Claude answered with status ' . $status . '.');
+    }
+    if ($ok === false) throw new BrainError('The connection to Claude dropped part way. ' . $curlErr . ' ' . strlen($text) . ' characters had arrived.');
+    $out['content'] = [['type' => 'text', 'text' => $text]];
+    return $out;
 }
 
-function brain_call(array $facts): array {
+// A tiny request to confirm the key, the model name and the connection. Run from the page by someone with the team PIN.
+function brain_test(): array {
+    $res = ['at' => date('Y-m-d H:i:s'), 'model' => cfg()['brain_model'] ?? BRAIN_MODEL, 'steps' => []];
+    $key = (string)(brain_secret()['key'] ?? '');
+    $tests = [
+        'Plain reply' => [],
+        'Reply in a fixed shape' => ['output_config' => ['format' => ['type' => 'json_schema', 'schema' => ['type' => 'object', 'properties' => ['word' => ['type' => 'string']], 'required' => ['word'], 'additionalProperties' => false]]]],
+        'Engine answer shape' => ['output_config' => ['format' => ['type' => 'json_schema', 'schema' => brain_schema()]], 'max_tokens' => 300, 'messages' => [['role' => 'user', 'content' => 'There are no ads today. Return the shape with empty lists and one short sentence in headline and summary.']]],
+    ];
+    foreach ($tests as $name => $extra) {
+        $t0 = microtime(true);
+        $row = ['test' => $name];
+        try {
+            $r = claude_post($extra + ['model' => $res['model'], 'max_tokens' => 40, 'messages' => [['role' => 'user', 'content' => 'Reply with the single word ok.']]], $key, null, 150);
+            $row += ['ok' => true, 'model' => $r['model'], 'stop_reason' => $r['stop_reason'], 'tokens_in' => $r['usage']['input_tokens'], 'tokens_out' => $r['usage']['output_tokens'], 'reply' => substr($r['content'][0]['text'], 0, 120)];
+        } catch (Throwable $e) {
+            $row += ['ok' => false, 'error' => $e->getMessage()];
+        }
+        $row['seconds'] = round(microtime(true) - $t0, 1);
+        $res['steps'][] = $row;
+        kv_set('brain_test', $res);
+        if (!$row['ok']) break;
+    }
+    return $res;
+}
+
+function brain_call(array $facts, ?callable $onProgress = null): array {
     $key = brain_secret()['key'] ?? '';
     if ($key === '' && !getenv('MS_CLAUDE_MOCK')) throw new BrainError('The Claude API key is not saved yet.');
     $model = cfg()['brain_model'] ?? BRAIN_MODEL;
     $body = ['model' => $model, 'max_tokens' => 8000, 'system' => brain_system(),
         'messages' => [['role' => 'user', 'content' => "Fact sheet for today:\n" . json_encode($facts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]],
         'output_config' => ['format' => ['type' => 'json_schema', 'schema' => brain_schema()]]];
-    $resp = claude_post($body, $key);
+    $resp = claude_post($body, $key, $onProgress);
     if (($resp['stop_reason'] ?? '') === 'max_tokens') throw new BrainError('The answer was cut off before it finished. Try again.');
     if (($resp['stop_reason'] ?? '') === 'refusal') throw new BrainError('Claude declined to answer this run.');
     $text = '';
@@ -523,15 +588,20 @@ function brain_finish(int $runId): void {
         try { $save(['message' => 'The server stopped the run. ' . ($e ? $e['message'] : 'No reason was given.')]); } catch (Throwable $x) { /* nothing more can be done */ }
     });
     $t0 = microtime(true);
+    $step = function (string $what) use ($runId, $t0) { kv_set('brain_progress', ['run' => $runId, 'step' => $what, 'seconds' => (int)round(microtime(true) - $t0), 'at' => date('Y-m-d H:i:s')]); };
     try {
+        $step('Checking for fresh numbers');
         // Fresh numbers first.
         $pull = last_pull(true);
         if (token() && (!$pull || strtotime($pull['finished_at'] ?: $pull['started_at']) < time() - 30 * 60)) collect('brain');
         brain_outcomes();
+        $step('Building the fact sheet');
         $facts = brain_facts();
         $save(['facts_json' => json_encode($facts)]);
+        $step('Sent to Claude, waiting for the first words');
         if (!$facts['live_ads']) throw new BrainError('There are no live ads to judge right now.');
-        $res = brain_call($facts);
+        $res = brain_call($facts, fn(int $chars) => $step($chars ? 'Claude is writing the answer, ' . $chars . ' characters so far' : 'Claude is thinking'));
+        $step('Checking the answer');
         $clean = brain_guard($res['output'], $facts);
         $clean['seconds'] = (int)round(microtime(true) - $t0);
         $now = date('Y-m-d H:i:s');
@@ -539,8 +609,10 @@ function brain_finish(int $runId): void {
         foreach ($clean['stopped_ad_tags'] as $aid => $t) upsert('content_tags', ['item_kind' => 'ad', 'item_id' => (string)$aid, 'pillar' => $t['pillar'], 'hook' => $t['hook'], 'topic' => $t['topic'], 'updated_at' => $now], ['item_kind', 'item_id']);
         foreach ($clean['post_tags'] as $mid => $t) upsert('content_tags', ['item_kind' => 'media', 'item_id' => (string)$mid, 'pillar' => $t['pillar'], 'hook' => $t['hook'], 'topic' => $t['topic'], 'updated_at' => $now], ['item_kind', 'item_id']);
         $save(['model' => $res['model'], 'ok' => 1, 'tokens_in' => $res['tokens_in'], 'tokens_out' => $res['tokens_out'], 'cost_usd' => $res['cost_usd'], 'output_json' => json_encode($clean), 'message' => '']);
+        $step('Done');
     } catch (Throwable $e) {
         $save(['message' => $e->getMessage() . ' (after ' . (int)round(microtime(true) - $t0) . ' seconds)']);
+        $step('Failed');
     }
     $done = true;
 }
@@ -663,7 +735,7 @@ function brain_state(): array {
     $st = $pdo->prepare('SELECT COUNT(*) FROM brain_runs WHERE day = ?');
     $st->execute([date('Y-m-d')]);
     return [
-        'has_key' => !empty($sec['key']) || (bool)getenv('MS_CLAUDE_MOCK'), 'has_pin' => !empty($sec['pin_hash']), 'running' => $running, 'running_seconds' => $running && $startedAt ? time() - strtotime($startedAt) : null,
+        'has_key' => !empty($sec['key']) || (bool)getenv('MS_CLAUDE_MOCK'), 'has_pin' => !empty($sec['pin_hash']), 'running' => $running, 'step' => $running ? (kv_get('brain_progress')['step'] ?? null) : null, 'test' => kv_get('brain_test'), 'running_seconds' => $running && $startedAt ? time() - strtotime($startedAt) : null,
         'run' => $run ? ['id' => (int)$run['id'], 'run_at' => $run['run_at'], 'day' => $run['day'], 'source' => $run['source'], 'model' => $run['model'], 'cost_usd' => (float)$run['cost_usd'], 'tokens_in' => (int)$run['tokens_in'], 'tokens_out' => (int)$run['tokens_out'], 'output' => json_decode($run['output_json'], true)] : null,
         'last_error' => $fail && $fail['message'] !== '' && (!$run || $fail['run_at'] > $run['run_at']) ? ['at' => $fail['run_at'], 'message' => $fail['message']] : null,
         'decided' => $decided, 'log' => $log,

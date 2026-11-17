@@ -41,6 +41,7 @@ try {
             'stopped_ads' => count($f['ads_stopped_in_last_7_days']), 'organic_posts' => count($f['organic_posts']), 'ads_linked_to_a_post' => count(array_filter($f['live_ads'], fn($x) => $x['post'] !== null)),
             'audiences' => array_map(fn($x) => $x['audience'], $f['ad_sets']), 'account' => $f['account'], 'php_time_limit' => ini_get('max_execution_time'), 'curl' => function_exists('curl_init'), 'sapi' => PHP_SAPI, 'can_finish_request' => function_exists('litespeed_finish_request') ? 'litespeed' : (function_exists('fastcgi_finish_request') ? 'fastcgi' : 'no'),
             'recent_runs' => db()->query('SELECT id, run_at, source, model, ok, tokens_in, tokens_out, cost_usd, message FROM brain_runs ORDER BY id DESC LIMIT 6')->fetchAll(),
+            'progress' => kv_get('brain_progress'), 'connection_test' => kv_get('brain_test'),
             'creative_samples' => db()->query("SELECT name, creative_json FROM ads WHERE status = 'ACTIVE' LIMIT 4")->fetchAll(), 'post_link_samples' => db()->query('SELECT media_id, permalink FROM ig_media ORDER BY posted_at DESC LIMIT 4')->fetchAll()]);
         exit;
     }
@@ -49,7 +50,7 @@ try {
         json_out(brain_state());
         exit;
     }
-    if ($a === 'brain_run' || $a === 'brain_decide' || $a === 'brain_playbook') {
+    if ($a === 'brain_run' || $a === 'brain_decide' || $a === 'brain_playbook' || $a === 'brain_test') {
         // These three write to our own database or spend API money, so they need the team PIN.
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') { json_out(['error' => 'Use POST.'], 405); exit; }
         try {
@@ -74,6 +75,13 @@ try {
                 if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
                 brain_finish($runId);
                 exit;
+            }
+            elseif ($a === 'brain_test') {
+                // At most one connection test a minute.
+                if ((int)kv_get('brain_test_at', 0) > time() - 60) throw new BrainError('Wait a minute between connection tests.');
+                kv_set('brain_test_at', time());
+                @set_time_limit(340);
+                brain_test();
             }
             elseif ($a === 'brain_decide') brain_decide($in);
             else {

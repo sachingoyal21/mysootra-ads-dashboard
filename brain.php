@@ -4,7 +4,7 @@
 // Nothing here ever changes an ad, a budget or a status in Meta.
 
 const BRAIN_MODEL = 'claude-opus-5-5';
-const BRAIN_RUNS_PER_DAY = 8;
+const BRAIN_RUNS_PER_DAY = 12;
 const BRAIN_GAP_MINUTES = 5;
 // US dollars per million tokens, used only to show what a run cost.
 const BRAIN_PRICE = ['in' => 4.0, 'out' => 20.0];
@@ -333,7 +333,7 @@ function claude_post(array $body, string $key): array {
         return $j;
     }
     $ch = curl_init('https://api.anthropic.com/v1/messages');
-    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_TIMEOUT => 200, CURLOPT_CONNECTTIMEOUT => 15,
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_TIMEOUT => 280, CURLOPT_CONNECTTIMEOUT => 15,
         CURLOPT_HTTPHEADER => ['x-api-key: ' . $key, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
         CURLOPT_POSTFIELDS => json_encode($body)]);
     $raw = curl_exec($ch);
@@ -490,43 +490,70 @@ function brain_guard(array $out, array $facts): array {
 
 // ---------- Run, save, read ----------
 
-function brain_run(string $source = 'button'): array {
-    @set_time_limit(280);
+// A run has two halves. brain_start does the quick checks and saves a row. brain_finish does the slow part: fresh numbers, the call to Claude, the checks on the answer.
+// The web page gets its reply after the first half, so a slow answer from Claude cannot be cut off by the browser or the web server.
+function brain_start(string $source = 'button'): int {
     migrate();
     $pdo = db();
     $today = date('Y-m-d');
     $st = $pdo->prepare('SELECT COUNT(*) FROM brain_runs WHERE day = ?');
     $st->execute([$today]);
     if ((int)$st->fetchColumn() >= BRAIN_RUNS_PER_DAY) throw new BrainError('The AI has already run ' . BRAIN_RUNS_PER_DAY . ' times today. That is the daily limit.');
-    $last = $pdo->query('SELECT run_at FROM brain_runs ORDER BY id DESC LIMIT 1')->fetchColumn();
-    if ($source !== 'cron' && $last && strtotime($last) > time() - BRAIN_GAP_MINUTES * 60) throw new BrainError('The AI ran a few minutes ago. Wait ' . BRAIN_GAP_MINUTES . ' minutes between runs.');
-    // Fresh numbers first.
-    $pull = last_pull(true);
-    if (token() && (!$pull || strtotime($pull['finished_at'] ?: $pull['started_at']) < time() - 30 * 60)) collect('brain');
-    brain_outcomes();
-    $facts = brain_facts();
-    $row = ['run_at' => date('Y-m-d H:i:s'), 'day' => $today, 'source' => $source, 'model' => '', 'ok' => 0, 'tokens_in' => 0, 'tokens_out' => 0, 'cost_usd' => 0, 'facts_json' => json_encode($facts), 'output_json' => '', 'message' => 'Running'];
-    // The row is saved before the call to Claude, so a run that the server cuts off still leaves a trace.
-    $cols = array_keys($row);
-    $pdo->prepare('INSERT INTO brain_runs (' . implode(',', $cols) . ') VALUES (' . implode(',', array_fill(0, count($cols), '?')) . ')')->execute(array_values($row));
-    $runId = (int)$pdo->lastInsertId();
-    $row['message'] = '';
+    $last = $pdo->query('SELECT run_at, ok, message FROM brain_runs ORDER BY id DESC LIMIT 1')->fetch();
+    if ($last && $last['message'] === 'Running' && strtotime($last['run_at']) > time() - 360) throw new BrainError('A run is already in progress.');
+    if ($source !== 'cron' && $last && (int)$last['ok'] === 1 && strtotime($last['run_at']) > time() - BRAIN_GAP_MINUTES * 60) throw new BrainError('The AI ran a few minutes ago. Wait ' . BRAIN_GAP_MINUTES . ' minutes between runs.');
+    if (empty(brain_secret()['key']) && !getenv('MS_CLAUDE_MOCK')) throw new BrainError('The Claude API key is not saved yet.');
+    $pdo->prepare("INSERT INTO brain_runs (run_at, day, source, model, ok, message) VALUES (?, ?, ?, '', 0, 'Running')")->execute([date('Y-m-d H:i:s'), $today, $source]);
+    return (int)$pdo->lastInsertId();
+}
+
+function brain_finish(int $runId): void {
+    @set_time_limit(340);
+    @ignore_user_abort(true);
+    $pdo = db();
+    $save = function (array $f) use ($pdo, $runId) {
+        $set = implode(', ', array_map(fn($k) => "$k = ?", array_keys($f)));
+        $pdo->prepare("UPDATE brain_runs SET $set WHERE id = ?")->execute(array_merge(array_values($f), [$runId]));
+    };
+    // If PHP itself dies, say why instead of leaving the row on Running.
+    $done = false;
+    register_shutdown_function(function () use (&$done, $save) {
+        if ($done) return;
+        $e = error_get_last();
+        try { $save(['message' => 'The server stopped the run. ' . ($e ? $e['message'] : 'No reason was given.')]); } catch (Throwable $x) { /* nothing more can be done */ }
+    });
+    $t0 = microtime(true);
     try {
+        // Fresh numbers first.
+        $pull = last_pull(true);
+        if (token() && (!$pull || strtotime($pull['finished_at'] ?: $pull['started_at']) < time() - 30 * 60)) collect('brain');
+        brain_outcomes();
+        $facts = brain_facts();
+        $save(['facts_json' => json_encode($facts)]);
         if (!$facts['live_ads']) throw new BrainError('There are no live ads to judge right now.');
         $res = brain_call($facts);
         $clean = brain_guard($res['output'], $facts);
-        $row = ['model' => $res['model'], 'ok' => 1, 'tokens_in' => $res['tokens_in'], 'tokens_out' => $res['tokens_out'], 'cost_usd' => $res['cost_usd'], 'output_json' => json_encode($clean)] + $row;
+        $clean['seconds'] = (int)round(microtime(true) - $t0);
         $now = date('Y-m-d H:i:s');
         foreach ($clean['ads'] as $c) upsert('content_tags', ['item_kind' => 'ad', 'item_id' => $c['ad_id'], 'pillar' => $c['pillar'], 'hook' => $c['hook'], 'topic' => $c['topic'], 'updated_at' => $now], ['item_kind', 'item_id']);
         foreach ($clean['stopped_ad_tags'] as $aid => $t) upsert('content_tags', ['item_kind' => 'ad', 'item_id' => (string)$aid, 'pillar' => $t['pillar'], 'hook' => $t['hook'], 'topic' => $t['topic'], 'updated_at' => $now], ['item_kind', 'item_id']);
         foreach ($clean['post_tags'] as $mid => $t) upsert('content_tags', ['item_kind' => 'media', 'item_id' => (string)$mid, 'pillar' => $t['pillar'], 'hook' => $t['hook'], 'topic' => $t['topic'], 'updated_at' => $now], ['item_kind', 'item_id']);
+        $save(['model' => $res['model'], 'ok' => 1, 'tokens_in' => $res['tokens_in'], 'tokens_out' => $res['tokens_out'], 'cost_usd' => $res['cost_usd'], 'output_json' => json_encode($clean), 'message' => '']);
     } catch (Throwable $e) {
-        $row['message'] = $e->getMessage();
+        $save(['message' => $e->getMessage() . ' (after ' . (int)round(microtime(true) - $t0) . ' seconds)']);
     }
-    $pdo->prepare('UPDATE brain_runs SET model = ?, ok = ?, tokens_in = ?, tokens_out = ?, cost_usd = ?, output_json = ?, message = ? WHERE id = ?')
-        ->execute([$row['model'], $row['ok'], $row['tokens_in'], $row['tokens_out'], $row['cost_usd'], $row['output_json'], $row['message'], $runId]);
-    if (!$row['ok']) throw new BrainError($row['message']);
-    return ['run_id' => $runId];
+    $done = true;
+}
+
+// Used by the daily cron job and by tests: both halves in one go.
+function brain_run(string $source = 'button'): array {
+    $id = brain_start($source);
+    brain_finish($id);
+    $st = db()->prepare('SELECT ok, message FROM brain_runs WHERE id = ?');
+    $st->execute([$id]);
+    $r = $st->fetch();
+    if (!(int)$r['ok']) throw new BrainError((string)$r['message']);
+    return ['run_id' => $id];
 }
 
 // Three finished days after a decision, records how the ad did before and after it.
@@ -611,10 +638,11 @@ function brain_state(): array {
     $pdo = db();
     $sec = brain_secret();
     $run = $pdo->query('SELECT id, run_at, day, source, model, tokens_in, tokens_out, cost_usd, output_json FROM brain_runs WHERE ok = 1 ORDER BY id DESC LIMIT 1')->fetch() ?: null;
+    $startedAt = $pdo->query("SELECT run_at FROM brain_runs WHERE message = 'Running' ORDER BY id DESC LIMIT 1")->fetchColumn() ?: null;
     $fail = $pdo->query('SELECT run_at, message FROM brain_runs ORDER BY id DESC LIMIT 1')->fetch() ?: null;
     $running = false;
     if ($fail && $fail['message'] === 'Running') {
-        if (strtotime($fail['run_at']) > time() - 300) { $running = true; $fail = null; }
+        if (strtotime($fail['run_at']) > time() - 360) { $running = true; $fail = null; }
         else $fail['message'] = 'The run was cut off before Claude answered. The server stopped it or the connection dropped. Press Run now again.';
     }
     $decided = [];
@@ -635,8 +663,8 @@ function brain_state(): array {
     $st = $pdo->prepare('SELECT COUNT(*) FROM brain_runs WHERE day = ?');
     $st->execute([date('Y-m-d')]);
     return [
-        'has_key' => !empty($sec['key']) || (bool)getenv('MS_CLAUDE_MOCK'), 'has_pin' => !empty($sec['pin_hash']), 'running' => $running,
-        'run' => $run ? ['id' => (int)$run['id'], 'run_at' => $run['run_at'], 'day' => $run['day'], 'source' => $run['source'], 'model' => $run['model'], 'cost_usd' => (float)$run['cost_usd'], 'output' => json_decode($run['output_json'], true)] : null,
+        'has_key' => !empty($sec['key']) || (bool)getenv('MS_CLAUDE_MOCK'), 'has_pin' => !empty($sec['pin_hash']), 'running' => $running, 'running_seconds' => $running && $startedAt ? time() - strtotime($startedAt) : null,
+        'run' => $run ? ['id' => (int)$run['id'], 'run_at' => $run['run_at'], 'day' => $run['day'], 'source' => $run['source'], 'model' => $run['model'], 'cost_usd' => (float)$run['cost_usd'], 'tokens_in' => (int)$run['tokens_in'], 'tokens_out' => (int)$run['tokens_out'], 'output' => json_decode($run['output_json'], true)] : null,
         'last_error' => $fail && $fail['message'] !== '' && (!$run || $fail['run_at'] > $run['run_at']) ? ['at' => $fail['run_at'], 'message' => $fail['message']] : null,
         'decided' => $decided, 'log' => $log,
         'score' => ['decisions' => (int)$s['n'], 'agreed' => (int)$s['agreed'], 'turned_out_well' => $good, 'turned_out_badly' => $bad],

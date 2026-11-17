@@ -253,8 +253,9 @@ function draw() {
   setup.hidden = AI.has_key && AI.has_pin;
   setup.textContent = !AI.has_key ? 'The engine is not set up yet. Open setup.php on this site, paste the Claude API key and choose a team PIN.' : 'The team PIN is not set yet. Open setup.php on this site to choose one.';
   $('run').disabled = busy || AI.running || !AI.has_key || !AI.has_pin;
-  if (!busy) $('run').textContent = AI.running ? 'A run is in progress' : 'Run now';
-  $('status').hidden = !(busy || AI.running);
+  $('run').textContent = AI.running ? 'Running' : 'Run now';
+  $('status').hidden = !AI.running;
+  if (AI.running) $('status').textContent = 'The engine is reading the numbers and asking Claude. ' + (AI.running_seconds != null ? AI.running_seconds + ' seconds so far. ' : '') + 'It usually takes 1 to 3 minutes. You can leave this page. The answer is saved on the server.';
   showError(AI.last_error ? 'The last run on ' + when(AI.last_error.at) + ' did not finish. ' + AI.last_error.message : '');
   if (document.activeElement !== $('playbook')) $('playbook').value = AI.playbook;
   ['log', 'play'].forEach((k) => { $('s-' + k).open = open.has(k); });
@@ -263,7 +264,7 @@ function draw() {
   $('actions').hidden = !o;
   if (!o) { ['check', 'boost', 'aud', 'content'].forEach((k) => { $('s-' + k).hidden = true; }); }
   if (o) {
-    $('meta').textContent = 'Run ' + when(run.run_at) + ' · ' + run.model + ' · ' + AI.runs_today + ' of ' + AI.runs_per_day + ' runs today';
+    $('meta').textContent = 'Run ' + when(run.run_at) + ' · ' + run.model + ' · $' + Number(run.cost_usd).toFixed(2) + (o.seconds ? ' · ' + o.seconds + 's' : '') + ' · ' + AI.runs_today + ' of ' + AI.runs_per_day + ' runs today';
     $('eyebrow').textContent = "Today's call, " + day(run.day);
     $('headline').textContent = o.headline;
     $('summary').textContent = o.summary;
@@ -352,9 +353,11 @@ async function load() {
 }
 $('run').addEventListener('click', async () => {
   if (busy) return;
-  busy = true; showError(''); const b = $('run'); b.disabled = true; b.textContent = 'Thinking, about a minute'; $('status').hidden = false; window.scrollTo({top: 0});
-  try { AI = await post('brain_run'); } catch (e) { await load(); showError('The run did not finish. ' + e.message); }
-  busy = false; b.textContent = 'Run now'; draw();
+  busy = true; showError(''); const b = $('run'); b.disabled = true; b.textContent = 'Starting'; window.scrollTo({top: 0});
+  let failed = '';
+  try { AI = await post('brain_run'); } catch (e) { failed = e.message; await load(); }
+  busy = false; draw();
+  if (failed) showError('The run did not start. ' + failed);
 });
 $('play-save').addEventListener('click', async () => {
   const n = $('play-note'); n.textContent = '';
@@ -364,7 +367,7 @@ $('play-save').addEventListener('click', async () => {
 load();
 // Coming back to this tab, for example after finishing setup, refreshes the state so the Run button wakes up.
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !busy) load(); });
-setInterval(() => { if (!document.hidden && !busy && AI && AI.running) load(); }, 10000);
+setInterval(() => { if (!document.hidden && !busy && AI && AI.running) load(); }, 5000);
 </script>
 </body>
 </html>

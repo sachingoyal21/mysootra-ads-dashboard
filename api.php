@@ -39,7 +39,8 @@ try {
         $f = brain_facts();
         json_out(['ok' => true, 'seconds' => round(microtime(true) - $t0, 2), 'fact_sheet_bytes' => strlen(json_encode($f)), 'live_ads' => count($f['live_ads']), 'ad_sets' => count($f['ad_sets']),
             'stopped_ads' => count($f['ads_stopped_in_last_7_days']), 'organic_posts' => count($f['organic_posts']), 'ads_linked_to_a_post' => count(array_filter($f['live_ads'], fn($x) => $x['post'] !== null)),
-            'audiences' => array_map(fn($x) => $x['audience'], $f['ad_sets']), 'account' => $f['account'], 'php_time_limit' => ini_get('max_execution_time'), 'curl' => function_exists('curl_init'),
+            'audiences' => array_map(fn($x) => $x['audience'], $f['ad_sets']), 'account' => $f['account'], 'php_time_limit' => ini_get('max_execution_time'), 'curl' => function_exists('curl_init'), 'sapi' => PHP_SAPI, 'can_finish_request' => function_exists('litespeed_finish_request') ? 'litespeed' : (function_exists('fastcgi_finish_request') ? 'fastcgi' : 'no'),
+            'recent_runs' => db()->query('SELECT id, run_at, source, model, ok, tokens_in, tokens_out, cost_usd, message FROM brain_runs ORDER BY id DESC LIMIT 6')->fetchAll(),
             'creative_samples' => db()->query("SELECT name, creative_json FROM ads WHERE status = 'ACTIVE' LIMIT 4")->fetchAll(), 'post_link_samples' => db()->query('SELECT media_id, permalink FROM ig_media ORDER BY posted_at DESC LIMIT 4')->fetchAll()]);
         exit;
     }
@@ -56,7 +57,24 @@ try {
             if (!pin_ok((string)($_SERVER['HTTP_X_TEAM_PIN'] ?? ''))) { json_out(['error' => 'That PIN is not right.', 'pin' => true], 403); exit; }
             $in = json_decode((string)file_get_contents('php://input'), true);
             if (!is_array($in)) $in = [];
-            if ($a === 'brain_run') brain_run('button');
+            if ($a === 'brain_run') {
+                // Start the run, answer the browser at once, then carry on with the slow part after the reply has gone.
+                $runId = brain_start('button');
+                @ignore_user_abort(true);
+                $body = json_encode(brain_state(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                header('Content-Type: application/json; charset=utf-8');
+                header('Cache-Control: no-store');
+                header('X-Robots-Tag: noindex, nofollow');
+                header('Content-Length: ' . strlen($body));
+                header('Connection: close');
+                echo $body;
+                if (function_exists('litespeed_finish_request')) litespeed_finish_request();
+                elseif (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+                else { while (ob_get_level() > 0) @ob_end_flush(); @flush(); }
+                if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+                brain_finish($runId);
+                exit;
+            }
             elseif ($a === 'brain_decide') brain_decide($in);
             else {
                 $text = trim((string)($in['playbook'] ?? ''));

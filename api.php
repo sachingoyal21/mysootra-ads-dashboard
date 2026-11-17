@@ -33,28 +33,6 @@ try {
         json_out($r + ['last_pull' => last_pull()]);
         exit;
     }
-    if ($a === 'bg_test') {
-        // Checks that this server lets a script carry on after the reply has gone. It waits 25 seconds and notes the time. It calls nothing outside and spends nothing.
-        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') { json_out(['last' => kv_get('bg_test')]); exit; }
-        if ((int)(kv_get('bg_test')['started'] ?? 0) > time() - 40 && empty(kv_get('bg_test')['finished'])) { json_out(['error' => 'Wait a little between checks.'], 429); exit; }
-        kv_set('bg_test', ['started' => time(), 'ticks' => 0, 'finished' => null]);
-        @ignore_user_abort(true);
-        $body = json_encode(['started' => true]);
-        header('Content-Type: application/json; charset=utf-8');
-        header('Content-Length: ' . strlen($body));
-        header('Connection: close');
-        echo $body;
-        if (function_exists('litespeed_finish_request')) litespeed_finish_request();
-        elseif (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
-        else { while (ob_get_level() > 0) @ob_end_flush(); @flush(); }
-        $t = kv_get('bg_test');
-        @set_time_limit(340);
-        $n = max(5, min(40, (int)($_GET['n'] ?? 5))); // 5 seconds each, up to 200 seconds
-        for ($i = 1; $i <= $n; $i++) { sleep(5); $t['ticks'] = $i; kv_set('bg_test', $t); }
-        $t['finished'] = time();
-        kv_set('bg_test', $t);
-        exit;
-    }
     if ($a === 'brain_check') {
         // Health check for the engine. Builds the fact sheet and reports its size. It does not call Claude and shows no key.
         $t0 = microtime(true);
@@ -63,7 +41,7 @@ try {
             'stopped_ads' => count($f['ads_stopped_in_last_7_days']), 'organic_posts' => count($f['organic_posts']), 'ads_linked_to_a_post' => count(array_filter($f['live_ads'], fn($x) => $x['post'] !== null)),
             'audiences' => array_map(fn($x) => $x['audience'], $f['ad_sets']), 'account' => $f['account'], 'php_time_limit' => ini_get('max_execution_time'), 'curl' => function_exists('curl_init'), 'sapi' => PHP_SAPI, 'can_finish_request' => function_exists('litespeed_finish_request') ? 'litespeed' : (function_exists('fastcgi_finish_request') ? 'fastcgi' : 'no'),
             'recent_runs' => db()->query('SELECT id, run_at, source, model, ok, tokens_in, tokens_out, cost_usd, message FROM brain_runs ORDER BY id DESC LIMIT 6')->fetchAll(),
-            'progress' => kv_get('brain_progress'), 'connection_test' => kv_get('brain_test'),
+            'progress' => kv_get('brain_progress'), 'connection_test' => kv_get('brain_test'), 'worker_seen_seconds_ago' => kv_get('brain_worker_seen') ? time() - (int)kv_get('brain_worker_seen') : null,
             'creative_samples' => db()->query("SELECT name, creative_json FROM ads WHERE status = 'ACTIVE' LIMIT 4")->fetchAll(), 'post_link_samples' => db()->query('SELECT media_id, permalink FROM ig_media ORDER BY posted_at DESC LIMIT 4')->fetchAll()]);
         exit;
     }
@@ -81,22 +59,9 @@ try {
             $in = json_decode((string)file_get_contents('php://input'), true);
             if (!is_array($in)) $in = [];
             if ($a === 'brain_run') {
-                // Start the run, answer the browser at once, then carry on with the slow part after the reply has gone.
-                $runId = brain_start('button');
-                @ignore_user_abort(true);
-                $body = json_encode(brain_state(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                header('Content-Type: application/json; charset=utf-8');
-                header('Cache-Control: no-store');
-                header('X-Robots-Tag: noindex, nofollow');
-                header('Content-Length: ' . strlen($body));
-                header('Connection: close');
-                echo $body;
-                if (function_exists('litespeed_finish_request')) litespeed_finish_request();
-                elseif (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
-                else { while (ob_get_level() > 0) @ob_end_flush(); @flush(); }
-                if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
-                brain_finish($runId);
-                exit;
+                // Only queues the run. The cron worker does the slow part, because this server stops a web request after 2 minutes.
+                if ((int)kv_get('brain_worker_seen', 0) < time() - 180) throw new BrainError('The background worker on the server is not running, so the run cannot start. Tell Claude this exact line.');
+                brain_start('button');
             }
             elseif ($a === 'brain_test') {
                 // At most one connection test a minute.

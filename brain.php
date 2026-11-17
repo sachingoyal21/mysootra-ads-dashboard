@@ -6,6 +6,8 @@
 const BRAIN_MODEL = 'claude-opus-5-5';
 const BRAIN_RUNS_PER_DAY = 12;
 const BRAIN_GAP_MINUTES = 5;
+// A run that has shown no result after this long is treated as dead.
+const BRAIN_STALE_SECONDS = 600;
 // US dollars per million tokens, used only to show what a run cost.
 const BRAIN_PRICE = ['in' => 4.0, 'out' => 20.0];
 const PILLARS = ['Ghar', 'Rishte', 'Mann', 'Career', 'Festival and devotional', 'Other'];
@@ -422,7 +424,7 @@ function brain_call(array $facts, ?callable $onProgress = null): array {
     $body = ['model' => $model, 'max_tokens' => 16000, 'system' => brain_system(),
         'messages' => [['role' => 'user', 'content' => "Fact sheet for today:\n" . json_encode($facts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]],
         'output_config' => ['format' => ['type' => 'json_schema', 'schema' => brain_schema()]]];
-    $resp = claude_post($body, $key, $onProgress);
+    $resp = claude_post($body, $key, $onProgress, 420);
     if (($resp['stop_reason'] ?? '') === 'max_tokens') throw new BrainError('The answer was cut off before it finished. Try again.');
     if (($resp['stop_reason'] ?? '') === 'refusal') throw new BrainError('Claude declined to answer this run.');
     $text = '';
@@ -559,8 +561,9 @@ function brain_guard(array $out, array $facts): array {
 
 // ---------- Run, save, read ----------
 
-// A run has two halves. brain_start does the quick checks and saves a row. brain_finish does the slow part: fresh numbers, the call to Claude, the checks on the answer.
-// The web page gets its reply after the first half, so a slow answer from Claude cannot be cut off by the browser or the web server.
+// A run has two halves. brain_start does the quick checks and queues a row. brain_finish does the slow part: fresh numbers, the call to Claude, the checks on the answer.
+// The web page only does the first half. This server stops any web request after 2 minutes, and Claude can take longer,
+// so the second half is done by private/brain_worker.php, which a cron job runs every minute.
 function brain_start(string $source = 'button'): int {
     migrate();
     $pdo = db();
@@ -569,15 +572,29 @@ function brain_start(string $source = 'button'): int {
     $st->execute([$today]);
     if ((int)$st->fetchColumn() >= BRAIN_RUNS_PER_DAY) throw new BrainError('The AI has already run ' . BRAIN_RUNS_PER_DAY . ' times today. That is the daily limit.');
     $last = $pdo->query('SELECT run_at, ok, message FROM brain_runs ORDER BY id DESC LIMIT 1')->fetch();
-    if ($last && $last['message'] === 'Running' && strtotime($last['run_at']) > time() - 360) throw new BrainError('A run is already in progress.');
+    if ($last && $last['message'] === 'Running' && strtotime($last['run_at']) > time() - BRAIN_STALE_SECONDS) throw new BrainError('A run is already in progress.');
     if ($source !== 'cron' && $last && (int)$last['ok'] === 1 && strtotime($last['run_at']) > time() - BRAIN_GAP_MINUTES * 60) throw new BrainError('The AI ran a few minutes ago. Wait ' . BRAIN_GAP_MINUTES . ' minutes between runs.');
     if (empty(brain_secret()['key']) && !getenv('MS_CLAUDE_MOCK')) throw new BrainError('The Claude API key is not saved yet.');
     $pdo->prepare("INSERT INTO brain_runs (run_at, day, source, model, ok, message) VALUES (?, ?, ?, '', 0, 'Running')")->execute([date('Y-m-d H:i:s'), $today, $source]);
-    return (int)$pdo->lastInsertId();
+    $id = (int)$pdo->lastInsertId();
+    kv_set('brain_progress', ['run' => $id, 'step' => 'Queued. The server picks it up within a minute', 'seconds' => 0, 'at' => date('Y-m-d H:i:s')]);
+    return $id;
+}
+
+// Takes the oldest queued run, if there is one. Only one worker can take a given run.
+function brain_claim(): ?int {
+    $pdo = db();
+    $st = $pdo->prepare("SELECT id FROM brain_runs WHERE message = 'Running' AND model = '' AND run_at > ? ORDER BY id LIMIT 1");
+    $st->execute([date('Y-m-d H:i:s', time() - BRAIN_STALE_SECONDS)]);
+    $id = $st->fetchColumn();
+    if (!$id) return null;
+    $up = $pdo->prepare("UPDATE brain_runs SET model = 'starting' WHERE id = ? AND model = ''");
+    $up->execute([$id]);
+    return $up->rowCount() === 1 ? (int)$id : null;
 }
 
 function brain_finish(int $runId): void {
-    @set_time_limit(340);
+    @set_time_limit(PHP_SAPI === 'cli' ? 0 : 340);
     @ignore_user_abort(true);
     $pdo = db();
     $save = function (array $f) use ($pdo, $runId) {
@@ -621,9 +638,10 @@ function brain_finish(int $runId): void {
     $done = true;
 }
 
-// Used by the daily cron job and by tests: both halves in one go.
+// Both halves in one go. Used by tests.
 function brain_run(string $source = 'button'): array {
     $id = brain_start($source);
+    brain_claim();
     brain_finish($id);
     $st = db()->prepare('SELECT ok, message FROM brain_runs WHERE id = ?');
     $st->execute([$id]);
@@ -718,8 +736,8 @@ function brain_state(): array {
     $fail = $pdo->query('SELECT run_at, message FROM brain_runs ORDER BY id DESC LIMIT 1')->fetch() ?: null;
     $running = false;
     if ($fail && $fail['message'] === 'Running') {
-        if (strtotime($fail['run_at']) > time() - 360) { $running = true; $fail = null; }
-        else $fail['message'] = 'The run was cut off before Claude answered. The server stopped it or the connection dropped. Press Run now again.';
+        if (strtotime($fail['run_at']) > time() - BRAIN_STALE_SECONDS) { $running = true; $fail = null; }
+        else $fail['message'] = 'The run did not finish. Press Run now again.';
     }
     $decided = [];
     if ($run) {
@@ -739,7 +757,7 @@ function brain_state(): array {
     $st = $pdo->prepare('SELECT COUNT(*) FROM brain_runs WHERE day = ?');
     $st->execute([date('Y-m-d')]);
     return [
-        'has_key' => !empty($sec['key']) || (bool)getenv('MS_CLAUDE_MOCK'), 'has_pin' => !empty($sec['pin_hash']), 'running' => $running, 'step' => $running ? (kv_get('brain_progress')['step'] ?? null) : null, 'step_age' => $running && !empty(kv_get('brain_progress')['at']) ? time() - strtotime(kv_get('brain_progress')['at']) : null, 'test' => kv_get('brain_test'), 'running_seconds' => $running && $startedAt ? time() - strtotime($startedAt) : null,
+        'has_key' => !empty($sec['key']) || (bool)getenv('MS_CLAUDE_MOCK'), 'has_pin' => !empty($sec['pin_hash']), 'running' => $running, 'step' => $running ? (kv_get('brain_progress')['step'] ?? null) : null, 'step_age' => $running && !empty(kv_get('brain_progress')['at']) ? time() - strtotime(kv_get('brain_progress')['at']) : null, 'test' => kv_get('brain_test'), 'worker_ok' => (int)kv_get('brain_worker_seen', 0) > time() - 180, 'daily_on' => (bool)kv_get('brain_daily_on', false), 'running_seconds' => $running && $startedAt ? time() - strtotime($startedAt) : null,
         'run' => $run ? ['id' => (int)$run['id'], 'run_at' => $run['run_at'], 'day' => $run['day'], 'source' => $run['source'], 'model' => $run['model'], 'cost_usd' => (float)$run['cost_usd'], 'tokens_in' => (int)$run['tokens_in'], 'tokens_out' => (int)$run['tokens_out'], 'output' => json_decode($run['output_json'], true)] : null,
         'last_error' => $fail && $fail['message'] !== '' && (!$run || $fail['run_at'] > $run['run_at']) ? ['at' => $fail['run_at'], 'message' => $fail['message']] : null,
         'decided' => $decided, 'log' => $log,

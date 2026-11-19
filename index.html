@@ -199,7 +199,6 @@ a.btn{text-decoration:none;display:inline-block}
 .cc{display:block;border-radius:7px;padding:7px 0;font-size:13px;font-weight:500;min-width:54px}
 .cc.g{background:var(--good-bg);color:var(--good)} .cc.m{background:var(--warn-bg);color:var(--warn)} .cc.b{background:var(--bad-bg);color:var(--bad)} .cc.x{background:var(--soft);color:#8A8FA0;font-weight:400}
 .cmp .t .cc{outline:1.5px dashed #8A8FA0;outline-offset:-1.5px}
-.cmp.wide th.d{width:38px} .cmp.wide .cc{font-size:11px;min-width:34px;padding:6px 0;border-radius:5px} .cmp.wide td.c{padding:11px 1px} .cmp.wide .minibars,.cmp.wide td.tr small,.cmp.wide td.ad small,.cmp.wide .bud,.cmp.wide .bud+small{display:none} .cmp.wide td.ad{max-width:170px}
 .cmp td.ad b{font-weight:500;display:block} .cmp small,.cd-tiles small{display:block;font-size:12px;color:var(--muted)}
 .cmp td.avg b{font-size:17px} .lv-g{color:var(--good)} .lv-m{color:var(--warn)} .lv-b{color:var(--bad)}
 .trend{font-size:13px;font-weight:500;border-radius:999px;padding:3px 10px;white-space:nowrap;display:inline-block}
@@ -397,9 +396,7 @@ a.btn{text-decoration:none;display:inline-block}
 
   <section class="view" id="v-analyse" hidden>
     <div class="card">
-      <h2>All live ads, side by side
-        <span class="seg" id="cmp-seg" role="group" aria-label="Days shown" style="margin-left:auto"><button type="button" data-n="7" class="on">7 days</button><button type="button" data-n="14">14 days</button></span>
-      </h2>
+      <h2>All live ads, side by side, last 7 days</h2>
       <p class="empty" id="cmp-none" hidden>No ads are live right now.</p>
       <div class="cmp-tiles" id="cmp-tiles"></div>
       <div class="tbl cmp" id="cmp-wrap"><table id="cmp-table"></table></div>
@@ -979,7 +976,8 @@ document.querySelectorAll('#dec-seg button').forEach((b) => b.addEventListener('
 // ---------- Compare live ads ----------
 // One row per ad, all on one screen: cost per follower for each day, the trend, followers gained and spend.
 const CMP = {good: 1.2, bad: 2, steady: 10}; // rupees per follower for the colour lines, and percent either way that still counts as steady
-let cmpDays = 7, cmpSort = {k: 'avg', dir: 1}, cmpOpenId = null, cmpFrom = null;
+const cmpDays = 7;
+let cmpSort = {k: 'avg', dir: 1}, cmpOpenId = null, cmpFrom = null;
 const cmpLevel = (v) => v <= CMP.good ? 'g' : v >= CMP.bad ? 'b' : 'm';
 const cmpName = (a) => (V2.ad_names && V2.ad_names[a.id]) || a.name;
 const cmpAddDays = (d, n) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
@@ -1032,7 +1030,6 @@ function drawCompare() {
   if (!DATA || !V2) return;
   const B = cmpBuild(), rows = cmpSorted(B.rows), none = !rows.length;
   $('cmp-none').hidden = !none; ['cmp-tiles', 'cmp-wrap', 'cmp-key', 'cmp-charts'].forEach((id) => { $(id).hidden = none; });
-  document.querySelectorAll('#cmp-seg button').forEach((b) => b.classList.toggle('on', Number(b.dataset.n) === cmpDays));
   if (none) return;
   // Three answers on top.
   const ok = rows.filter((r) => r.avg != null && r.F >= 20), settled = ok.filter((r) => r.trend.k !== 'new');
@@ -1044,7 +1041,6 @@ function drawCompare() {
     tile('Biggest follower source', big && big.F ? big.name : 'Not enough data yet', big && big.F ? num(big.F) + ' followers, ' + Math.round(big.fShare) + '% of the total' : ''),
     tile('Takes more budget than it earns', drain && drain.sShare - drain.fShare > 3 ? drain.name : 'None right now', drain && drain.sShare - drain.fShare > 3 ? Math.round(drain.sShare) + '% of spend, ' + Math.round(drain.fShare) + '% of followers' : 'Every ad brings its share of followers'));
   // The board.
-  $('cmp-wrap').classList.toggle('wide', cmpDays > 7);
   const head = el('thead'), g = el('tr'), h = el('tr');
   g.appendChild(el('th')); const gh = el('th', 'grp', 'Cost per follower, day by day'); gh.colSpan = B.dates.length; g.appendChild(gh); for (let i = 0; i < 4; i++) g.appendChild(el('th'));
   const sortTh = (text, k) => { const th = el('th'), b = el('button', '', text); b.type = 'button'; b.addEventListener('click', () => { cmpSort = cmpSort.k === k ? {k, dir: -cmpSort.dir} : {k, dir: k === 'fol' || k === 'spend' ? -1 : 1}; drawCompare(); }); th.appendChild(b); if (cmpSort.k === k) th.appendChild(el('span', 'ord', cmpSort.dir > 0 ? '▲' : '▼')); th.setAttribute('aria-sort', cmpSort.k === k ? (cmpSort.dir > 0 ? 'ascending' : 'descending') : 'none'); return th; };
@@ -1170,7 +1166,6 @@ function cmpClose() { if (!cmpOpenId) return; cmpOpenId = null; $('cmp-back').hi
 $('cd-close').addEventListener('click', cmpClose);
 $('cmp-back').addEventListener('click', (e) => { if (e.target === $('cmp-back')) cmpClose(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && cmpOpenId) cmpClose(); });
-document.querySelectorAll('#cmp-seg button').forEach((b) => b.addEventListener('click', () => { cmpDays = Number(b.dataset.n); drawCompare(); }));
 
 let POSTS = [];
 const COLS = [['title', 'Post', false], ['type', 'Type', false], ['date', 'Posted', false], ['reach', 'Reach', true], ['views', 'Views', true], ['likes', 'Likes', true], ['comments', 'Comments', true], ['saved', 'Saves', true], ['shares', 'Shares', true], ['rate', 'Engagement rate', true], ['avg_watch_ms', 'Avg watch', true], ['follows', 'Followers gained', true]];

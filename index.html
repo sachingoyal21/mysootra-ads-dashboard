@@ -406,7 +406,7 @@ a.btn{text-decoration:none;display:inline-block}
       <div class="cmp-key" id="cmp-key"></div>
     </div>
     <div class="grid g2" id="cmp-charts">
-      <div class="card"><h2>Who takes the budget, who brings the followers</h2><div id="cmp-share"></div><p class="note">Each bar is the ad's share of all the ads shown, for the same days as the table.</p></div>
+      <div class="card"><h2>Who takes the budget, who brings the followers</h2><div id="cmp-share"></div><p class="note" id="cmp-share-note"></p></div>
       <div class="card"><h2>Cost per follower, live ads</h2><div class="chart" id="cmp-lines"></div><p class="note">Hollow dots are today so far. Lower is better. The dashed line is the ₹1.20 good line.</p></div>
     </div>
   </section>
@@ -1019,7 +1019,9 @@ function cmpBuild() {
     rows.push({id: a.id, name: cmpName(a), raw: a.name, live, adset: a.adset_name || (set ? set.name : ''), budget: set ? set.daily_budget : 0, mates, cells, S, F, spendAll: sum(ran.map((c) => c.spend)), avg: F > 0 ? S / F : null, trend, yspend: (h[yday] || {spend: 0}).spend, first: all[0] || null, lastDay: all[all.length - 1] || null});
   });
   const TS = sum(rows.map((r) => r.spendAll)), TF = sum(rows.map((r) => r.F));
-  rows.forEach((r) => { r.sShare = TS ? 100 * r.spendAll / TS : 0; r.fShare = TF ? 100 * r.F / TF : 0; });
+  // Share of spend for the comparison counts only days that have follower numbers, so it is like for like.
+  const TC = sum(rows.map((r) => r.S));
+  rows.forEach((r) => { r.spShare = TS ? 100 * r.spendAll / TS : 0; r.sShare = TC ? 100 * r.S / TC : 0; r.fShare = TF ? 100 * r.F / TF : 0; });
   return {rows, dates, today, TS, TF};
 }
 function cmpSorted(rows) {
@@ -1070,7 +1072,7 @@ function drawCompare() {
     const f = el('td', 'fo'), fl = el('div', 'fl'), bars = el('span', 'minibars'); bars.setAttribute('aria-hidden', 'true');
     r.cells.forEach((c) => { const i = el('i', c.date === B.today ? 't' : ''); i.style.height = Math.max(2, Math.round(26 * (c.follows || 0) / maxF)) + 'px'; bars.appendChild(i); });
     fl.append(el('b', '', num(r.F)), bars); f.append(fl, el('small', '', Math.round(r.fShare) + '% of all followers')); tr.appendChild(f);
-    const s = el('td', 'sp'); s.append(el('b', '', inr(r.spendAll)), el('small', '', Math.round(r.sShare) + '% of all spend'));
+    const s = el('td', 'sp'); s.append(el('b', '', inr(r.spendAll)), el('small', '', Math.round(r.spShare) + '% of all spend'));
     if (r.live && r.budget > 0) { const pct = Math.round(100 * r.yspend / r.budget), bud = el('div', 'bud'), bi = el('i', pct > 105 ? 'over' : ''); bi.style.width = Math.min(100, pct) + '%'; bud.appendChild(bi); s.append(bud, el('small', '', 'Yesterday ' + inr(r.yspend) + ' of ' + inr(r.budget) + (r.mates > 1 ? ', ' + r.mates + ' ads share it' : ''))); }
     tr.appendChild(s);
     body.appendChild(tr);
@@ -1089,6 +1091,7 @@ function drawCompare() {
     x.append(n, bar('Spend', 's', r.sShare), bar('Followers', 'f', r.fShare));
     return x;
   }));
+  $('cmp-share-note').textContent = 'Each bar is the ad’s share across the live ads, for the same days as the table.' + (B.dates[0] < (V2.follows_reported_from || '') ? ' Only days from ' + dayLabel(V2.follows_reported_from) + ' count here, since Meta gave no follower numbers per ad before that.' : '');
   cmpLines(rows, B);
   if (cmpOpenId) cmpFill(cmpOpenId);
 }

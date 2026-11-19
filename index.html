@@ -187,7 +187,7 @@ a.btn{text-decoration:none;display:inline-block}
 .cmp-tiles .kpi b{font-size:17px;font-weight:600;display:block;margin:2px 0;overflow-wrap:anywhere} .cmp-tiles .kpi em{font-style:normal;font-size:12.5px;color:var(--muted)}
 .cmp{overflow-x:auto}
 .cmp table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:1080px}
-.cmp td.ad{max-width:230px} .cmp td.tr{max-width:170px} .cmp td.sp{white-space:nowrap}
+.cmp td.ad{max-width:230px} .cmp td.tr{max-width:170px} .cmp td.sp{min-width:150px} .cmp td.tr small{max-width:150px}
 .cmp th{font-size:12px;font-weight:500;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:bottom;white-space:nowrap}
 .cmp th.grp{text-align:center;border-bottom:0;padding-bottom:0;color:var(--ink)}
 .cmp th.d{text-align:center;padding:6px 2px;width:62px} .cmp th.d b{display:block;font-size:13px;color:var(--ink);font-weight:500} .cmp th.d.t,.cmp th.d.t b{color:var(--blue)}
@@ -1069,7 +1069,7 @@ function drawCompare() {
     r.cells.forEach((c) => { const i = el('i', c.date === B.today ? 't' : ''); i.style.height = Math.max(2, Math.round(26 * (c.follows || 0) / maxF)) + 'px'; bars.appendChild(i); });
     fl.append(el('b', '', num(r.F)), bars); f.append(fl, el('small', '', Math.round(r.fShare) + '% of all followers')); tr.appendChild(f);
     const s = el('td', 'sp'); s.append(el('b', '', inr(r.spendAll)), el('small', '', Math.round(r.spShare) + '% of all spend'));
-    if (r.live && r.budget > 0) { const pct = Math.round(100 * r.yspend / r.budget), bud = el('div', 'bud'), bi = el('i', pct > 105 ? 'over' : ''); bi.style.width = Math.min(100, pct) + '%'; bud.appendChild(bi); s.append(bud, el('small', '', 'Yesterday ' + inr(r.yspend) + ' of ' + inr(r.budget) + (r.mates > 1 ? ', ' + r.mates + ' ads share it' : ''))); }
+    if (r.live && r.budget > 0) { const pct = Math.round(100 * r.yspend / r.budget), bud = el('div', 'bud'), bi = el('i', pct > 105 ? 'over' : ''); bi.style.width = Math.min(100, pct) + '%'; bud.appendChild(bi); s.append(bud, el('small', '', inr(r.yspend) + ' of ' + inr(r.budget) + ' yesterday' + (r.mates > 1 ? ', ' + r.mates + ' ads share it' : ''))); }
     tr.appendChild(s);
     body.appendChild(tr);
   });

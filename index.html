@@ -183,7 +183,6 @@ a.btn{text-decoration:none;display:inline-block}
 .view{display:flex;flex-direction:column;gap:16px}
 .empty{color:var(--muted);font-size:13px;margin:0}
 /* Compare live ads */
-.cmp-chk{font-size:13px;font-weight:400;color:var(--muted);display:inline-flex;gap:6px;align-items:center;cursor:pointer}
 .cmp-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .cmp-tiles .kpi b{font-size:17px;font-weight:600;display:block;margin:2px 0;overflow-wrap:anywhere} .cmp-tiles .kpi em{font-style:normal;font-size:12.5px;color:var(--muted)}
 .cmp{overflow-x:auto}
@@ -399,7 +398,6 @@ a.btn{text-decoration:none;display:inline-block}
   <section class="view" id="v-analyse" hidden>
     <div class="card">
       <h2>All live ads, side by side
-        <label class="cmp-chk"><input type="checkbox" id="cmp-stopped"> Show ads stopped in this period</label>
         <span class="seg" id="cmp-seg" role="group" aria-label="Days shown" style="margin-left:auto"><button type="button" data-n="7" class="on">7 days</button><button type="button" data-n="14">14 days</button></span>
       </h2>
       <p class="empty" id="cmp-none" hidden>No ads are live right now.</p>
@@ -981,7 +979,7 @@ document.querySelectorAll('#dec-seg button').forEach((b) => b.addEventListener('
 // ---------- Compare live ads ----------
 // One row per ad, all on one screen: cost per follower for each day, the trend, followers gained and spend.
 const CMP = {good: 1.2, bad: 2, steady: 10}; // rupees per follower for the colour lines, and percent either way that still counts as steady
-let cmpDays = 7, cmpSort = {k: 'avg', dir: 1}, cmpStopped = false, cmpOpenId = null, cmpFrom = null;
+let cmpDays = 7, cmpSort = {k: 'avg', dir: 1}, cmpOpenId = null, cmpFrom = null;
 const cmpLevel = (v) => v <= CMP.good ? 'g' : v >= CMP.bad ? 'b' : 'm';
 const cmpName = (a) => (V2.ad_names && V2.ad_names[a.id]) || a.name;
 const cmpAddDays = (d, n) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
@@ -1003,8 +1001,7 @@ function cmpBuild() {
     const live = a.status === 'ACTIVE', h = cmpHistory(a.id);
     const cells = dates.map((dt) => { const x = h[dt]; if (!x || x.spend < 1) return {date: dt, state: 'off'}; if (dt < from) return {date: dt, state: 'na', spend: x.spend}; return {date: dt, state: x.follows > 0 ? 'ok' : 'zero', spend: x.spend, follows: x.follows, cpf: x.follows > 0 ? x.spend / x.follows : null}; });
     const ran = cells.filter((c) => c.state !== 'off');
-    if (!ran.length || (!live && !cmpStopped)) return;
-    if (!live && !ran.length) return;
+    if (!live || !ran.length) return;
     const counted = cells.filter((c) => c.state === 'ok' || c.state === 'zero');
     const S = sum(counted.map((c) => c.spend)), F = sum(counted.map((c) => c.follows));
     const fin = counted.filter((c) => c.date < today);
@@ -1171,7 +1168,7 @@ $('cd-close').addEventListener('click', cmpClose);
 $('cmp-back').addEventListener('click', (e) => { if (e.target === $('cmp-back')) cmpClose(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && cmpOpenId) cmpClose(); });
 document.querySelectorAll('#cmp-seg button').forEach((b) => b.addEventListener('click', () => { cmpDays = Number(b.dataset.n); drawCompare(); }));
-$('cmp-stopped').addEventListener('change', (e) => { cmpStopped = e.target.checked; drawCompare(); });
+
 let POSTS = [];
 const COLS = [['title', 'Post', false], ['type', 'Type', false], ['date', 'Posted', false], ['reach', 'Reach', true], ['views', 'Views', true], ['likes', 'Likes', true], ['comments', 'Comments', true], ['saved', 'Saves', true], ['shares', 'Shares', true], ['rate', 'Engagement rate', true], ['avg_watch_ms', 'Avg watch', true], ['follows', 'Followers gained', true]];
 function filteredPosts() {

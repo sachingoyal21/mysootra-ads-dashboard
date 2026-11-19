@@ -150,9 +150,10 @@ function report_local(string $day): array {
 
     // Followers on the page.
     $fol = [];
-    $st = $pdo->prepare('SELECT day, followers FROM ig_followers WHERE day IN (?, ?)');
+    $folAt = [];
+    $st = $pdo->prepare('SELECT day, followers, updated_at FROM ig_followers WHERE day IN (?, ?)');
     $st->execute([$day, $prev]);
-    foreach ($st as $r) $fol[$r['day']] = (int)$r['followers'];
+    foreach ($st as $r) { $fol[$r['day']] = (int)$r['followers']; $folAt[$r['day']] = $r['updated_at']; }
     $now = $fol[$day] ?? null;
     $before = $fol[$prev] ?? null;
     $gain = ($now !== null && $before !== null) ? $now - $before : null;
@@ -165,6 +166,7 @@ function report_local(string $day): array {
         'day_rows' => array_merge($dayRows, $paidDay),
         'till_rows' => array_merge($tillRows, $ended, $live),
         'followers' => ['prev' => $before, 'now' => $now, 'gain' => $gain],
+        'followers_at' => ['prev' => $folAt[$prev] ?? null, 'now' => $folAt[$day] ?? null],
     ];
 }
 
@@ -180,6 +182,52 @@ function report_totals(array $rows): array {
     }
     $t['amount'] = round($t['amount'], 2);
     return $t;
+}
+
+const NOTE_FOLLOWS_OLD = 'Follower Gain is what Meta credits to each ad.';
+const NOTES_FOLLOWS = [
+    'Follows credited to ads is Meta\'s count for each ad, from midnight to midnight. Meta does not give it for organic Reels.',
+    'Page followers is the count on the Instagram profile. It is a separate measure from the ad follows, so the two do not match exactly. The table at the top shows both.',
+    'Other changes covers follows that came without an ad, unfollows, accounts that Instagram removed, and follows that Meta credits to an ad but the page count does not show.',
+];
+
+// The follower table at the top of the report. It puts the page count and Meta's ad follows side by side, with the difference between them.
+function report_bridge(array $rep): ?array {
+    $f = $rep['followers'] ?? null;
+    if (!$f || $f['now'] === null) return null;
+    $at = $rep['followers_at'] ?? null;
+    if ($at === null) {
+        // Saved before reading times were kept in the report. Look them up.
+        $at = ['prev' => null, 'now' => null];
+        $st = db()->prepare('SELECT day, updated_at FROM ig_followers WHERE day IN (?, ?)');
+        $st->execute([$rep['day'], $rep['prev_day']]);
+        foreach ($st as $r) $at[$r['day'] === $rep['day'] ? 'now' : 'prev'] = $r['updated_at'];
+    }
+    $when = fn(?string $t) => $t ? ' (' . date('j M, g:i a', strtotime($t)) . ')' : '';
+    $signed = fn(int $n) => ($n < 0 ? '-' : '+') . number_format(abs($n));
+    $ads = (int)($rep['day_total']['follower_gain'] ?? 0);
+    $other = $f['gain'] === null ? null : $f['gain'] - $ads;
+    $lines = [];
+    if ($f['prev'] !== null) $lines[] = ['Followers at start' . $when($at['prev']), number_format($f['prev']), false];
+    if ($f['gain'] !== null) {
+        $lines[] = ['Follows credited to ads by Meta on ' . date('j M', strtotime($rep['day'])), $signed($ads), false];
+        $lines[] = ['Other changes on the page', $signed($other), false];
+    }
+    $lines[] = ['Followers at end' . $when($at['now']), number_format($f['now']), true];
+    if ($f['gain'] !== null) $lines[] = ['Net change on the page', $signed($f['gain']), true];
+    return ['title' => 'Followers on the page, ' . day_label($rep['day']), 'lines' => $lines, 'ad_follows' => $ads, 'other' => $other, 'prev_at' => $at['prev'], 'now_at' => $at['now']];
+}
+
+// Adds the follower table and the current wording to a report. Reports saved before this change get both when they are opened.
+function report_decorate(array $rep): array {
+    if (empty($rep['bridge'])) $rep['bridge'] = report_bridge($rep);
+    $notes = [];
+    foreach (($rep['notes'] ?? []) as $n) {
+        if (strpos($n, NOTE_FOLLOWS_OLD) === 0) { foreach (NOTES_FOLLOWS as $x) $notes[] = $x; }
+        else $notes[] = $n;
+    }
+    $rep['notes'] = $notes;
+    return $rep;
 }
 
 // Builds the full report. Asks Meta once for the unique reach of every ad up to the day before.
@@ -211,16 +259,17 @@ function report_build(string $day): array {
     $rep['day_total'] = report_totals($rep['day_rows']);
     $rep['till_total'] = report_totals($rep['till_rows']);
 
-    array_unshift($notes,
+    $notes = array_merge([
         'Organic Unique View is views from Instagram. Paid Unique View is reach from Meta Ads, the same as the manual sheet.',
         'Clicks are all clicks on the ad. Total rows add up paid rows only.',
-        'Follower Gain is what Meta credits to each ad. Meta does not give it for organic Reels. The page total is in the Followers column.',
-        'Organic numbers for a day are the change between the last pull of that day and the last pull of the day before.'
-    );
+    ], NOTES_FOLLOWS, [
+        'Organic numbers for a day are the change between the last pull of that day and the last pull of the day before.',
+    ], $notes);
     if (!$rep['organic_captured_day'] || !$rep['organic_captured_till']) {
         $notes[] = 'n/c means not captured. Daily saving of organic post numbers started on ' . ($rep['snapshot_start'] ? day_label($rep['snapshot_start']) : 'a later date') . ', and Meta does not give past days.';
     }
     $rep['notes'] = $notes;
+    $rep['bridge'] = report_bridge($rep);
     $rep['generated_at'] = date('Y-m-d H:i:s');
     $rep['fingerprint'] = $fp;
     return $rep;
@@ -235,7 +284,7 @@ function report_get(string $day): ?array {
     $st->execute([$day]);
     $j = $st->fetchColumn();
     $r = $j ? json_decode($j, true) : null;
-    return is_array($r) ? $r : null;
+    return is_array($r) ? report_decorate($r) : null;
 }
 
 // True when the numbers in our database no longer match the saved report.
@@ -273,7 +322,7 @@ function report_xlsx(array $rep): string {
     $reg = [];
     $rows = [];   // each row is a list of [value, style]
     $merges = [];
-    $heads = ['Post Name', 'Amount', 'Unique View', 'Profile Visits', 'Clicks', 'Like', 'comment', 'share', 'Repost', 'Follower Gain', 'Followers'];
+    $heads = ['Post Name', 'Amount', 'Unique View', 'Profile Visits', 'Clicks', 'Like', 'comment', 'share', 'Repost', 'Follows credited to ads (Meta)', 'Page followers (Instagram)'];
     $last = count($heads) - 1;
     $FMT_INT = 3; $FMT_INR = 164;
     $cell = function ($v, bool $bold, int $fill, bool $money = false, string $align = 'center') use (&$reg, $FMT_INT, $FMT_INR) {
@@ -290,7 +339,7 @@ function report_xlsx(array $rep): string {
         $rows[] = $line;
         $merges[] = 'B' . $r . ':' . col_letter($last) . $r;
         $line = [];
-        foreach ($heads as $i => $h) $line[] = [$h, xl_style($reg, true, 1, 0, $i === 0 ? 'left' : 'center')];
+        foreach ($heads as $i => $h) $line[] = [$h, xl_style($reg, true, 1, 0, $i === 0 ? 'left' : 'center', true, true)];
         $rows[] = $line;
         $firstData = count($rows) + 1;
         foreach ($data as $d) {
@@ -315,6 +364,15 @@ function report_xlsx(array $rep): string {
             $cell('', true, 2), $cell('', true, 2), $cell('', true, 2), $cell('', true, 2), $cell($total['follower_gain'], true, 2), $cell('', true, 2),
         ];
     };
+    if (!empty($rep['bridge']['lines'])) {
+        $r = count($rows) + 1;
+        $rows[] = [[$rep['bridge']['title'], xl_style($reg, true, 1, 0, 'left')], ['', xl_style($reg, true, 1, 0, 'center')]];
+        $merges[] = 'A' . $r . ':B' . $r;
+        foreach ($rep['bridge']['lines'] as [$label, $value, $strong]) {
+            $rows[] = [[$label, xl_style($reg, (bool)$strong, $strong ? 2 : 0, 0, 'left')], [$value, xl_style($reg, (bool)$strong, $strong ? 2 : 0, 0, 'center')]];
+        }
+        $rows[] = [];
+    }
     $block($rep['title_day'], $rep['day_rows'], $rep['day_total'], $rep['followers']['text_day']);
     $block($rep['title_till'], $rep['till_rows'], $rep['till_total'], $rep['followers']['text_till']);
     $rows[] = [];
@@ -323,7 +381,7 @@ function report_xlsx(array $rep): string {
 
     $sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
         . '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>';
-    foreach ([46, 12, 13, 14, 10, 9, 11, 9, 9, 14, 20] as $i => $w) $sheet .= '<col min="' . ($i + 1) . '" max="' . ($i + 1) . '" width="' . $w . '" customWidth="1"/>';
+    foreach ([46, 12, 13, 14, 10, 9, 11, 9, 9, 17, 22] as $i => $w) $sheet .= '<col min="' . ($i + 1) . '" max="' . ($i + 1) . '" width="' . $w . '" customWidth="1"/>';
     $sheet .= '</cols><sheetData>';
     foreach ($rows as $ri => $line) {
         $sheet .= '<row r="' . ($ri + 1) . '">';

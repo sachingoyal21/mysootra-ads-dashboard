@@ -395,6 +395,21 @@ function collect(string $source = 'cron'): array {
     return ['ok' => (bool)$ok, 'day_rows' => $dayRows, 'message' => $msg];
 }
 
+// Saves only the page follower count. The 11:59 pm run uses this, so a day on the page lines up with a day in Meta Ads.
+function collect_followers(): array {
+    migrate();
+    $now = date('Y-m-d H:i:s');
+    try {
+        $ig = find_instagram();
+        if (!$ig) return ['ok' => false, 'message' => 'No Instagram account is visible to this token.'];
+        upsert('ig_followers', ['day' => date('Y-m-d'), 'followers' => $ig['followers'], 'username' => $ig['username'], 'updated_at' => $now], ['day']);
+        db()->prepare('INSERT INTO ig_followers_log (pulled_at, followers) VALUES (?,?)')->execute([$now, $ig['followers']]);
+        return ['ok' => true, 'followers' => $ig['followers'], 'message' => ''];
+    } catch (Throwable $e) {
+        return ['ok' => false, 'message' => $e->getMessage()];
+    }
+}
+
 function find_instagram(): ?array {
     $want = strtolower(cfg()['ig_username_contains'] ?? '');
     $found = [];

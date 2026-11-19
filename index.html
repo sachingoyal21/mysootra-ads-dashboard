@@ -150,6 +150,11 @@ td small{display:block;color:var(--muted)}
 .tag{font-family:var(--mono);font-size:11px;border-radius:6px;padding:2px 6px;background:var(--soft);color:var(--muted)}
 .tag.live{background:var(--good-bg);color:var(--good)}
 /* Daily reports */
+.rp-bridge{max-width:560px;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-variant-numeric:tabular-nums}
+.rp-bridge h3{margin:0;padding:9px 12px;font-size:13px;font-weight:600;background:var(--blue-soft);color:var(--ink)}
+.rp-bridge table{width:100%;border-collapse:collapse}
+.rp-bridge td{padding:7px 12px;border-top:1px solid var(--line);font-size:13px}
+.rp-bridge tr.strong td{font-weight:600;background:var(--soft)}
 .rp-table table{min-width:980px;font-variant-numeric:tabular-nums}
 .rp-table th,.rp-table td{border:1px solid var(--line);padding:7px 10px;text-align:center;vertical-align:middle;white-space:nowrap}
 .rp-table th:first-child,.rp-table td:first-child{text-align:left;white-space:normal;min-width:240px}
@@ -379,6 +384,7 @@ a.btn{text-decoration:none;display:inline-block}
         <button class="btn ghost" type="button" id="rp-regen" hidden>Regenerate with new numbers</button>
         <span class="note" id="rp-saved"></span>
       </div>
+      <div class="rp-bridge" id="rp-bridge" hidden></div>
       <div class="tbl rp-table"><table id="rp-table"></table></div>
       <ul class="rp-notes" id="rp-notes"></ul>
     </div>
@@ -1104,7 +1110,15 @@ function rpRender(res) {
   $('rp-regen').hidden = !(res.changed && inWindow);
   $('rp-dl').href = 'api.php?a=report_xlsx&date=' + rep.day;
   $('rp-saved').textContent = 'Saved on ' + rpWhen(rep.generated_at) + (res.changed ? '. Meta has updated some numbers since then.' + (inWindow ? '' : ' This date is older than 7 days, so it cannot be regenerated.') : '.');
-  const heads = ['Post Name', 'Amount', 'Unique View', 'Profile Visits', 'Clicks', 'Like', 'comment', 'share', 'Repost', 'Follower Gain', 'Followers'];
+  const heads = ['Post Name', 'Amount', 'Unique View', 'Profile Visits', 'Clicks', 'Like', 'comment', 'share', 'Repost', 'Follows credited to ads (Meta)', 'Page followers (Instagram)'];
+  const bx = $('rp-bridge'), br = rep.bridge;
+  bx.hidden = !(br && br.lines && br.lines.length);
+  if (!bx.hidden) {
+    const tb = el('tbody');
+    br.lines.forEach(([label, value, strong]) => { const tr = el('tr', strong ? 'strong' : ''); tr.append(el('td', '', label), el('td', 'n', value)); tb.appendChild(tr); });
+    const t = el('table'); t.appendChild(tb);
+    bx.replaceChildren(el('h3', '', br.title), t);
+  }
   const body = el('tbody');
   const block = (title, rows, total, fol) => {
     const t = el('tr', 'rp-title'); t.appendChild(el('th', '', '')); const th = el('th', '', title); th.colSpan = heads.length - 1; t.appendChild(th); body.appendChild(t);

@@ -183,20 +183,21 @@ a.btn{text-decoration:none;display:inline-block}
 .view{display:flex;flex-direction:column;gap:16px}
 .empty{color:var(--muted);font-size:13px;margin:0}
 /* Compare live ads */
-.cmp-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.cmp-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.cmp-tiles .kpi.now{background:var(--blue-soft)} .cmp-tiles .kpi.now b{color:var(--blue)}
 .cmp-tiles .kpi b{font-size:17px;font-weight:600;display:block;margin:2px 0;overflow-wrap:anywhere} .cmp-tiles .kpi em{font-style:normal;font-size:12.5px;color:var(--muted)}
 .cmp{overflow-x:auto}
-.cmp table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:1040px}
-.cmp td.ad{max-width:210px} .cmp td.tr{max-width:170px} .cmp td.sp{min-width:150px} .cmp td.tr small{max-width:150px}
+.cmp table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:1060px}
+.cmp td.ad{max-width:190px} .cmp td.tr{max-width:170px} .cmp td.sp{min-width:104px;white-space:nowrap} .cmp td.ad{overflow-wrap:anywhere} .cmp td.sp.now b{color:var(--blue)} .cmp td.tr small{max-width:150px}
 .cmp th{font-size:12px;font-weight:500;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:bottom;white-space:nowrap}
 .cmp th.grp{text-align:center;border-bottom:0;padding-bottom:0;color:var(--ink)}
-.cmp th.d{text-align:center;padding:6px 2px;width:62px} .cmp th.d b{display:block;font-size:13px;color:var(--ink);font-weight:500} .cmp th.d.t,.cmp th.d.t b{color:var(--blue)}
+.cmp th.d{text-align:center;padding:6px 2px;width:56px} .cmp th.d b{display:block;font-size:13px;color:var(--ink);font-weight:500} .cmp th.d.t,.cmp th.d.t b{color:var(--blue)}
 .cmp th button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer} .cmp th button:hover{color:var(--blue)}
 .cmp td{padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
 .cmp tbody tr{cursor:pointer} .cmp tbody tr:hover td{background:var(--soft)} .cmp tbody tr:focus-visible{outline:2px solid var(--blue);outline-offset:-2px} .cmp tbody tr:last-child td{border-bottom:0}
 .cmp tr.off td.ad b{color:var(--muted)}
 .cmp td.c{padding:11px 2px;text-align:center}
-.cc{display:block;border-radius:7px;padding:7px 0;font-size:13px;font-weight:500;min-width:54px}
+.cc{display:block;border-radius:7px;padding:7px 0;font-size:12.5px;font-weight:500;min-width:50px}
 .cc.g{background:var(--good-bg);color:var(--good)} .cc.m{background:var(--warn-bg);color:var(--warn)} .cc.b{background:var(--bad-bg);color:var(--bad)} .cc.x{background:var(--soft);color:#8A8FA0;font-weight:400}
 .cmp .t .cc{outline:1.5px dashed #8A8FA0;outline-offset:-1.5px}
 .cmp td.ad b{font-weight:500;display:block} .cmp small,.cd-tiles small{display:block;font-size:12px;color:var(--muted)}
@@ -206,7 +207,7 @@ a.btn{text-decoration:none;display:inline-block}
 .cmp td.tr small{margin-top:5px}
 .cmp .fl{display:flex;align-items:flex-end;gap:10px} .cmp .fl b{font-size:16px;font-weight:600}
 .minibars{display:inline-flex;align-items:flex-end;gap:2px;height:26px} .minibars i{width:6px;background:var(--blue);border-radius:2px;display:block} .minibars i.t{background:#9DB3F0}
-.cmp td.sp b{font-size:15px;font-weight:600} .bud{height:5px;background:var(--soft);border-radius:9px;margin:6px 0 3px;width:120px;overflow:hidden} .bud i{display:block;height:100%;background:var(--blue);border-radius:9px} .bud i.over{background:var(--warn)}
+.cmp td.sp b{font-size:15px;font-weight:600} .bud{height:5px;background:var(--soft);border-radius:9px;margin:6px 0 3px;width:100px;overflow:hidden} .bud i{display:block;height:100%;background:var(--blue);border-radius:9px} .bud i.over{background:var(--warn)}
 .cmp-key{display:flex;gap:6px 14px;align-items:center;font-size:12px;color:var(--muted);flex-wrap:wrap}
 .cmp-key i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-3px;margin-right:5px}
 .sh{padding:10px 0;border-bottom:1px solid var(--line)} .sh:last-child{border:0}
@@ -221,9 +222,11 @@ a.btn{text-decoration:none;display:inline-block}
 .cd-x{margin-left:auto;width:36px;height:36px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:20px;line-height:1;cursor:pointer;flex:none} .cd-x:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .cd-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .cd-tiles div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px} .cd-tiles span{font-size:12px;color:var(--muted);display:block} .cd-tiles b{font-size:20px;font-weight:600;display:block;font-variant-numeric:tabular-nums}
+.cd-now{background:var(--blue-soft);border-radius:12px;padding:12px 14px;display:flex;gap:8px 28px;flex-wrap:wrap;align-items:baseline} .cd-now span{font-size:12px;color:var(--blue);font-weight:600;text-transform:uppercase;letter-spacing:.06em;flex-basis:100%} .cd-now div{font-size:13px;color:var(--muted)} .cd-now b{font-size:20px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;margin-right:5px}
 .cd-h{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0}
 #cd-days td{font-variant-numeric:tabular-nums} #cd-days tr.t td{color:var(--muted)} #cd-days .cc{display:inline-block;padding:3px 9px;min-width:0}
 #cd-chart text.lb{font-family:var(--sans);font-size:12px;font-weight:600}
+@media (max-width:1200px){.cmp-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:900px){.cmp-tiles{grid-template-columns:1fr}.cd-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:900px){
   .app{grid-template-columns:minmax(0,1fr)}
@@ -489,6 +492,7 @@ a.btn{text-decoration:none;display:inline-block}
 <div class="cmp-back" id="cmp-back" hidden>
   <aside class="cmp-drawer" id="cmp-drawer" role="dialog" aria-modal="true" aria-labelledby="cd-name" tabindex="-1">
     <div class="cd-top"><div><h2 id="cd-name"></h2><p class="note" id="cd-meta"></p></div><button class="cd-x" type="button" id="cd-close" aria-label="Close">×</button></div>
+    <div class="cd-now" id="cd-now"></div>
     <div class="cd-tiles" id="cd-tiles"></div>
     <div class="card"><h3 class="cd-h">Cost per follower and followers, last 7 days</h3><div class="chart" id="cd-chart"></div><p class="note">Green line is cost per follower. Blue bars are followers gained. A hollow dot is today so far.</p></div>
     <div class="card"><h3 class="cd-h">Last 7 days in numbers</h3><div class="tbl"><table><thead><tr><th>Day</th><th class="n">Spend</th><th class="n">Followers</th><th class="n">Cost per follower</th><th class="n">Profile visits</th><th class="n">Cost per visit</th><th class="n">Times shown</th></tr></thead><tbody id="cd-days"></tbody></table></div><p class="note" id="cd-note"></p></div>
@@ -1009,12 +1013,12 @@ function cmpBuild() {
       if (last.follows > 0 && pf > 0) {
         const l = last.spend / last.follows, p = sum(prev.map((c) => c.spend)) / pf, ch = (l - p) / p * 100;
         const k = ch <= -CMP.steady ? 'good' : ch >= CMP.steady ? 'bad' : 'flat';
-        trend = {k, label: k === 'good' ? 'Getting cheaper' : k === 'bad' ? 'Getting costlier' : 'Steady', sub: (ch >= 0 ? '+' : '') + Math.round(ch) + '% on ' + dayLabel(last.date) + ' against the days before', ch};
+        trend = {k, label: k === 'good' ? 'Getting cheaper' : k === 'bad' ? 'Getting costlier' : 'Steady', sub: (ch >= 0 ? '+' : '') + Math.round(ch) + '% on ' + dayLabel(last.date), ch};
       } else trend = {k: 'flat', label: 'No follows', sub: 'Meta credited no follows on ' + dayLabel(last.date)};
     }
     const set = d.adsets.find((x) => x.id === a.adset_id), mates = d.ads_all.filter((x) => x.status === 'ACTIVE' && x.adset_id === a.adset_id).length;
     const all = Object.keys(h).filter((k) => h[k].spend >= 1).sort();
-    rows.push({id: a.id, name: cmpName(a), raw: a.name, live, adset: a.adset_name || (set ? set.name : ''), budget: set ? set.daily_budget : 0, mates, cells, S, F, spendAll: sum(ran.map((c) => c.spend)), avg: F > 0 ? S / F : null, trend, yspend: (h[yday] || {spend: 0}).spend, first: all[0] || null, lastDay: all[all.length - 1] || null});
+    rows.push({adsetId: a.adset_id, id: a.id, name: cmpName(a), raw: a.name, live, adset: a.adset_name || (set ? set.name : ''), budget: set ? set.daily_budget : 0, mates, cells, S, F, spendAll: sum(ran.map((c) => c.spend)), avg: F > 0 ? S / F : null, trend, yspend: (h[yday] || {spend: 0}).spend, tday: h[today] || {spend: 0, follows: 0, visits: 0}, first: all[0] || null, lastDay: all[all.length - 1] || null});
   });
   const TS = sum(rows.map((r) => r.spendAll)), TF = sum(rows.map((r) => r.F));
   // Share of spend for the comparison counts only days that have follower numbers, so it is like for like.
@@ -1023,7 +1027,7 @@ function cmpBuild() {
   return {rows, dates, today, TS, TF};
 }
 function cmpSorted(rows) {
-  const k = cmpSort.k, val = (r) => k === 'name' ? r.name.toLowerCase() : k === 'fol' ? r.F : k === 'spend' ? r.spendAll : k === 'trend' ? (r.trend.ch == null ? 9999 : r.trend.ch) : (r.avg == null ? 9999 : r.avg);
+  const k = cmpSort.k, val = (r) => k === 'name' ? r.name.toLowerCase() : k === 'fol' ? r.F : k === 'spend' ? r.spendAll : k === 'today' ? r.tday.spend : k === 'trend' ? (r.trend.ch == null ? 9999 : r.trend.ch) : (r.avg == null ? 9999 : r.avg);
   return rows.slice().sort((a, b) => (a.live === b.live ? 0 : a.live ? -1 : 1) || (val(a) < val(b) ? -1 : val(a) > val(b) ? 1 : 0) * cmpSort.dir);
 }
 function drawCompare() {
@@ -1036,17 +1040,20 @@ function drawCompare() {
   const cheap = ok.slice().sort((a, b) => a.avg - b.avg)[0], big = rows.slice().sort((a, b) => b.F - a.F)[0];
   const drain = settled.slice().sort((a, b) => (b.sShare - b.fShare) - (a.sShare - a.fShare))[0];
   const tile = (k, v, sub) => { const x = el('div', 'kpi'); x.append(el('span', '', k), el('b', '', v), el('em', '', sub)); return x; };
-  $('cmp-tiles').replaceChildren(
+  const liveSets = {}; rows.forEach((r) => { if (r.budget > 0) liveSets[r.adsetId] = r.budget; });
+  const tSpend = sum(rows.map((r) => r.tday.spend)), tFol = sum(rows.map((r) => r.tday.follows)), tBud = sum(Object.values(liveSets));
+  const tt = tile('Spent today so far', inr(tSpend) + (tBud ? ' of ' + inr(tBud) : ''), num(tFol) + ' followers today' + (tFol ? ', ' + inr2(tSpend / tFol) + ' each' : '')); tt.classList.add('now');
+  $('cmp-tiles').replaceChildren(tt,
     tile('Cheapest followers', cheap ? cheap.name : 'Not enough data yet', cheap ? inr2(cheap.avg) + ' a follower over these days' : 'No ad has 20 follows yet'),
     tile('Biggest follower source', big && big.F ? big.name : 'Not enough data yet', big && big.F ? num(big.F) + ' followers, ' + Math.round(big.fShare) + '% of the total' : ''),
     tile('Takes more budget than it earns', drain && drain.sShare - drain.fShare > 3 ? drain.name : 'None right now', drain && drain.sShare - drain.fShare > 3 ? Math.round(drain.sShare) + '% of spend, ' + Math.round(drain.fShare) + '% of followers' : 'Every ad brings its share of followers'));
   // The board.
   const head = el('thead'), g = el('tr'), h = el('tr');
-  g.appendChild(el('th')); const gh = el('th', 'grp', 'Cost per follower, day by day'); gh.colSpan = B.dates.length; g.appendChild(gh); for (let i = 0; i < 4; i++) g.appendChild(el('th'));
-  const sortTh = (text, k) => { const th = el('th'), b = el('button', '', text); b.type = 'button'; b.addEventListener('click', () => { cmpSort = cmpSort.k === k ? {k, dir: -cmpSort.dir} : {k, dir: k === 'fol' || k === 'spend' ? -1 : 1}; drawCompare(); }); th.appendChild(b); if (cmpSort.k === k) th.appendChild(el('span', 'ord', cmpSort.dir > 0 ? '▲' : '▼')); th.setAttribute('aria-sort', cmpSort.k === k ? (cmpSort.dir > 0 ? 'ascending' : 'descending') : 'none'); return th; };
+  g.appendChild(el('th')); const gh = el('th', 'grp', 'Cost per follower, day by day'); gh.colSpan = B.dates.length; g.appendChild(gh); for (let i = 0; i < 5; i++) g.appendChild(el('th'));
+  const sortTh = (text, k) => { const th = el('th'), b = el('button', '', text); b.type = 'button'; b.addEventListener('click', () => { cmpSort = cmpSort.k === k ? {k, dir: -cmpSort.dir} : {k, dir: k === 'fol' || k === 'spend' || k === 'today' ? -1 : 1}; drawCompare(); }); th.appendChild(b); if (cmpSort.k === k) th.appendChild(el('span', 'ord', cmpSort.dir > 0 ? '▲' : '▼')); th.setAttribute('aria-sort', cmpSort.k === k ? (cmpSort.dir > 0 ? 'ascending' : 'descending') : 'none'); return th; };
   h.appendChild(sortTh('Ad', 'name'));
   B.dates.forEach((dt) => { const th = el('th', 'd' + (dt === B.today ? ' t' : ''), cmpDays > 7 ? '' : cmpWeekday(dt)); th.appendChild(el('b', '', String(Number(dt.slice(8))))); th.title = dayLabel(dt) + (dt === B.today ? ', today so far' : ''); h.appendChild(th); });
-  h.append(sortTh(cmpDays + ' days', 'avg'), sortTh('Trend', 'trend'), sortTh('Followers gained', 'fol'), sortTh('Spend', 'spend'));
+  h.append(sortTh(cmpDays + ' days', 'avg'), sortTh('Trend', 'trend'), sortTh('Followers gained', 'fol'), sortTh('Spent today', 'today'), sortTh('Spend, ' + cmpDays + ' days', 'spend'));
   head.append(g, h);
   const maxF = Math.max(1, ...rows.map((r) => Math.max(...r.cells.map((c) => c.follows || 0))));
   const body = el('tbody');
@@ -1054,7 +1061,7 @@ function drawCompare() {
     const tr = el('tr', r.live ? '' : 'off'); tr.tabIndex = 0; tr.setAttribute('role', 'button'); tr.setAttribute('aria-label', 'Open details for ' + r.name);
     const open = () => cmpOpen(r.id, tr);
     tr.addEventListener('click', open); tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
-    const ad = el('td', 'ad'); ad.appendChild(el('b', '', r.name)); ad.appendChild(el('small', '', (r.live ? '' : 'Stopped. ') + r.adset + (r.first ? ' · since ' + dayLabel(r.first) : '')));
+    const ad = el('td', 'ad'); ad.appendChild(el('b', '', r.name)); ad.appendChild(el('small', '', r.first ? 'Running since ' + dayLabel(r.first) : ''));
     tr.appendChild(ad);
     r.cells.forEach((c) => {
       const td = el('td', 'c' + (c.date === B.today ? ' t' : ''));
@@ -1068,8 +1075,11 @@ function drawCompare() {
     const f = el('td', 'fo'), fl = el('div', 'fl'), bars = el('span', 'minibars'); bars.setAttribute('aria-hidden', 'true');
     r.cells.forEach((c) => { const i = el('i', c.date === B.today ? 't' : ''); i.style.height = Math.max(2, Math.round(26 * (c.follows || 0) / maxF)) + 'px'; bars.appendChild(i); });
     fl.append(el('b', '', num(r.F)), bars); f.append(fl, el('small', '', Math.round(r.fShare) + '% of all followers')); tr.appendChild(f);
-    const s = el('td', 'sp'); s.append(el('b', '', inr(r.spendAll)), el('small', '', Math.round(r.spShare) + '% of all spend'));
-    if (r.live && r.budget > 0) { const pct = Math.round(100 * r.yspend / r.budget), bud = el('div', 'bud'), bi = el('i', pct > 105 ? 'over' : ''); bi.style.width = Math.min(100, pct) + '%'; bud.appendChild(bi); s.append(bud, el('small', '', inr(r.yspend) + ' of ' + inr(r.budget) + (r.mates > 1 ? ', ' + r.mates + ' ads share it' : ''))); }
+    const td2 = el('td', 'sp now'); td2.appendChild(el('b', '', inr(r.tday.spend)));
+    if (r.budget > 0) { const pct = Math.round(100 * r.tday.spend / r.budget), bud = el('div', 'bud'), bi = el('i', pct > 105 ? 'over' : ''); bi.style.width = Math.min(100, pct) + '%'; bud.appendChild(bi); td2.append(bud, el('small', '', 'of ' + inr(r.budget) + ' budget' + (r.mates > 1 ? ', ' + r.mates + ' ads share it' : ''))); }
+    td2.appendChild(el('small', '', num(r.tday.follows) + ' followers'));
+    tr.appendChild(td2);
+    const s = el('td', 'sp'); s.append(el('b', '', inr(r.spendAll)), el('small', '', Math.round(r.spShare) + '% of all spend'), el('small', '', 'Yesterday ' + inr(r.yspend)));
     tr.appendChild(s);
     body.appendChild(tr);
   });
@@ -1077,7 +1087,7 @@ function drawCompare() {
   const key = (bg, text, dashed) => { const sp = el('span'), i = el('i'); if (dashed) { i.style.outline = '1.5px dashed #8A8FA0'; i.style.outlineOffset = '-1.5px'; } else i.style.background = bg; sp.append(i, document.createTextNode(text)); return sp; };
   const hint = el('span', '', 'Click a row to open that ad'); hint.style.marginLeft = 'auto';
   $('cmp-key').replaceChildren(key('var(--good-bg)', '₹' + CMP.good.toFixed(2) + ' or less'), key('var(--warn-bg)', 'In between'), key('var(--bad-bg)', '₹' + CMP.bad.toFixed(2) + ' or more'), key('var(--soft)', 'Did not run, or Meta gave no follows'), key('', 'Today so far', true), hint);
-  $('cmp-key').appendChild(el('span', '', 'The bar and the line under spend show yesterday’s spend against the ad set’s daily budget.'));
+  $('cmp-key').appendChild(el('span', '', 'The bar under Spent today is today’s spend so far against the ad set’s daily budget. Trend compares yesterday with the finished days before it.'));
   // Share of spend against share of followers.
   $('cmp-share').replaceChildren(...rows.map((r) => {
     const x = el('div', 'sh'), n = el('div', 'shn', r.name);
@@ -1129,6 +1139,9 @@ function cmpFill(id) {
   const nameEl = $('cd-name'); nameEl.replaceChildren(document.createTextNode(cmpName(a)), el('span', 'tag' + (live ? ' live' : ''), live ? 'Live' : 'Stopped'));
   $('cd-meta').textContent = (allDays.length ? 'Running since ' + dayLabel(allDays[0]) : 'No spend yet') + ' · Numbers below are the last ' + cmpDays + ' days' + ' · Ad set ' + (a.adset_name || '—') + ' · Name in Ads Manager ' + a.name;
   const tile = (k, v, sub, cls) => { const x = el('div'); x.append(el('span', '', k), el('b', cls || '', v), el('small', '', sub)); return x; };
+  const t = h[V2.today] || {spend: 0, follows: 0, visits: 0}, now = $('cd-now'), fig = (v, label) => { const x = el('div'); x.append(el('b', '', v), document.createTextNode(label)); return x; };
+  now.hidden = !live;
+  now.replaceChildren(el('span', '', 'Today so far, ' + dayLabel(V2.today)), fig(inr(t.spend), 'spent' + (set && set.daily_budget > 0 ? ' of ' + inr(set.daily_budget) + ' budget' : '')), fig(num(t.follows), 'followers'), fig(t.follows > 0 ? inr2(t.spend / t.follows) : '—', 'a follower'), fig(num(t.visits), 'profile visits'));
   $('cd-tiles').replaceChildren(
     tile('Cost per follower', F ? inr2(S / F) : '—', F ? 'last ' + cmpDays + ' days' : 'no follows credited yet', F ? 'lv-' + cmpLevel(S / F) : ''),
     tile('Followers gained', num(F), 'last ' + cmpDays + ' days, credited by Meta'),

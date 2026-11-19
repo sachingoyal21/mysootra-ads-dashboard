@@ -182,6 +182,51 @@ a.btn{text-decoration:none;display:inline-block}
 .view[hidden]{display:none}
 .view{display:flex;flex-direction:column;gap:16px}
 .empty{color:var(--muted);font-size:13px;margin:0}
+/* Compare live ads */
+.cmp-chk{font-size:13px;font-weight:400;color:var(--muted);display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.cmp-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.cmp-tiles .kpi b{font-size:17px;font-weight:600;display:block;margin:2px 0;overflow-wrap:anywhere} .cmp-tiles .kpi em{font-style:normal;font-size:12.5px;color:var(--muted)}
+.cmp{overflow-x:auto}
+.cmp table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:1080px}
+.cmp td.ad{max-width:230px} .cmp td.tr{max-width:170px} .cmp td.sp{white-space:nowrap}
+.cmp th{font-size:12px;font-weight:500;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:bottom;white-space:nowrap}
+.cmp th.grp{text-align:center;border-bottom:0;padding-bottom:0;color:var(--ink)}
+.cmp th.d{text-align:center;padding:6px 2px;width:62px} .cmp th.d b{display:block;font-size:13px;color:var(--ink);font-weight:500} .cmp th.d.t,.cmp th.d.t b{color:var(--blue)}
+.cmp th button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer} .cmp th button:hover{color:var(--blue)}
+.cmp td{padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.cmp tbody tr{cursor:pointer} .cmp tbody tr:hover td{background:var(--soft)} .cmp tbody tr:focus-visible{outline:2px solid var(--blue);outline-offset:-2px} .cmp tbody tr:last-child td{border-bottom:0}
+.cmp tr.off td.ad b{color:var(--muted)}
+.cmp td.c{padding:11px 2px;text-align:center}
+.cc{display:block;border-radius:7px;padding:7px 0;font-size:13px;font-weight:500;min-width:54px}
+.cc.g{background:var(--good-bg);color:var(--good)} .cc.m{background:var(--warn-bg);color:var(--warn)} .cc.b{background:var(--bad-bg);color:var(--bad)} .cc.x{background:var(--soft);color:#8A8FA0;font-weight:400}
+.cmp .t .cc{outline:1.5px dashed #8A8FA0;outline-offset:-1.5px}
+.cmp.wide th.d{width:38px} .cmp.wide .cc{font-size:11px;min-width:34px;padding:6px 0;border-radius:5px} .cmp.wide td.c{padding:11px 1px} .cmp.wide .minibars,.cmp.wide td.tr small,.cmp.wide td.ad small,.cmp.wide .bud,.cmp.wide .bud+small{display:none} .cmp.wide td.ad{max-width:170px}
+.cmp td.ad b{font-weight:500;display:block} .cmp small,.cd-tiles small{display:block;font-size:12px;color:var(--muted)}
+.cmp td.avg b{font-size:17px} .lv-g{color:var(--good)} .lv-m{color:var(--warn)} .lv-b{color:var(--bad)}
+.trend{font-size:13px;font-weight:500;border-radius:999px;padding:3px 10px;white-space:nowrap;display:inline-block}
+.trend.good{background:var(--good-bg);color:var(--good)} .trend.bad{background:var(--bad-bg);color:var(--bad)} .trend.flat,.trend.new{background:var(--soft);color:var(--muted)}
+.cmp td.tr small{margin-top:5px}
+.cmp .fl{display:flex;align-items:flex-end;gap:10px} .cmp .fl b{font-size:16px;font-weight:600}
+.minibars{display:inline-flex;align-items:flex-end;gap:2px;height:26px} .minibars i{width:6px;background:var(--blue);border-radius:2px;display:block} .minibars i.t{background:#9DB3F0}
+.cmp td.sp b{font-size:15px;font-weight:600} .bud{height:5px;background:var(--soft);border-radius:9px;margin:6px 0 3px;width:120px;overflow:hidden} .bud i{display:block;height:100%;background:var(--blue);border-radius:9px} .bud i.over{background:var(--warn)}
+.cmp-key{display:flex;gap:6px 14px;align-items:center;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.cmp-key i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-3px;margin-right:5px}
+.sh{padding:10px 0;border-bottom:1px solid var(--line)} .sh:last-child{border:0}
+.shn{font-weight:500;font-size:14px;display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap}
+.shp{font-size:11.5px;font-weight:500;border-radius:999px;padding:2px 8px} .shp.good{background:var(--good-bg);color:var(--good)} .shp.warn{background:var(--warn-bg);color:var(--warn)} .shp.flat{background:var(--soft);color:var(--muted)}
+.shb{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);height:17px} .shb span{width:62px;flex:none} .shb div{flex:1;display:flex;align-items:center;gap:6px}
+.shb i{display:inline-block;height:9px;border-radius:5px;min-width:2px} .shb i.s{background:#8A8FA0} .shb i.f{background:var(--blue)} .shb em{font-style:normal;color:var(--ink);font-variant-numeric:tabular-nums}
+#cmp-lines text.lb{font-family:var(--sans);font-size:12px;font-weight:500}
+.cmp-back{position:fixed;inset:0;z-index:70;background:rgba(23,24,28,.45);display:flex;justify-content:flex-end}
+.cmp-drawer{width:min(860px,100%);height:100%;overflow-y:auto;background:var(--bg);padding:22px;display:flex;flex-direction:column;gap:12px;box-shadow:-20px 0 60px rgba(23,24,28,.25);outline:0}
+.cd-top{display:flex;align-items:flex-start;gap:12px} .cd-top h2{font-size:23px;font-weight:600;margin:0 0 4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;letter-spacing:-.01em}
+.cd-x{margin-left:auto;width:36px;height:36px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:20px;line-height:1;cursor:pointer;flex:none} .cd-x:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.cd-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.cd-tiles div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px} .cd-tiles span{font-size:12px;color:var(--muted);display:block} .cd-tiles b{font-size:20px;font-weight:600;display:block;font-variant-numeric:tabular-nums}
+.cd-h{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0}
+#cd-days td{font-variant-numeric:tabular-nums} #cd-days tr.t td{color:var(--muted)} #cd-days .cc{display:inline-block;padding:3px 9px;min-width:0}
+#cd-chart text.lb{font-family:var(--sans);font-size:12px;font-weight:600}
+@media (max-width:900px){.cmp-tiles{grid-template-columns:1fr}.cd-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:900px){
   .app{grid-template-columns:minmax(0,1fr)}
   .rail{position:static;height:auto;flex-direction:row;align-items:center;padding:10px 12px;gap:10px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}
@@ -207,7 +252,7 @@ a.btn{text-decoration:none;display:inline-block}
     <a href="#spend" data-v="spend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h12M6 9h12M9 4c6 0 6 9 0 9H6l8 7"/></svg>Spend</a>
     <a href="#followers" data-v="followers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7M17 4a4 4 0 0 1 0 8M22 21c0-3-2-6-5-7"/></svg>Followers</a>
     <a href="#content" data-v="content"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m10 8 6 4-6 4z"/></svg>Content</a>
-    <a href="#analyse" data-v="analyse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-7"/></svg>Analyse live ad</a>
+    <a href="#analyse" data-v="analyse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-7"/></svg>Compare live ads</a>
     <a href="#reports" data-v="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Daily reports</a>
     <a href="#decisions" data-v="decisions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Decision center<span class="count" id="nav-count" hidden></span></a>
   </nav>
@@ -353,16 +398,18 @@ a.btn{text-decoration:none;display:inline-block}
 
   <section class="view" id="v-analyse" hidden>
     <div class="card">
-      <h2>Pick a live ad</h2>
-      <div class="tools"><select id="an-ad" aria-label="Live ad" style="flex:1 1 280px;max-width:520px"></select><span class="pill" id="an-call" hidden></span></div>
-      <p class="empty" id="an-none" hidden>No ads are live right now.</p>
-      <div class="kpis" id="an-kpis"></div>
-      <p class="note" id="an-why"></p>
+      <h2>All live ads, side by side
+        <label class="cmp-chk"><input type="checkbox" id="cmp-stopped"> Show ads stopped in this period</label>
+        <span class="seg" id="cmp-seg" role="group" aria-label="Days shown" style="margin-left:auto"><button type="button" data-n="7" class="on">7 days</button><button type="button" data-n="14">14 days</button></span>
+      </h2>
+      <p class="empty" id="cmp-none" hidden>No ads are live right now.</p>
+      <div class="cmp-tiles" id="cmp-tiles"></div>
+      <div class="tbl cmp" id="cmp-wrap"><table id="cmp-table"></table></div>
+      <div class="cmp-key" id="cmp-key"></div>
     </div>
-    <div class="grid g2" id="an-charts">
-      <div class="card"><h2>Cost per profile visit, last 7 days</h2><div class="chart" id="c-an-cpv"></div><p class="note">The dashed line is the ₹1.00 target. Today is still running, so its point can move.</p></div>
-      <div class="card"><h2>Followers gained by this ad, last 7 days</h2><div class="chart" id="c-an-fol"></div><p class="note" id="an-fol-note"></p></div>
-      <div class="card" style="grid-column:1 / -1"><h2>Ad spend, last 7 days</h2><div class="chart" id="c-an-spend"></div><p class="note" id="an-spend-note"></p></div>
+    <div class="grid g2" id="cmp-charts">
+      <div class="card"><h2>Who takes the budget, who brings the followers</h2><div id="cmp-share"></div><p class="note">Each bar is the ad's share of all the ads shown, for the same days as the table.</p></div>
+      <div class="card"><h2>Cost per follower, live ads</h2><div class="chart" id="cmp-lines"></div><p class="note">Hollow dots are today so far. Lower is better. The dashed line is the ₹1.20 good line.</p></div>
     </div>
   </section>
 
@@ -444,6 +491,14 @@ a.btn{text-decoration:none;display:inline-block}
 </main>
 </div>
 
+<div class="cmp-back" id="cmp-back" hidden>
+  <aside class="cmp-drawer" id="cmp-drawer" role="dialog" aria-modal="true" aria-labelledby="cd-name" tabindex="-1">
+    <div class="cd-top"><div><h2 id="cd-name"></h2><p class="note" id="cd-meta"></p></div><button class="cd-x" type="button" id="cd-close" aria-label="Close">×</button></div>
+    <div class="cd-tiles" id="cd-tiles"></div>
+    <div class="card"><h3 class="cd-h">Cost per follower and followers, day by day</h3><div class="chart" id="cd-chart"></div><p class="note">Green line is cost per follower. Blue bars are followers gained. A hollow dot is today so far.</p></div>
+    <div class="card"><h3 class="cd-h">Every day in numbers</h3><div class="tbl"><table><thead><tr><th>Day</th><th class="n">Spend</th><th class="n">Followers</th><th class="n">Cost per follower</th><th class="n">Profile visits</th><th class="n">Cost per visit</th><th class="n">Times shown</th></tr></thead><tbody id="cd-days"></tbody></table></div><p class="note" id="cd-note"></p></div>
+  </aside>
+</div>
 <script>
 const RULES = {budget: 25000, end: '2026-11-30', volume: {target: 1, stop: 1.5}, quality: {target: 2, stop: 3}, gateDays: 2, gateSpend: 300, gateVisits: 150, step: 0.2, stepSmall: 0.5, smallBudget: 500, newAdBudget: 150, capShare: 0.4, pullWeak: 0.015, pullGood: 0.02, slowDays: 10, provenDays: 7, jump: 2, jumpStopDays: 6, cutShare: 0.5, rankFollows: 100, fTarget: 1.2, fStop: 1.8, minFollows: 30, day3: 3, hardLine: 2, day3Visits: 100, cheapF: 1.5, dearV: 2.5, momentum: 0.8, cheapV: 1, hardStopF: 2.5};
 const $ = (id) => document.getElementById(id);
@@ -830,8 +885,7 @@ function draw() {
   const dsel = $('df-set'), dcur = dsel.value; dsel.replaceChildren(new Option('All ad sets', ''), ...Array.from(new Set(DEC.map((c) => c.adset))).sort().map((t) => new Option(t))); dsel.value = dcur;
   drawDecisions();
   const live = d.ads_all.filter((a) => a.status === 'ACTIVE').sort((a, b) => b.spend - a.spend);
-  const asel = $('an-ad'), acur = asel.value; asel.replaceChildren(...live.map((a) => new Option(a.name + (a.adset_name ? '  (' + a.adset_name + ')' : ''), a.id))); if (live.some((a) => a.id === acur)) asel.value = acur;
-  drawAnalyse();
+  drawCompare();
 
   // Paid rankings
   const monthAds = d.month_ads.filter((a) => a.spend > 0);
@@ -924,35 +978,200 @@ function drawDecisions() {
 ['df-q', 'df-set', 'df-call'].forEach((id) => $(id).addEventListener('input', drawDecisions));
 $('df-clear').addEventListener('click', () => { ['df-q', 'df-set', 'df-call'].forEach((id) => { $(id).value = ''; }); drawDecisions(); });
 document.querySelectorAll('#dec-seg button').forEach((b) => b.addEventListener('click', () => { decMode = b.dataset.m; drawDecisions(); }));
-function drawAnalyse() {
-  if (!DATA || !V2) return;
-  const d = DATA.datasets, id = $('an-ad').value, today = V2.today, from = V2.follows_reported_from;
-  const ad = d.ads_all.find((a) => a.id === id);
-  $('an-none').hidden = !!ad; $('an-charts').hidden = !ad; $('an-kpis').hidden = !ad;
-  if (!ad) { $('an-call').hidden = true; $('an-why').textContent = ''; return; }
-  const dates = Array.from(new Set(d.ads_daily.map((x) => x.date))).sort().slice(-7);
-  const rows = dates.map((dt) => d.ads_daily.find((x) => x.id === id && x.date === dt) || {date: dt, spend: 0, visits: 0, follows: 0});
+// ---------- Compare live ads ----------
+// One row per ad, all on one screen: cost per follower for each day, the trend, followers gained and spend.
+const CMP = {good: 1.2, bad: 2, steady: 10}; // rupees per follower for the colour lines, and percent either way that still counts as steady
+let cmpDays = 7, cmpSort = {k: 'avg', dir: 1}, cmpStopped = false, cmpOpenId = null, cmpFrom = null;
+const cmpLevel = (v) => v <= CMP.good ? 'g' : v >= CMP.bad ? 'b' : 'm';
+const cmpName = (a) => (V2.ad_names && V2.ad_names[a.id]) || a.name;
+const cmpAddDays = (d, n) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+const cmpWeekday = (d) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(d + 'T00:00:00Z').getUTCDay()];
+// Every day an ad ran, oldest first, with today's part day at the end.
+function cmpHistory(id) {
+  const d = DATA.datasets, today = V2.today, out = {};
+  d.ads_hist.forEach((x) => { if (x.id === id && x.date < today) out[x.date] = {date: x.date, spend: x.spend, follows: x.follows, visits: x.visits, shown: x.impressions}; });
   const t = (d.ads_today || []).find((x) => x.id === id);
-  rows.push({date: today, spend: t ? t.spend : 0, visits: t ? t.visits : 0, follows: t ? t.follows : 0, today: true});
-  const labels = rows.map((r) => r.today ? 'Today' : dayLabel(r.date));
-  const blue = css('--blue'), paidCol = css('--paid');
-  chart($('c-an-cpv'), {labels, h: 260, line: true, ref: 1, series: [{name: 'Cost per visit', color: blue, values: rows.map((r) => r.visits > 0 ? r.spend / r.visits : null)}], fmt: (v) => '₹' + v.toFixed(2), tip: (v) => inr2(v), label: 'Line chart of this ad’s cost per profile visit for each of the last 7 days and today',
-    hover: (i) => rows[i].visits > 0 ? [{color: blue, text: 'Cost per visit ' + inr2(rows[i].spend / rows[i].visits)}, {text: inr(rows[i].spend) + ' spent, ' + num(rows[i].visits) + ' profile visits'}] : [{text: rows[i].spend > 0 ? inr(rows[i].spend) + ' spent, no profile visits' : 'The ad did not run'}]});
-  chart($('c-an-fol'), {labels, h: 260, series: [{name: 'Followers gained', color: paidCol, values: rows.map((r) => r.follows)}], fmt: (v) => num(v), tip: (v) => num(v), label: 'Bar chart of followers this ad gained on each of the last 7 days and today', totals: (i) => rows[i].follows ? num(rows[i].follows) : '',
-    hover: (i) => [{color: paidCol, text: 'Followers gained ' + num(rows[i].follows)}, {text: rows[i].follows > 0 ? inr2(rows[i].spend / rows[i].follows) + ' per follower' : inr(rows[i].spend) + ' spent'}]});
-  chart($('c-an-spend'), {labels, h: 240, series: [{name: 'Spend', color: css('--violet'), values: rows.map((r) => r.spend)}], fmt: (v) => '₹' + num(v), tip: (v) => inr(v), label: 'Bar chart of this ad’s spend on each of the last 7 days and today', totals: (i) => rows[i].spend ? inr(rows[i].spend) : '',
-    hover: (i) => [{color: css('--violet'), text: 'Spent ' + inr(rows[i].spend)}, {text: num(rows[i].visits) + ' profile visits, ' + num(rows[i].follows) + ' followers gained'}]});
-  const setA = d.adsets.find((x) => x.id === ad.adset_id), matesA = d.ads_all.filter((x) => x.status === 'ACTIVE' && x.adset_id === ad.adset_id && x.id !== ad.id).length;
-  $('an-spend-note').textContent = 'What this ad spent each day.' + (setA ? ' Its ad set has a daily budget of ' + inr(setA.daily_budget) + (matesA ? ', shared by ' + (matesA + 1) + ' ads.' : '.') : '') + ' Today is still running.';
-  $('an-fol-note').textContent = 'Followers that Meta credits to this ad.' + (from ? ' Meta began reporting them on ' + dayLabel(from) + ', so earlier days show little or nothing.' : '');
-  const s7 = sum(rows.map((r) => r.spend)), v7 = sum(rows.map((r) => r.visits)), f7 = sum(rows.map((r) => r.follows));
-  const fr = from ? rows.filter((r) => r.date >= from) : [], fs = sum(fr.map((r) => r.spend)), ff = sum(fr.map((r) => r.follows));
-  const set = d.adsets.find((x) => x.id === ad.adset_id), c = DEC.find((x) => x.id === id);
-  $('an-kpis').replaceChildren(...[['Spend, 7 days and today', inr(s7)], ['Profile visits', num(v7)], ['Cost per visit', v7 ? inr2(s7 / v7) : '—'], ['Followers gained', num(f7)], ['Cost per follower', ff ? inr2(fs / ff) : '—'], ['Daily budget', set ? inr(set.daily_budget) : '—']].map(([k, v]) => { const x = el('div', 'kpi'); x.append(el('span', '', k), el('b', '', v)); return x; }));
-  $('an-call').hidden = !c; if (c) { $('an-call').className = 'pill ' + c.verdict; $('an-call').textContent = c.verdict; }
-  $('an-why').textContent = c ? c.action + ' ' + c.why : '';
+  if (t) out[today] = {date: today, spend: t.spend, follows: t.follows, visits: t.visits, shown: null, today: true};
+  return out;
 }
-$('an-ad').addEventListener('change', drawAnalyse);
+function cmpBuild() {
+  const d = DATA.datasets, today = V2.today, from = V2.follows_reported_from || '2000-01-01';
+  const dates = []; for (let i = cmpDays - 1; i >= 0; i--) dates.push(cmpAddDays(today, -i));
+  const yday = cmpAddDays(today, -1);
+  const rows = [];
+  d.ads_all.forEach((a) => {
+    const live = a.status === 'ACTIVE', h = cmpHistory(a.id);
+    const cells = dates.map((dt) => { const x = h[dt]; if (!x || x.spend < 1) return {date: dt, state: 'off'}; if (dt < from) return {date: dt, state: 'na', spend: x.spend}; return {date: dt, state: x.follows > 0 ? 'ok' : 'zero', spend: x.spend, follows: x.follows, cpf: x.follows > 0 ? x.spend / x.follows : null}; });
+    const ran = cells.filter((c) => c.state !== 'off');
+    if (!ran.length || (!live && !cmpStopped)) return;
+    if (!live && !ran.length) return;
+    const counted = cells.filter((c) => c.state === 'ok' || c.state === 'zero');
+    const S = sum(counted.map((c) => c.spend)), F = sum(counted.map((c) => c.follows));
+    const fin = counted.filter((c) => c.date < today);
+    let trend = counted.length ? {k: 'new', label: 'Too new', sub: 'Under 2 finished days'} : {k: 'new', label: 'No follow data', sub: 'Ran before Meta credited follows to ads'};
+    if (fin.length >= 2) {
+      const last = fin[fin.length - 1], prev = fin.slice(0, -1), pf = sum(prev.map((c) => c.follows));
+      if (last.follows > 0 && pf > 0) {
+        const l = last.spend / last.follows, p = sum(prev.map((c) => c.spend)) / pf, ch = (l - p) / p * 100;
+        const k = ch <= -CMP.steady ? 'good' : ch >= CMP.steady ? 'bad' : 'flat';
+        trend = {k, label: k === 'good' ? 'Getting cheaper' : k === 'bad' ? 'Getting costlier' : 'Steady', sub: (ch >= 0 ? '+' : '') + Math.round(ch) + '% on ' + dayLabel(last.date) + ' against the days before', ch};
+      } else trend = {k: 'flat', label: 'No follows', sub: 'Meta credited no follows on ' + dayLabel(last.date)};
+    }
+    const set = d.adsets.find((x) => x.id === a.adset_id), mates = d.ads_all.filter((x) => x.status === 'ACTIVE' && x.adset_id === a.adset_id).length;
+    const all = Object.keys(h).filter((k) => h[k].spend >= 1).sort();
+    rows.push({id: a.id, name: cmpName(a), raw: a.name, live, adset: a.adset_name || (set ? set.name : ''), budget: set ? set.daily_budget : 0, mates, cells, S, F, spendAll: sum(ran.map((c) => c.spend)), avg: F > 0 ? S / F : null, trend, yspend: (h[yday] || {spend: 0}).spend, first: all[0] || null, lastDay: all[all.length - 1] || null});
+  });
+  const TS = sum(rows.map((r) => r.spendAll)), TF = sum(rows.map((r) => r.F));
+  rows.forEach((r) => { r.sShare = TS ? 100 * r.spendAll / TS : 0; r.fShare = TF ? 100 * r.F / TF : 0; });
+  return {rows, dates, today, TS, TF};
+}
+function cmpSorted(rows) {
+  const k = cmpSort.k, val = (r) => k === 'name' ? r.name.toLowerCase() : k === 'fol' ? r.F : k === 'spend' ? r.spendAll : k === 'trend' ? (r.trend.ch == null ? 9999 : r.trend.ch) : (r.avg == null ? 9999 : r.avg);
+  return rows.slice().sort((a, b) => (a.live === b.live ? 0 : a.live ? -1 : 1) || (val(a) < val(b) ? -1 : val(a) > val(b) ? 1 : 0) * cmpSort.dir);
+}
+function drawCompare() {
+  if (!DATA || !V2) return;
+  const B = cmpBuild(), rows = cmpSorted(B.rows), none = !rows.length;
+  $('cmp-none').hidden = !none; ['cmp-tiles', 'cmp-wrap', 'cmp-key', 'cmp-charts'].forEach((id) => { $(id).hidden = none; });
+  document.querySelectorAll('#cmp-seg button').forEach((b) => b.classList.toggle('on', Number(b.dataset.n) === cmpDays));
+  if (none) return;
+  // Three answers on top.
+  const ok = rows.filter((r) => r.avg != null && r.F >= 20), settled = ok.filter((r) => r.trend.k !== 'new');
+  const cheap = ok.slice().sort((a, b) => a.avg - b.avg)[0], big = rows.slice().sort((a, b) => b.F - a.F)[0];
+  const drain = settled.slice().sort((a, b) => (b.sShare - b.fShare) - (a.sShare - a.fShare))[0];
+  const tile = (k, v, sub) => { const x = el('div', 'kpi'); x.append(el('span', '', k), el('b', '', v), el('em', '', sub)); return x; };
+  $('cmp-tiles').replaceChildren(
+    tile('Cheapest followers', cheap ? cheap.name : 'Not enough data yet', cheap ? inr2(cheap.avg) + ' a follower over these days' : 'No ad has 20 follows yet'),
+    tile('Biggest follower source', big && big.F ? big.name : 'Not enough data yet', big && big.F ? num(big.F) + ' followers, ' + Math.round(big.fShare) + '% of the total' : ''),
+    tile('Takes more budget than it earns', drain && drain.sShare - drain.fShare > 3 ? drain.name : 'None right now', drain && drain.sShare - drain.fShare > 3 ? Math.round(drain.sShare) + '% of spend, ' + Math.round(drain.fShare) + '% of followers' : 'Every ad brings its share of followers'));
+  // The board.
+  $('cmp-wrap').classList.toggle('wide', cmpDays > 7);
+  const head = el('thead'), g = el('tr'), h = el('tr');
+  g.appendChild(el('th')); const gh = el('th', 'grp', 'Cost per follower, day by day'); gh.colSpan = B.dates.length; g.appendChild(gh); for (let i = 0; i < 4; i++) g.appendChild(el('th'));
+  const sortTh = (text, k) => { const th = el('th'), b = el('button', '', text); b.type = 'button'; b.addEventListener('click', () => { cmpSort = cmpSort.k === k ? {k, dir: -cmpSort.dir} : {k, dir: k === 'fol' || k === 'spend' ? -1 : 1}; drawCompare(); }); th.appendChild(b); if (cmpSort.k === k) th.appendChild(el('span', 'ord', cmpSort.dir > 0 ? '▲' : '▼')); th.setAttribute('aria-sort', cmpSort.k === k ? (cmpSort.dir > 0 ? 'ascending' : 'descending') : 'none'); return th; };
+  h.appendChild(sortTh('Ad', 'name'));
+  B.dates.forEach((dt) => { const th = el('th', 'd' + (dt === B.today ? ' t' : ''), cmpDays > 7 ? '' : cmpWeekday(dt)); th.appendChild(el('b', '', String(Number(dt.slice(8))))); th.title = dayLabel(dt) + (dt === B.today ? ', today so far' : ''); h.appendChild(th); });
+  h.append(sortTh(cmpDays + ' days', 'avg'), sortTh('Trend', 'trend'), sortTh('Followers gained', 'fol'), sortTh('Spend', 'spend'));
+  head.append(g, h);
+  const maxF = Math.max(1, ...rows.map((r) => Math.max(...r.cells.map((c) => c.follows || 0))));
+  const body = el('tbody');
+  rows.forEach((r) => {
+    const tr = el('tr', r.live ? '' : 'off'); tr.tabIndex = 0; tr.setAttribute('role', 'button'); tr.setAttribute('aria-label', 'Open details for ' + r.name);
+    const open = () => cmpOpen(r.id, tr);
+    tr.addEventListener('click', open); tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    const ad = el('td', 'ad'); ad.appendChild(el('b', '', r.name)); ad.appendChild(el('small', '', (r.live ? '' : 'Stopped. ') + r.adset + (r.first ? ' · since ' + dayLabel(r.first) : '')));
+    tr.appendChild(ad);
+    r.cells.forEach((c) => {
+      const td = el('td', 'c' + (c.date === B.today ? ' t' : ''));
+      const txt = c.state === 'ok' ? (cmpDays > 7 ? c.cpf.toFixed(2) : inr2(c.cpf)) : c.state === 'na' ? 'n/a' : c.state === 'zero' ? '0' : '·';
+      const sp = el('span', 'cc ' + (c.state === 'ok' ? cmpLevel(c.cpf) : 'x'), txt);
+      sp.title = dayLabel(c.date) + '. ' + (c.state === 'ok' ? inr2(c.cpf) + ' a follower. ' + inr(c.spend) + ' spent, ' + num(c.follows) + ' followers' : c.state === 'na' ? inr(c.spend) + ' spent. Meta was not crediting follows to ads yet' : c.state === 'zero' ? inr(c.spend) + ' spent, no followers credited' : 'The ad did not run');
+      td.appendChild(sp); tr.appendChild(td);
+    });
+    const avg = el('td', 'avg'); avg.appendChild(el('b', r.avg == null ? '' : 'lv-' + cmpLevel(r.avg), inr2(r.avg))); tr.appendChild(avg);
+    const t = el('td', 'tr'); t.appendChild(el('span', 'trend ' + r.trend.k, ({good: '↓ ', bad: '↑ ', flat: '→ ', new: ''})[r.trend.k] + r.trend.label)); t.appendChild(el('small', '', r.trend.sub)); tr.appendChild(t);
+    const f = el('td', 'fo'), fl = el('div', 'fl'), bars = el('span', 'minibars'); bars.setAttribute('aria-hidden', 'true');
+    r.cells.forEach((c) => { const i = el('i', c.date === B.today ? 't' : ''); i.style.height = Math.max(2, Math.round(26 * (c.follows || 0) / maxF)) + 'px'; bars.appendChild(i); });
+    fl.append(el('b', '', num(r.F)), bars); f.append(fl, el('small', '', Math.round(r.fShare) + '% of all followers')); tr.appendChild(f);
+    const s = el('td', 'sp'); s.append(el('b', '', inr(r.spendAll)), el('small', '', Math.round(r.sShare) + '% of all spend'));
+    if (r.live && r.budget > 0) { const pct = Math.round(100 * r.yspend / r.budget), bud = el('div', 'bud'), bi = el('i', pct > 105 ? 'over' : ''); bi.style.width = Math.min(100, pct) + '%'; bud.appendChild(bi); s.append(bud, el('small', '', 'Yesterday ' + inr(r.yspend) + ' of ' + inr(r.budget) + (r.mates > 1 ? ', ' + r.mates + ' ads share it' : ''))); }
+    tr.appendChild(s);
+    body.appendChild(tr);
+  });
+  $('cmp-table').replaceChildren(head, body);
+  const key = (bg, text, dashed) => { const sp = el('span'), i = el('i'); if (dashed) { i.style.outline = '1.5px dashed #8A8FA0'; i.style.outlineOffset = '-1.5px'; } else i.style.background = bg; sp.append(i, document.createTextNode(text)); return sp; };
+  const hint = el('span', '', 'Click a row to open that ad'); hint.style.marginLeft = 'auto';
+  $('cmp-key').replaceChildren(key('var(--good-bg)', '₹' + CMP.good.toFixed(2) + ' or less'), key('var(--warn-bg)', 'In between'), key('var(--bad-bg)', '₹' + CMP.bad.toFixed(2) + ' or more'), key('var(--soft)', 'Did not run, or Meta gave no follows'), key('', 'Today so far', true), hint);
+  $('cmp-key').appendChild(el('span', '', 'The bar under spend is yesterday’s spend against the ad set’s daily budget.'));
+  // Share of spend against share of followers.
+  $('cmp-share').replaceChildren(...rows.map((r) => {
+    const x = el('div', 'sh'), n = el('div', 'shn', r.name);
+    const k = r.trend.k === 'new' ? ['flat', 'Too new to say'] : r.fShare > r.sShare * 1.15 ? ['good', 'Earns more than it costs'] : r.sShare > r.fShare * 1.15 ? ['warn', 'Costs more than it earns'] : ['flat', 'Even'];
+    n.appendChild(el('span', 'shp ' + k[0], k[1]));
+    const bar = (label, cls, v) => { const b = el('div', 'shb'), w = el('div'), i = el('i', cls); i.style.width = Math.max(0.5, v) * 0.8 + '%'; w.append(i, el('em', '', Math.round(v) + '%')); b.append(el('span', '', label), w); return b; };
+    x.append(n, bar('Spend', 's', r.sShare), bar('Followers', 'f', r.fShare));
+    return x;
+  }));
+  cmpLines(rows, B);
+  if (cmpOpenId) cmpFill(cmpOpenId);
+}
+// One line per ad, labelled at its end, so no legend is needed.
+function cmpLines(rows, B) {
+  const host = $('cmp-lines'); host.replaceChildren();
+  const from = V2.follows_reported_from || '2000-01-01', dates = B.dates.filter((d) => d >= from);
+  const series = rows.filter((r) => r.live).map((r) => ({r, pts: r.cells.filter((c) => c.state === 'ok' && c.date >= from)})).filter((s) => s.pts.length);
+  if (dates.length < 2 || !series.length) { host.appendChild(el('p', 'empty', 'Not enough days to draw yet.')); return; }
+  const W = Math.max(520, Math.round(host.clientWidth) || 640), H = 300, m = {t: 14, r: 190, b: 30, l: 50};
+  const top = niceMax(Math.max(CMP.good * 1.2, ...series.map((s) => Math.max(...s.pts.map((p) => p.cpf)))));
+  const x = (d) => m.l + dates.indexOf(d) * (W - m.l - m.r) / (dates.length - 1), y = (v) => H - m.b - (v / top) * (H - m.t - m.b);
+  const svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Line chart of cost per follower by day for each live ad'});
+  for (let g = 0; g <= 4; g++) { const v = top * g / 4; svg.appendChild(svgEl('line', {class: 'gl', x1: m.l, x2: W - m.r, y1: y(v), y2: y(v)})); svg.appendChild(svgEl('text', {x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end'}, '₹' + v.toFixed(2))); }
+  const every = Math.max(1, Math.ceil(dates.length / 8));
+  dates.forEach((d, i) => { if (i % every === 0 || i === dates.length - 1) svg.appendChild(svgEl('text', {x: x(d), y: H - 8, 'text-anchor': 'middle'}, dayLabel(d))); });
+  svg.appendChild(svgEl('line', {x1: m.l, x2: W - m.r, y1: y(CMP.good), y2: y(CMP.good), stroke: css('--warn'), 'stroke-dasharray': '4 4'}));
+  const cols = [css('--blue'), css('--organic'), css('--paid'), css('--violet'), '#BE185D', '#475569', css('--good'), css('--warn')];
+  const ends = [];
+  series.forEach((s, k) => {
+    const col = s.r.live ? cols[k % cols.length] : '#8A8FA0';
+    if (s.pts.length > 1) svg.appendChild(svgEl('polyline', {fill: 'none', stroke: col, 'stroke-width': 2.2, 'stroke-linejoin': 'round', points: s.pts.map((p) => x(p.date).toFixed(1) + ',' + y(p.cpf).toFixed(1)).join(' ')}));
+    s.pts.forEach((p) => { const c = svgEl('circle', {cx: x(p.date), cy: y(p.cpf), r: 3.4, fill: p.date === B.today ? css('--panel') : col, stroke: col, 'stroke-width': 2}); c.appendChild(svgEl('title', {}, s.r.name + '. ' + dayLabel(p.date) + '. ' + inr2(p.cpf) + ' a follower, ' + num(p.follows) + ' followers')); svg.appendChild(c); });
+    const lastP = s.pts[s.pts.length - 1]; ends.push({y: y(lastP.cpf), x: x(lastP.date), name: s.r.name, col});
+  });
+  ends.sort((a, b) => a.y - b.y); for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 15) ends[i].y = ends[i - 1].y + 15;
+  ends.forEach((e) => { const t = svgEl('text', {class: 'lb', x: W - m.r + 12, y: e.y + 4, fill: e.col}, e.name.length > 26 ? e.name.slice(0, 25) + '…' : e.name); t.style.fill = e.col; svg.appendChild(t); });
+  host.appendChild(svg);
+}
+// The detail panel for one ad.
+function cmpFill(id) {
+  const d = DATA.datasets, a = d.ads_all.find((x) => x.id === id); if (!a) { cmpClose(); return; }
+  const from = V2.follows_reported_from || '2000-01-01', h = cmpHistory(id), set = d.adsets.find((x) => x.id === a.adset_id);
+  const days = Object.keys(h).filter((k) => h[k].spend >= 1).sort().map((k) => h[k]);
+  const counted = days.filter((x) => x.date >= from), S = sum(counted.map((x) => x.spend)), F = sum(counted.map((x) => x.follows));
+  const SA = sum(days.map((x) => x.spend)), V = sum(days.map((x) => x.visits)), live = a.status === 'ACTIVE';
+  const nameEl = $('cd-name'); nameEl.replaceChildren(document.createTextNode(cmpName(a)), el('span', 'tag' + (live ? ' live' : ''), live ? 'Live' : 'Stopped'));
+  $('cd-meta').textContent = (days.length ? 'Running since ' + dayLabel(days[0].date) + ', ' + days.length + (days.length === 1 ? ' day' : ' days') + ' with spend' : 'No spend yet') + ' · Ad set ' + (a.adset_name || '—') + ' · Name in Ads Manager ' + a.name;
+  const tile = (k, v, sub, cls) => { const x = el('div'); x.append(el('span', '', k), el('b', cls || '', v), el('small', '', sub)); return x; };
+  $('cd-tiles').replaceChildren(
+    tile('Cost per follower', F ? inr2(S / F) : '—', F ? 'since it started' : 'no follows credited yet', F ? 'lv-' + cmpLevel(S / F) : ''),
+    tile('Followers gained', num(F), 'credited by Meta'),
+    tile('Spent', inr(SA), set && live ? 'budget ' + inr(set.daily_budget) + ' a day' : 'in total'),
+    tile('Profile visits', num(V), V ? inr2(SA / V) + ' a visit' : 'none yet'));
+  // Chart: the last 14 days it ran.
+  const cd = days.slice(-14), host = $('cd-chart'); host.replaceChildren();
+  if (!cd.length) host.appendChild(el('p', 'empty', 'No days with spend yet.'));
+  else {
+    const W = Math.max(520, Math.round(host.clientWidth) || 760), H = 230, m = {t: 26, r: 16, b: 30, l: 50}, n = cd.length, bw = (W - m.l - m.r) / n;
+    const cp = cd.map((x) => x.date >= from && x.follows > 0 ? x.spend / x.follows : null), top = niceMax(Math.max(CMP.good, ...cp.filter((v) => v != null)));
+    const fmax = Math.max(1, ...cd.map((x) => x.date >= from ? x.follows : 0)), x = (i) => m.l + bw * i + bw / 2, y = (v) => H - m.b - (v / top) * (H - m.t - m.b);
+    const svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Cost per follower as a line and followers gained as bars, for each day this ad ran'});
+    for (let g = 0; g <= 2; g++) { const v = top * g / 2; svg.appendChild(svgEl('line', {class: 'gl', x1: m.l, x2: W - m.r, y1: y(v), y2: y(v)})); svg.appendChild(svgEl('text', {x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end'}, '₹' + v.toFixed(2))); }
+    const dense = n > 8, good = css('--good');
+    cd.forEach((r, i) => {
+      const f = r.date >= from ? r.follows : 0, bh = (H - m.t - m.b) * f / fmax, w = Math.min(96, bw * 0.72);
+      const rect = svgEl('rect', {x: x(i) - w / 2, y: H - m.b - bh, width: w, height: Math.max(0, bh), rx: 4, fill: r.today ? '#C9D6F8' : css('--blue-soft')}); rect.appendChild(svgEl('title', {}, dayLabel(r.date) + '. ' + num(f) + ' followers, ' + inr(r.spend) + ' spent')); svg.appendChild(rect);
+      if (f > 0) { const t = svgEl('text', {x: x(i), y: H - m.b - 6, 'text-anchor': 'middle'}, dense ? num(f) : num(f) + ' followers'); t.style.fill = css('--blue'); svg.appendChild(t); }
+      if (!dense || i % 2 === 0 || i === n - 1) svg.appendChild(svgEl('text', {x: x(i), y: H - 8, 'text-anchor': 'middle'}, dayLabel(r.date)));
+    });
+    const pts = cp.map((v, i) => v == null ? null : [x(i), y(v), v, cd[i]]).filter(Boolean);
+    if (pts.length > 1) svg.appendChild(svgEl('polyline', {fill: 'none', stroke: good, 'stroke-width': 2.4, points: pts.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}));
+    pts.forEach((p) => { svg.appendChild(svgEl('circle', {cx: p[0], cy: p[1], r: 4, fill: p[3].today ? css('--panel') : good, stroke: good, 'stroke-width': 2})); const t = svgEl('text', {class: 'lb', x: p[0], y: p[1] - 10, 'text-anchor': 'middle'}, dense ? p[2].toFixed(2) : inr2(p[2])); t.style.fill = good; svg.appendChild(t); });
+    host.appendChild(svg);
+  }
+  $('cd-days').replaceChildren(...days.slice().reverse().slice(0, 30).map((r) => {
+    const tr = el('tr', r.today ? 't' : ''), n = (v) => el('td', 'n', v), cf = el('td', 'n');
+    if (r.date < from) cf.appendChild(el('span', 'cc x', 'n/a')); else if (r.follows > 0) cf.appendChild(el('span', 'cc ' + cmpLevel(r.spend / r.follows), inr2(r.spend / r.follows))); else cf.textContent = '—';
+    tr.append(el('td', '', cmpWeekday(r.date) + ' ' + dayLabel(r.date) + (r.today ? ' · so far' : '')), n(inr(r.spend)), n(r.date < from ? 'n/a' : num(r.follows)), cf, n(num(r.visits)), n(r.visits > 0 ? inr2(r.spend / r.visits) : '—'), n(r.shown == null ? '—' : num(r.shown)));
+    return tr;
+  }));
+  $('cd-note').textContent = 'Newest day first.' + (days.length > 30 ? ' Showing the last 30 days.' : '') + (days.some((x) => x.date < from) ? ' Meta began crediting follows to ads on ' + dayLabel(from) + ', so earlier days show n/a.' : '');
+}
+function cmpOpen(id, fromEl) { cmpOpenId = id; cmpFrom = fromEl || null; $('cmp-back').hidden = false; document.body.style.overflow = 'hidden'; cmpFill(id); $('cmp-drawer').scrollTop = 0; $('cd-close').focus(); }
+function cmpClose() { if (!cmpOpenId) return; cmpOpenId = null; $('cmp-back').hidden = true; document.body.style.overflow = ''; if (cmpFrom && document.body.contains(cmpFrom)) cmpFrom.focus(); cmpFrom = null; }
+$('cd-close').addEventListener('click', cmpClose);
+$('cmp-back').addEventListener('click', (e) => { if (e.target === $('cmp-back')) cmpClose(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && cmpOpenId) cmpClose(); });
+document.querySelectorAll('#cmp-seg button').forEach((b) => b.addEventListener('click', () => { cmpDays = Number(b.dataset.n); drawCompare(); }));
+$('cmp-stopped').addEventListener('change', (e) => { cmpStopped = e.target.checked; drawCompare(); });
 let POSTS = [];
 const COLS = [['title', 'Post', false], ['type', 'Type', false], ['date', 'Posted', false], ['reach', 'Reach', true], ['views', 'Views', true], ['likes', 'Likes', true], ['comments', 'Comments', true], ['saved', 'Saves', true], ['shares', 'Shares', true], ['rate', 'Engagement rate', true], ['avg_watch_ms', 'Avg watch', true], ['follows', 'Followers gained', true]];
 function filteredPosts() {
@@ -1201,7 +1420,7 @@ async function rpGenerate(day, force) {
 $('rp-go').addEventListener('click', () => rpGenerate($('rp-date').value, false));
 $('rp-regen').addEventListener('click', () => { if (rpOpen) rpGenerate(rpOpen, true); });
 
-const TITLES = {overview: 'Overview', spend: 'Spend', followers: 'Followers', content: 'Content', analyse: 'Analyse live ad', reports: 'Daily reports', decisions: 'Decision center'};
+const TITLES = {overview: 'Overview', spend: 'Spend', followers: 'Followers', content: 'Content', analyse: 'Compare live ads', reports: 'Daily reports', decisions: 'Decision center'};
 function route() {
   const v = TITLES[location.hash.slice(1)] ? location.hash.slice(1) : 'overview';
   Object.keys(TITLES).forEach((k) => { $('v-' + k).hidden = k !== v; });

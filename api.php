@@ -184,6 +184,8 @@ try {
             'followers_now' => $f ? (int)$f['followers'] : null, 'username' => $f ? $f['username'] : null,
             'goal' => FOLLOWER_GOAL, 'launch' => '2026-12-01', 'plan' => PLAN,
             'follows_reported_from' => $reportedFrom,
+            // Short, readable ad names for the compare view. Labels only.
+            'ad_names' => (function () { $o = []; foreach (db()->query('SELECT ad_id, name FROM ads') as $r) $o[(string)$r['ad_id']] = short_ad_name((string)$r['ad_id'], (string)$r['name']); return $o; })(),
             'follower_counts' => array_map(fn($r) => ['date' => $r['day'], 'followers' => (int)$r['followers']], db()->query('SELECT day, followers FROM ig_followers ORDER BY day')->fetchAll()),
             'daily' => array_values($days), 'ig_account' => kv_get('ig_account', new stdClass()), 'media' => $media,
             'paid_engagement' => $eng, 'ad_engagement' => $adEng,

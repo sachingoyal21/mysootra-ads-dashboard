@@ -18,6 +18,8 @@ return [
         'Shukrareelad' => 'Shukra Reel',
         'Moon-Ad' => 'Moon Sign Reel',
         'SamudraMandar' => 'Samudra Manthan Ad',
+        'Ravanlanka-ad' => 'Ravan Lanka Ad',
+        'Ravanslankareelad' => 'Ravan Lanka Reel Ad',
         'Ravan&SitaReel' => 'Ravan and Sita Reel',
         'Ramsita36gun' => 'Ram Sita 36 Gun',
     ],

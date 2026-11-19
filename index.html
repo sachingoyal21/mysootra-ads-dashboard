@@ -182,6 +182,20 @@ a.btn{text-decoration:none;display:inline-block}
 .view[hidden]{display:none}
 .view{display:flex;flex-direction:column;gap:16px}
 .empty{color:var(--muted);font-size:13px;margin:0}
+/* Overview and Content */
+.card h2 small{font-size:12.5px;font-weight:400;color:var(--muted)}
+.ov-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px} .ov-tiles.five{grid-template-columns:repeat(5,minmax(0,1fr))}
+.ov-tiles .kpi{padding:13px 15px} .ov-tiles .kpi em{display:block;font-size:12.5px;margin-top:3px} .ov-tiles .track{margin-top:9px;background:var(--panel)}
+.kpi.now{background:var(--blue-soft)} .kpi.now b{color:var(--blue)} .kpi.good{background:var(--good-bg)} .kpi.good b{color:var(--good)} .kpi.warn{background:var(--warn-bg)} .kpi.warn b{color:var(--warn)}
+.up{color:var(--good);font-weight:500} .dn{color:var(--bad);font-weight:500}
+.legend i.dash{width:16px;height:0;border-top:2px dashed var(--muted);border-radius:0;background:none}
+.chart text.v{font-family:var(--sans);font-size:11.5px;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--panel);stroke-width:3px} .chart text.r{font-family:var(--sans);font-size:11.5px;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--panel);stroke-width:4px}
+.ov-days td,.ct-board td{font-variant-numeric:tabular-nums} .ov-days tr.t td{color:var(--muted)} .ov-days .cc,.ct-board .cc{display:inline-block;min-width:54px;padding:4px 8px;text-align:center} table.ov-days{min-width:0} .ov-days th,.ov-days td{padding-left:6px;padding-right:6px;white-space:nowrap} .ov-days tr.t .cc{outline:1.5px dashed #8A8FA0;outline-offset:-1.5px}
+.ct-board tbody tr{cursor:pointer} .ct-board tbody tr:hover td{background:var(--soft)} .ct-board tbody tr:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+.ct-board td b{font-weight:500;display:block} .ct-board td small{display:block;font-size:12px;color:var(--muted)} .ct-board th button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer} .ct-board th button:hover{color:var(--blue)}
+.pd-cap{white-space:pre-wrap;margin:0;font-size:14px;line-height:1.55} #pd-meta a{color:var(--blue)}
+@media (max-width:1200px){.ov-tiles,.ov-tiles.five{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.ov-tiles,.ov-tiles.five{grid-template-columns:1fr}}
 /* Compare live ads */
 .cmp-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .cmp-tiles .kpi.now{background:var(--blue-soft)} .cmp-tiles .kpi.now b{color:var(--blue)}
@@ -255,7 +269,6 @@ a.btn{text-decoration:none;display:inline-block}
     <a href="#content" data-v="content"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m10 8 6 4-6 4z"/></svg>Content</a>
     <a href="#analyse" data-v="analyse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-7"/></svg>Compare live ads</a>
     <a href="#reports" data-v="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Daily reports</a>
-    <a href="#decisions" data-v="decisions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Decision center<span class="count" id="nav-count" hidden></span></a>
   </nav>
   <div class="rail-foot">Reads Meta only. Never changes an ad.</div>
 </aside>
@@ -274,46 +287,21 @@ a.btn{text-decoration:none;display:inline-block}
   <p class="banner" id="banner" hidden></p>
 
   <section class="view" id="v-overview">
-    <div class="grid g-hero">
-      <div class="card hero">
-        <h2 id="goal-title">Road to the follower target</h2>
-        <div class="goal-num" id="g-now">—</div>
-        <div class="track"><i id="g-track" style="width:0"></i></div>
-        <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
-          <div class="kpi"><span>Followers to go</span><b id="g-left">—</b></div>
-          <div class="kpi"><span>Days to launch</span><b id="g-days">—</b></div>
-          <div class="kpi"><span>Needed each day</span><b id="g-need">—</b></div>
-          <div class="kpi"><span>Current pace each day</span><b id="g-pace">—</b></div>
-        </div>
-        <p class="note" id="g-pace-n" style="color:#D5E0FB"></p>
-      </div>
-      <div class="card">
-        <h2>Ad spend</h2>
-        <div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-          <div class="kpi"><span>This month</span><b id="s-month">—</b><em id="s-month-n"></em></div>
-          <div class="kpi"><span>Last 7 days</span><b id="s-week">—</b><em id="s-week-n"></em></div>
-          <div class="kpi"><span>Today so far</span><b id="s-today">—</b><em id="s-today-n"></em></div>
-        </div>
-        <div class="chart" id="c-spark"></div>
-        <p class="note">Daily ad spend this month.</p>
-      </div>
+    <div class="card">
+      <h2 id="ov-title">Are we on track?</h2>
+      <div class="ov-tiles" id="ov-tiles"></div>
     </div>
     <div class="grid g2">
-      <div class="card">
-        <h2>New followers, last 7 days</h2>
-        <div class="legend"><span><i style="background:var(--paid)"></i>From ads</span><span><i style="background:var(--organic)"></i>Not credited to an ad</span><span><i style="background:var(--slate)"></i>Source not split</span></div>
-        <div class="chart" id="c-fol-mini"></div>
-        <p class="note" id="fol-note-mini"></p>
-      </div>
-      <div class="card">
-        <h2>Do this today</h2>
-        <div class="todo" id="todo-mini"></div>
-        <p class="note">Advice only. Open Decision center for every live ad.</p>
-      </div>
+      <div class="card"><h2 id="ov-road-t">Road to the goal</h2><div class="legend"><span><i style="background:var(--blue)"></i>Followers</span><span><i class="dash"></i>Path needed</span></div><div class="chart" id="ov-road"></div><p class="note" id="ov-road-n"></p></div>
+      <div class="card"><h2>New followers each day <small>last 14 days</small></h2><div class="chart" id="ov-new"></div><p class="note" id="ov-new-n"></p></div>
     </div>
     <div class="grid g2">
-      <div class="card"><h2>Best ads by followers gained</h2><div class="rows" id="top-paid-mini"></div></div>
-      <div class="card"><h2>Best organic posts by reach</h2><div class="rows" id="top-org-mini"></div></div>
+      <div class="card"><h2>Ad spend each day <small>last 14 days</small></h2><div class="chart" id="ov-spend"></div><p class="note">The faded bar is today so far.</p></div>
+      <div class="card"><h2>Spend per new follower <small>last 14 days</small></h2><div class="chart" id="ov-cpf"></div><p class="note">Ad spend divided by all new followers that day, from ads or not. Lower is better. This is not the same number as cost per follower on Compare live ads.</p></div>
+    </div>
+    <div class="grid g2">
+      <div class="card"><h2>November budget used</h2><div class="legend"><span><i style="background:var(--paid)"></i>Spent so far</span><span><i class="dash"></i><span id="ov-bud-l">Even pace</span></span></div><div class="chart" id="ov-bud"></div></div>
+      <div class="card"><h2>Last 7 days in numbers</h2><div class="tbl"><table class="ov-days"><thead><tr><th>Day</th><th class="n">New followers</th><th class="n">From ads</th><th class="n">Spend</th><th class="n">Per follower</th><th class="n">Visits</th></tr></thead><tbody id="ov-days"></tbody></table></div><div class="cmp-key" id="ov-key"></div></div>
     </div>
   </section>
 
@@ -371,29 +359,26 @@ a.btn{text-decoration:none;display:inline-block}
   </section>
 
   <section class="view" id="v-content" hidden>
-    <div class="grid g2">
-      <div class="card"><h2>Paid engagement <span class="tag">last 7 days</span></h2><div class="kpis" id="eng-paid"></div></div>
-      <div class="card"><h2>Whole account <span class="tag">last 7 days</span></h2><div class="kpis" id="eng-org"></div><p class="note">Account numbers come from Instagram and include both regular posts and ads.</p></div>
-    </div>
-    <div class="grid g2">
-      <div class="card"><h2>Best paid content</h2><p class="sub">Ranked by followers gained this month.</p><div class="rows" id="top-paid"></div></div>
-      <div class="card"><h2>Best organic content</h2><p class="sub">Ranked by reach, from the latest 40 posts.</p><div class="rows" id="top-org"></div></div>
-    </div>
     <div class="card">
-      <h2>Organic posts in detail <span class="tag" id="org-count"></span></h2>
-      <div class="tools">
-        <input type="search" id="of-q" placeholder="Search caption" aria-label="Search caption">
-        <select id="of-type" aria-label="Type"><option value="">All types</option></select>
-        <label>From <input type="date" id="of-from"></label>
-        <label>To <input type="date" id="of-to"></label>
-        <label>Min reach <input type="number" id="of-reach" min="0" step="100" placeholder="0"></label>
-        <label>Min likes <input type="number" id="of-likes" min="0" step="10" placeholder="0"></label>
-        <button class="btn ghost" type="button" id="of-clear">Clear</button>
-        <button class="btn ghost" type="button" id="of-csv">Download CSV</button>
+      <h2><span id="ct-title">Content growth</span><span class="seg" id="ct-seg" role="group" aria-label="Days shown" style="margin-left:auto"><button type="button" data-n="7" class="on">7 days</button><button type="button" data-n="14">14 days</button><button type="button" data-n="30">30 days</button></span></h2>
+      <div class="ov-tiles five" id="ct-tiles"></div>
+      <p class="note" id="ct-note"></p>
+    </div>
+    <p class="empty" id="ct-none" hidden>No posts were published in these days.</p>
+    <div id="ct-body">
+      <div class="grid g2">
+        <div class="card"><h2>Views, post by post <small>in the order posted</small></h2><div class="chart" id="ct-views"></div></div>
+        <div class="card"><h2>Engagement rate, post by post <small>likes, comments, shares and saves per 100 reached</small></h2><div class="chart" id="ct-rate"></div></div>
       </div>
-      <p class="note">Click a column to sort. Hold Shift and click another column to sort inside the first one. Click again to flip the order.</p>
-      <div class="tbl"><table><thead><tr id="org-head"></tr></thead><tbody id="t-org"></tbody></table></div>
-      <p class="empty" id="org-empty" hidden>No posts match these filters.</p>
+      <div class="grid g2">
+        <div class="card"><h2>Average watch time, reel by reel</h2><div class="chart" id="ct-watch"></div></div>
+        <div class="card"><h2>Views by week posted <small>last 8 weeks</small></h2><div class="chart" id="ct-weeks"></div><p class="note" id="ct-weeks-n"></p></div>
+      </div>
+      <div class="card">
+        <h2><span id="ct-board-t">Every post</span><button class="btn ghost" type="button" id="ct-csv" style="margin-left:auto">Download CSV</button></h2>
+        <div class="tbl"><table class="ct-board"><thead><tr id="ct-head"></tr></thead><tbody id="ct-rows"></tbody></table></div>
+        <div class="cmp-key" id="ct-key"></div>
+      </div>
     </div>
   </section>
 
@@ -440,55 +425,17 @@ a.btn{text-decoration:none;display:inline-block}
     </div>
   </section>
 
-  <section class="view" id="v-decisions" hidden>
-    <div class="calls" id="calls"></div>
-    <div class="card">
-      <h2>Budget pace <span class="chip" id="pace-chip"></span></h2>
-      <div class="kpis">
-        <div class="kpi"><span>Left to spend this month</span><b id="pace-left">—</b></div>
-        <div class="kpi"><span>Needed each day</span><b id="pace-need">—</b></div>
-        <div class="kpi"><span>Live daily budgets</span><b id="pace-live">—</b></div>
-        <div class="kpi"><span>Gap each day</span><b id="pace-gap">—</b></div>
-      </div>
-      <p class="sub" id="pace-note"></p>
-    </div>
-    <div class="card">
-      <h2>What to do with each live ad <span class="seg" id="dec-seg" role="group" aria-label="Layout" style="margin-left:auto"><button type="button" data-m="table" class="on">Table</button><button type="button" data-m="cards">Cards</button></span></h2>
-      <p class="sub">Calls use the last 3 finished days. Today so far is shown for reference only, because a part day swings a lot. This page gives advice only and never changes an ad.</p>
-      <div class="tools">
-        <input type="search" id="df-q" placeholder="Search ad or ad set" aria-label="Search ad or ad set">
-        <select id="df-set" aria-label="Ad set"><option value="">All ad sets</option></select>
-        <select id="df-call" aria-label="Call"><option value="">All calls</option><option value="STOP">Stop</option><option value="CUT">Cut budget</option><option value="SCALE">Scale</option><option value="HOLD">Hold</option><option value="WAIT">Wait</option></select>
-        <button class="btn ghost" type="button" id="df-clear">Clear filters</button>
-      </div>
-      <div class="tbl" id="dec-table"><table><thead><tr><th>Ad</th><th>Call</th><th style="min-width:230px">What to do</th><th class="n">Cost per visit, 3 days</th><th class="n">Yesterday</th><th class="n">Today so far</th><th class="n">Cost per follow</th><th class="n">Daily budget</th><th class="n">Follows from ads, all time</th><th style="min-width:220px">Why</th></tr></thead><tbody id="t-dec"></tbody></table></div>
-      <div class="todo" id="todo" hidden></div>
-      <p class="alarm" id="dec-alarm" hidden>Every ad got costlier on the same day. Do not pause anything yet. Check the account first.</p>
-      <p class="empty" id="todo-empty" hidden>No ads are live right now.</p>
-      <p class="empty" id="dec-none" hidden>No ads match these filters.</p>
-      <details class="note"><summary>How the calls are made</summary>
-        <ul>
-          <li>The goal is followers, so an ad is judged on cost per follower first. This needs 30 follows credited to the ad in the last 3 finished days. Until then the visit rules below apply and the ad cannot be raised.</li>
-          <li>An ad gets a call after 2 days with spend and ₹300 spent, 150 profile visits or 100 follows. Before that it shows Wait.</li>
-          <li>Scale needs all of these. Followers at or under ₹1.20 each, yesterday not more than 15% costlier, the ad seen under 2 times per person in 7 days, the budget used in full, and no raise in the last 2 days. The ₹1.20 comes from the followers still needed and the budget left.</li>
-          <li>When a profile visit costs more than a follower, people are following straight from the ad. The card calls this out as a strong sign.</li>
-          <li>Only one ad is raised a day, the one with the cheapest followers. A raise is 50% while the ad set is under ₹500 a day, then 20%. Go back a step if cost is 25% worse for 2 days. One ad gets at most 40% of the live daily budgets.</li>
-          <li>Stop needs all of these. Followers above ₹1.80 each over 3 full days, ₹300 spent since follows were reported, and yesterday also above ₹1.80. An ad that did well over its whole run gets Cut budget first.</li>
-          <li>Day-3 check. From its 3rd day an ad is a Stop if it has under 100 profile visits and under 30 follows, or if its followers cost more than ₹2.00 each. One exception. If its visits cost under ₹1.00, followers between ₹2.00 and ₹2.50 are a Hold with no raise, and ₹2.50 or more is a Stop. If it has too few follows to judge, a visit cost above ₹2.00 is a Stop. An ad with cheap followers is kept even when its visits cost more than ₹2.00.</li>
-          <li>Cheap followers with costly visits. When followers cost under ₹1.50 but a profile visit costs ₹2.50 or more, the ad is on Hold with no raise, as long as follower gains keep up. Keeping up means yesterday’s follows were at least 80% of its daily average before that. If gains slow, it is a Stop.</li>
-          <li>Between ₹1.20 and ₹1.80 is Hold. Every card shows the ad’s rank on cost per follower.</li>
-          <li>If every ad gets costlier on the same day, nothing is stopped. Check the account first.</li>
-          <li>Visit rules, used only when an ad has too few follows. Under 1.5% of viewers visiting and over ₹1.50 a visit is a Stop. With 2% or more it gets up to 10 days on Hold. A proven ad whose visit cost doubles gets Cut budget first.</li>
-          <li>Give every festival ad an end date on the festival day when you set it up. The dashboard cannot see festival dates.</li>
-          <li>A new ad starts at ₹150 a day. Money from a stopped ad goes to the day’s new ad.</li>
-          <li>Stop still fires at once for an ad shown too often to the same people, or far over the visit limit with no cheap followers to show for it.</li>
-        </ul>
-      </details>
-    </div>
-  </section>
 </main>
 </div>
 
+<div class="cmp-back" id="pd-back" hidden>
+  <aside class="cmp-drawer" id="pd-drawer" role="dialog" aria-modal="true" aria-labelledby="pd-name" tabindex="-1">
+    <div class="cd-top"><div><h2 id="pd-name"></h2><p class="note" id="pd-meta"></p></div><button class="cd-x" type="button" id="pd-close" aria-label="Close">×</button></div>
+    <div class="cd-tiles" id="pd-tiles"></div>
+    <div class="card"><h3 class="cd-h" id="pd-cmp-t">Against the typical post</h3><div class="tbl"><table><thead><tr><th>Number</th><th class="n">This post</th><th class="n">Typical post</th><th class="n">Difference</th></tr></thead><tbody id="pd-cmp"></tbody></table></div><p class="note" id="pd-cmp-n"></p></div>
+    <div class="card"><h3 class="cd-h">How the caption starts</h3><p class="pd-cap" id="pd-cap"></p></div>
+  </aside>
+</div>
 <div class="cmp-back" id="cmp-back" hidden>
   <aside class="cmp-drawer" id="cmp-drawer" role="dialog" aria-modal="true" aria-labelledby="cd-name" tabindex="-1">
     <div class="cd-top"><div><h2 id="cd-name"></h2><p class="note" id="cd-meta"></p></div><button class="cd-x" type="button" id="cd-close" aria-label="Close">×</button></div>
@@ -801,7 +748,6 @@ function actCard(c, eng) {
 }
 
 let DATA = null, V2 = null, period = 'week', busy = false, note = '', loadError = '', folDays = 7;
-const postSort = [{k: 'reach', dir: -1}];
 
 function draw() {
   if (!DATA || !V2) return;
@@ -843,54 +789,31 @@ function draw() {
         : [{text: 'Total new followers ' + num(tot[i].v)}, {color: paidCol, text: 'From ads ' + num(win[i].paid_follows)}, {color: orgCol, text: 'Not credited to an ad ' + num(Math.max(0, tot[i].v - win[i].paid_follows))}, {text: 'Total source. ' + tot[i].src}],
       pending: win.filter((x, i) => !tot[i]).map((x) => dayLabel(x.date)), unsplit: win.some((x, i) => !split(x) && tot[i])};
   };
-  const f7 = folChart(7, 240);
-  chart($('c-fol-mini'), f7);
   const fBig = folChart(folDays, 280);
   chart($('c-fol'), fBig);
   document.querySelectorAll('#fol-seg button').forEach((b) => b.classList.toggle('on', Number(b.dataset.n) === folDays));
   const srcNote = 'Total is from Instagram. From ads is what Meta Ads credits to an ad.';
   const pendNote = (c) => c.pending.length ? ' Instagram reports a day’s total up to 2 days late, so ' + c.pending.join(', ') + ' show ads only for now and are marked with a plus.' : '';
   const unsplitNote = (c) => c.unsplit ? ' Grey days are before ' + (from ? dayLabel(from) : 'Meta began reporting ad follows') + '. Meta did not report follows from ads then, so those days cannot be split and should not be read as organic.' : '';
-  $('fol-note-mini').textContent = srcNote + unsplitNote(f7) + pendNote(f7);
   $('fol-note').textContent = srcNote + unsplitNote(fBig) + pendNote(fBig);
 
   // Overview strip
   const newMonth = sum(month.map((x) => x.new_followers));
   const paidSince = from ? sum(daily.filter((x) => x.date >= from).map((x) => x.paid_follows)) : 0;
   const todayRow = month.find((x) => x.date === today) || {spend: 0, paid_follows: 0};
-  $('s-month').textContent = inr(sum(month.map((x) => x.spend))); $('s-month-n').textContent = num(sum(month.map((x) => x.paid_follows))) + ' follows from ads';
-  $('s-week').textContent = inr(sum(last7.map((x) => x.spend))); $('s-week-n').textContent = num(sum(last7.map((x) => x.paid_follows))) + ' follows from ads';
-  $('s-today').textContent = inr(todayRow.spend); $('s-today-n').textContent = num(todayRow.paid_follows) + ' follows from ads';
-  chart($('c-spark'), {labels: month.map((x) => dayLabel(x.date)), h: 190, line: true, series: [{name: 'Spend', color: paidCol, values: month.map((x) => x.spend)}], fmt: (v) => '₹' + num(v), tip: (v) => inr(v) + ' spent', label: 'Line chart of daily ad spend this month'});
   // Goal
   const now = V2.followers_now || 0, left = Math.max(0, V2.goal - now);
   const daysTo = Math.max(0, Math.round((Date.parse(V2.launch) - Date.parse(today)) / 86400000));
   const need = daysTo > 0 ? left / daysTo : null;
-  $('g-now').replaceChildren(document.createTextNode(num(now)), el('small', '', 'of ' + num(V2.goal)));
-  $('goal-title').textContent = 'Road to ' + num(V2.goal) + ' followers';
-  $('g-track').style.width = Math.min(100, now / V2.goal * 100).toFixed(1) + '%';
-  $('g-left').textContent = num(left); $('g-days').textContent = daysTo; $('g-need').textContent = num(need); $('g-pace').textContent = num(pace);
-  $('g-pace-n').textContent = pace != null && need != null ? (pace >= need ? 'Current pace is enough to reach the goal by launch.' : 'Reaching the goal by launch needs ' + (need / pace).toFixed(1) + ' times the current pace. Pace is the average of the last 7 days Instagram has reported.') : '';
 
-  // Decisions
+  // The budget sums on the Spend tab still come from here. The Decision center itself is gone.
   const dec = decide(d, eng);
-  $('dec-alarm').hidden = !dec.accountJump;
-  const urgent = dec.calls.filter((c) => c.verdict === 'STOP' || c.verdict === 'CUT' || c.verdict === 'SCALE');
-  $('todo-mini').replaceChildren(...(urgent.length ? urgent.slice(0, 3).map((c) => actCard(c, eng)) : [el('p', 'empty', 'Nothing to change today. Every live ad is on hold or still gathering data.')]));
-  $('nav-count').hidden = !urgent.length; $('nav-count').textContent = urgent.length;
-  const names = {STOP: 'Stop', CUT: 'Cut budget', SCALE: 'Scale', HOLD: 'Hold', WAIT: 'Wait for data'};
-  $('calls').replaceChildren(...Object.keys(names).map((k) => { const c = el('div', 'call ' + k); c.appendChild(el('b', '', dec.calls.filter((x) => x.verdict === k).length)); const sp = el('span'); sp.append(el('i'), document.createTextNode(names[k])); c.appendChild(sp); return c; }));
-  DEC = dec.calls.map((c) => Object.assign({}, c, {follows: (d.ads_all.find((a) => a.id === c.id) || {}).follows || 0, cpv_today: (() => { const t = (d.ads_today || []).find((a) => a.id === c.id); return t && t.visits > 0 ? t.spend / t.visits : null; })()})); ENG = eng;
-  const dsel = $('df-set'), dcur = dsel.value; dsel.replaceChildren(new Option('All ad sets', ''), ...Array.from(new Set(DEC.map((c) => c.adset))).sort().map((t) => new Option(t))); dsel.value = dcur;
-  drawDecisions();
   const live = d.ads_all.filter((a) => a.status === 'ACTIVE').sort((a, b) => b.spend - a.spend);
   drawCompare();
 
   // Paid rankings
   const monthAds = d.month_ads.filter((a) => a.spend > 0);
   const paidItems = monthAds.slice().sort((a, b) => b.follows - a.follows).filter((a) => a.follows > 0).map((a) => ({name: a.name, sub: inr(a.spend) + ' spent, ' + (a.visits ? inr2(a.spend / a.visits) + ' per visit' : 'no visits'), value: a.follows, text: num(a.follows) + ' follows'}));
-  rankRows($('top-paid-mini'), paidItems.slice(0, 4), '', 'No follows from ads reported yet.');
-  rankRows($('top-paid'), paidItems.slice(0, 6), '', 'No follows from ads reported yet.');
   rankRows($('gain-paid'), paidItems.slice(0, 8), '', 'No follows from ads reported yet.');
 
   // Organic rankings
@@ -898,25 +821,15 @@ function draw() {
   const title = (m) => (m.caption ? m.caption.slice(0, 46) + (m.caption.length > 46 ? '…' : '') : m.type + ' on ' + dayLabel(m.posted_at.slice(0, 10)));
   const byReach = media.filter((m) => m.reach != null).sort((a, b) => b.reach - a.reach);
   const orgItems = byReach.map((m) => ({name: title(m), link: m.link, sub: m.type + ', ' + dayLabel(m.posted_at.slice(0, 10)) + ', ' + num(m.likes) + ' likes, ' + num(m.saved) + ' saves, ' + num(m.shares) + ' shares', value: m.reach, text: num(m.reach) + ' reach'}));
-  rankRows($('top-org-mini'), orgItems.slice(0, Math.max(3, Math.min(4, paidItems.length))), 'org', 'Organic posts load after the next pull from Meta.');
-  rankRows($('top-org'), orgItems.slice(0, Math.max(4, Math.min(6, paidItems.length))), 'org', 'Organic posts load after the next pull from Meta.');
   const latest = media.slice(0, 10).map((m) => ({name: title(m), link: m.link, sub: m.type + ', ' + dayLabel(m.posted_at.slice(0, 10)) + ', ' + num(m.likes) + ' likes, ' + num(m.saved) + ' saves, ' + num(m.shares) + ' shares, ' + (m.follows != null ? num(m.follows) + ' followers gained' : 'followers gained not reported for Reels'), value: m.reach || 0, text: num(m.reach) + ' reach'}));
   rankRows($('gain-org'), latest, 'org', 'Organic posts load after the next pull from Meta.');
-  POSTS = media.map((m) => Object.assign({}, m, {title: title(m), date: m.posted_at.slice(0, 10), rate: m.reach ? (m.interactions != null ? m.interactions : m.likes + m.comments + (m.saved || 0) + (m.shares || 0)) / m.reach * 100 : null}));
-  const tsel = $('of-type'), cur = tsel.value; tsel.replaceChildren(new Option('All types', ''), ...Array.from(new Set(POSTS.map((p) => p.type))).sort().map((t) => new Option(t))); tsel.value = cur;
-  drawPosts();
+  drawOverview({daily, today, totalFor, from, month});
+  drawContent();
 
   // Spend
   chart($('c-spend'), {labels: month.map((x) => dayLabel(x.date)), series: [{name: 'Spend', color: paidCol, values: month.map((x) => x.spend)}], fmt: (v) => '₹' + num(v), tip: (v) => inr(v), label: 'Bar chart of ad spend by day this month'});
   chart($('c-cpv'), {labels: month.map((x) => dayLabel(x.date)), line: true, ref: 1, series: [{name: 'Cost per visit', color: blue, values: month.map((x) => x.visits > 0 ? x.spend / x.visits : null)}], fmt: (v) => '₹' + v.toFixed(2), tip: (v) => inr2(v) + ' per profile visit', label: 'Line chart of cost per profile visit by day with the one rupee target'});
   const todaySpend = (month.find((x) => x.date === today) || {}).spend || 0;
-  const leftToSpend = Math.max(0, V2.plan.budget - dec.spent), needDay = dec.daysLeft > 0 ? (leftToSpend + todaySpend) / dec.daysLeft : 0, gap = needDay - dec.liveDaily;
-  $('pace-left').textContent = inr(leftToSpend); $('pace-need').textContent = inr(needDay); $('pace-live').textContent = inr(dec.liveDaily); $('pace-gap').textContent = (gap >= 0 ? '+' : '−') + inr(Math.abs(gap)).slice(0);
-  const newAds = Math.max(1, Math.round(gap / RULES.newAdBudget));
-  const pc = $('pace-chip');
-  if (Math.abs(gap) <= needDay * 0.1) { pc.className = 'chip good'; pc.textContent = 'On pace'; $('pace-note').textContent = 'Live budgets match the pace needed to spend the full ' + inr(V2.plan.budget) + '. When today’s new ad goes live at ₹' + RULES.newAdBudget + ' a day, pause the weakest ad or trim budgets by the same amount.'; }
-  else if (gap > 0) { pc.className = 'chip warn'; pc.textContent = 'Under pace'; $('pace-note').textContent = 'To spend the full ' + inr(V2.plan.budget) + ', live budgets need about ' + inr(gap) + ' more a day. That is about ' + newAds + ' new ' + (newAds === 1 ? 'ad' : 'ads') + ' at ₹' + RULES.newAdBudget + ' a day, plus any Scale raises below. With one new ad a day you close this gap in about ' + newAds + (newAds === 1 ? ' day.' : ' days.'); }
-  else { pc.className = 'chip bad'; pc.textContent = 'Over pace'; $('pace-note').textContent = 'Live budgets are about ' + inr(-gap) + ' a day above the pace for ' + inr(V2.plan.budget) + '. For each new ad you launch, pause one. ' + (dec.weakest ? 'The weakest on cost per visit right now is ' + dec.weakest + '.' : ''); }
   const plan = V2.plan, proj = dec.spent + dec.liveDaily * dec.daysLeft - ((month.find((x) => x.date === today) || {}).spend || 0);
   $('b-plan').textContent = inr(plan.budget); $('b-spent').textContent = inr(dec.spent); $('b-daily').textContent = inr(dec.liveDaily); $('b-proj').textContent = inr(proj);
   $('b-bar').style.width = Math.min(100, dec.spent / plan.budget * 100).toFixed(1) + '%';
@@ -941,10 +854,6 @@ function draw() {
   $('sp-org-t').textContent = 'Not credited to an ad ' + num(orgS) + (tot ? ', ' + Math.round(orgS / tot * 100) + '%' : '');
 
   // Content view
-  const pe = (V2.paid_engagement || {}).week || {};
-  $('eng-paid').replaceChildren(...[['Reactions', pe.reactions], ['Video views', pe.video_views], ['Link clicks', pe.link_clicks], ['Saves', pe.saves], ['Comments', pe.comments]].map(([k, v]) => { const x = el('div', 'kpi'); x.append(el('span', '', k), el('b', '', num(v))); return x; }));
-  const ac = V2.ig_account.week || {};
-  $('eng-org').replaceChildren(...[['Accounts reached', ac.reach], ['Views', ac.views], ['Profile visits', ac.profile_views], ['Accounts engaged', ac.accounts_engaged], ['Interactions', ac.total_interactions], ['New follows', ac.follows]].map(([k, v]) => { const x = el('div', 'kpi'); x.append(el('span', '', k), el('b', '', num(v))); return x; }));
 
   // Header
   const lp = V2.last_pull;
@@ -958,25 +867,6 @@ function draw() {
   setBtn();
 }
 
-let DEC = [], ENG = {}, decMode = 'table';
-function drawDecisions() {
-  const q = $('df-q').value.trim().toLowerCase(), st = $('df-set').value, cl = $('df-call').value;
-  const rows = DEC.filter((c) => (!q || (c.ad + ' ' + c.adset).toLowerCase().includes(q)) && (!st || c.adset === st) && (!cl || c.verdict === cl));
-  $('t-dec').replaceChildren(...rows.map((c) => {
-    const e = ENG[c.id], cpf = e && e.follows_since > 0 ? e.spend_since / e.follows_since : null, tr = el('tr');
-    const ad = el('td'); ad.appendChild(el('b', '', c.ad)); ad.appendChild(el('small', '', c.adset + ' · ' + c.bucket));
-    const call = el('td'); call.appendChild(el('span', 'pill ' + c.verdict, c.verdict));
-    tr.append(ad, call, el('td', '', c.action), el('td', 'n', inr2(c.cpv3)), el('td', 'n', inr2(c.cpv_yday)), el('td', 'n', inr2(c.cpv_today)), el('td', 'n', inr2(cpf)), (() => { const td = el('td', 'n', inr(c.budget)); if (c.mates && c.mates.length) td.appendChild(el('small', '', 'shared by ' + (c.mates.length + 1) + ' ads')); return td; })(), el('td', 'n', num(c.follows)), el('td', '', c.why));
-    return tr;
-  }));
-  $('todo').replaceChildren(...rows.map((c) => actCard(c, ENG)));
-  $('dec-table').hidden = decMode !== 'table' || !rows.length; $('todo').hidden = decMode !== 'cards' || !rows.length;
-  $('todo-empty').hidden = DEC.length > 0; $('dec-none').hidden = rows.length > 0 || !DEC.length;
-  document.querySelectorAll('#dec-seg button').forEach((b) => b.classList.toggle('on', b.dataset.m === decMode));
-}
-['df-q', 'df-set', 'df-call'].forEach((id) => $(id).addEventListener('input', drawDecisions));
-$('df-clear').addEventListener('click', () => { ['df-q', 'df-set', 'df-call'].forEach((id) => { $(id).value = ''; }); drawDecisions(); });
-document.querySelectorAll('#dec-seg button').forEach((b) => b.addEventListener('click', () => { decMode = b.dataset.m; drawDecisions(); }));
 // ---------- Compare live ads ----------
 // One row per ad, all on one screen: cost per follower for each day, the trend, followers gained and spend.
 const CMP = {good: 1.2, bad: 2, steady: 10}; // rupees per follower for the colour lines, and percent either way that still counts as steady
@@ -1181,29 +1071,196 @@ $('cd-close').addEventListener('click', cmpClose);
 $('cmp-back').addEventListener('click', (e) => { if (e.target === $('cmp-back')) cmpClose(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && cmpOpenId) cmpClose(); });
 
-let POSTS = [];
-const COLS = [['title', 'Post', false], ['type', 'Type', false], ['date', 'Posted', false], ['reach', 'Reach', true], ['views', 'Views', true], ['likes', 'Likes', true], ['comments', 'Comments', true], ['saved', 'Saves', true], ['shares', 'Shares', true], ['rate', 'Engagement rate', true], ['avg_watch_ms', 'Avg watch', true], ['follows', 'Followers gained', true]];
-function filteredPosts() {
-  const q = $('of-q').value.trim().toLowerCase(), t = $('of-type').value, f = $('of-from').value, to = $('of-to').value, mr = Number($('of-reach').value) || 0, ml = Number($('of-likes').value) || 0;
-  const rows = POSTS.filter((p) => (!q || (p.caption || '').toLowerCase().includes(q)) && (!t || p.type === t) && (!f || p.date >= f) && (!to || p.date <= to) && (p.reach || 0) >= mr && p.likes >= ml);
-  return rows.sort((a, b) => { for (const s of postSort) { const x = a[s.k], y = b[s.k]; if (x == null && y == null) continue; if (x == null) return 1; if (y == null) return -1; if (x < y) return -s.dir; if (x > y) return s.dir; } return 0; });
+// ---------- Trend charts for Overview and Content ----------
+// One small chart helper. Bars or lines, an optional dashed reference line, and a hover box for every column. One y axis only.
+function trend(host, o) {
+  host.replaceChildren();
+  const n = o.labels.length;
+  if (!n) { host.appendChild(el('p', 'empty', 'No data yet.')); return; }
+  const W = Math.max(440, Math.round(host.clientWidth) || 620), H = o.h || 250, m = {t: 18, r: 14, b: 26, l: 54};
+  const all = (o.bars || []).concat(...(o.lines || []).map((l) => l.values)).filter((v) => v != null);
+  const nice = (v) => { if (!(v > 0)) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))), k = v / p; return [1, 1.2, 1.6, 2, 2.4, 3, 4, 5, 6, 8, 10].find((t) => k <= t) * p; };
+  const top = o.top || nice(Math.max(0, ...all, o.ref || 0) * 1.08), bw = (W - m.l - m.r) / n;
+  const x = (i) => m.l + bw * i + bw / 2, y = (v) => H - m.b - (v / top) * (H - m.t - m.b);
+  const svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label});
+  for (let g = 0; g <= 4; g++) { const v = top * g / 4; svg.appendChild(svgEl('line', {class: 'gl', x1: m.l, x2: W - m.r, y1: y(v), y2: y(v)})); svg.appendChild(svgEl('text', {x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end'}, o.fmt(v))); }
+  const every = Math.max(1, Math.ceil(n / 8));
+  o.labels.forEach((lab, i) => { if (i % every === 0) svg.appendChild(svgEl('text', {x: x(i), y: H - 8, 'text-anchor': 'middle'}, lab)); });
+  if (o.bars) {
+    const col = o.color || css('--blue'), w = Math.min(34, bw * 0.66), max = Math.max(...o.bars.map((v) => v || 0));
+    o.bars.forEach((v, i) => {
+      if (v == null) return;
+      const h = Math.max(0, y(0) - y(v)), r = Math.min(4, h, w / 2), x0 = x(i) - w / 2;
+      svg.appendChild(svgEl('path', {d: 'M' + x0 + ',' + y(0) + 'v' + -(h - r) + 'q0,' + -r + ' ' + r + ',' + -r + 'h' + (w - 2 * r) + 'q' + r + ',0 ' + r + ',' + r + 'v' + (h - r) + 'z', fill: col, opacity: o.fadeLast && i === n - 1 ? 0.45 : 1}));
+      if (o.labelAll ? n <= 9 : false) svg.appendChild(svgEl('text', {class: 'v', x: x(i), y: y(v) - 6, 'text-anchor': 'middle'}, o.fmt(v)));
+      else if (v === max || i === n - 1) svg.appendChild(svgEl('text', {class: 'v', x: x(i), y: y(v) - 6, 'text-anchor': 'middle'}, o.fmt(v)));
+    });
+  }
+  (o.lines || []).forEach((l) => {
+    const pts = l.values.map((v, i) => v == null ? null : [x(i), y(v), v]).filter(Boolean);
+    if (!pts.length) return;
+    const attrs = {fill: 'none', stroke: l.color, 'stroke-width': 2, 'stroke-linejoin': 'round', points: pts.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')};
+    if (l.dash) attrs['stroke-dasharray'] = '6 5';
+    svg.appendChild(svgEl('polyline', attrs));
+    if (!l.dash) { const e = pts[pts.length - 1]; svg.appendChild(svgEl('circle', {cx: e[0], cy: e[1], r: 4.5, fill: l.color, stroke: css('--panel'), 'stroke-width': 2})); svg.appendChild(svgEl('text', {class: 'v', x: e[0] - 8, y: e[1] - 10, 'text-anchor': 'end'}, o.fmt(e[2]))); }
+  });
+  if (o.ref != null) { svg.appendChild(svgEl('line', {x1: m.l, x2: W - m.r, y1: y(o.ref), y2: y(o.ref), stroke: css('--ink'), 'stroke-width': 1.5, 'stroke-dasharray': '5 4'})); if (o.refLabel) svg.appendChild(svgEl('text', {class: 'r', x: m.l + 6, y: y(o.ref) - 6}, o.refLabel)); }
+  host.appendChild(svg);
+  const tip = el('div', 'tip'); tip.hidden = true; host.appendChild(tip);
+  o.labels.forEach((lab, i) => {
+    const lines = o.hover ? o.hover(i) : null; if (!lines) return;
+    const hit = svgEl('rect', {x: m.l + bw * i, y: m.t, width: bw, height: H - m.t - m.b, fill: 'transparent'});
+    hit.addEventListener('pointerenter', () => {
+      tip.replaceChildren(el('b', '', o.tipTitle ? o.tipTitle(i) : lab)); lines.forEach((t) => tip.appendChild(el('div', '', t))); tip.hidden = false;
+      const sx = svg.getBoundingClientRect().width / W;
+      tip.style.left = Math.max(4, Math.min(host.clientWidth - tip.offsetWidth - 4, x(i) * sx - tip.offsetWidth / 2)) + 'px'; tip.style.top = '4px';
+    });
+    hit.addEventListener('pointerleave', () => { tip.hidden = true; });
+    svg.appendChild(hit);
+  });
 }
-function cellText(p, k) { const v = p[k]; if (v == null) return k === 'follows' && p.type === 'Reel' ? 'Not reported' : '—'; return k === 'rate' ? v.toFixed(1) + '%' : k === 'avg_watch_ms' ? (v / 1000).toFixed(1) + ' s' : k === 'date' ? dayLabel(v) : typeof v === 'number' ? num(v) : v; }
-function drawPosts() {
-  $('org-head').replaceChildren(...COLS.map(([k, label, right]) => { const th = el('th', 'sortable' + (right ? ' n' : ''), label); const i = postSort.findIndex((s) => s.k === k); if (i >= 0) th.appendChild(el('span', 'ord', (postSort[i].dir < 0 ? '↓' : '↑') + (postSort.length > 1 ? i + 1 : ''))); th.tabIndex = 0;
-    const go = (e) => { const i2 = postSort.findIndex((s) => s.k === k); if (e.shiftKey) { if (i2 >= 0) postSort[i2].dir *= -1; else postSort.push({k, dir: right ? -1 : 1}); } else { const dir = i2 === 0 && postSort.length === 1 ? -postSort[0].dir : (right ? -1 : 1); postSort.length = 0; postSort.push({k, dir}); } drawPosts(); };
-    th.addEventListener('click', go); th.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(e); }); return th; }));
-  const rows = filteredPosts();
-  $('t-org').replaceChildren(...rows.map((p) => { const tr = el('tr'); COLS.forEach(([k, , right]) => { const td = el('td', right ? 'n' : ''); if (k === 'title') { const a = el('a', '', p.title); a.href = p.link; a.target = '_blank'; a.rel = 'noopener'; td.appendChild(a); } else td.textContent = cellText(p, k); tr.appendChild(td); }); return tr; }));
-  $('org-empty').hidden = rows.length > 0 || !POSTS.length;
-  $('org-count').textContent = rows.length + ' of ' + POSTS.length + ' posts';
+const kpiTile = (label, value, sub, cls) => { const x = el('div', 'kpi' + (cls ? ' ' + cls : '')); x.append(el('span', '', label), el('b', '', value)); if (sub) { const e = el('em'); if (typeof sub === 'string') e.textContent = sub; else e.append(...sub); x.appendChild(e); } return x; };
+
+// ---------- Overview: are we on track for the goal? ----------
+function drawOverview(c) {
+  const daily = c.daily, today = c.today, goal = V2.goal, now = V2.followers_now || 0, left = Math.max(0, goal - now);
+  const daysTo = Math.max(0, Math.round((Date.parse(V2.launch) - Date.parse(today)) / 86400000)), need = daysTo > 0 ? left / daysTo : null;
+  const launchLabel = dayLabel(V2.launch);
+  const row = (dt) => daily.find((x) => x.date === dt) || {date: dt, spend: 0, visits: 0, paid_follows: 0, new_followers: null};
+  const newOn = (dt) => { const t = c.totalFor(row(dt)); return t ? t.v : null; };
+  // Pace is the last 3 finished days, so a half-done today cannot pull it down.
+  const fin = [1, 2, 3].map((i) => newOn(cmpAddDays(today, -i))).filter((v) => v != null), pace = fin.length ? sum(fin) / fin.length : null;
+  const on = pace != null && need != null ? pace >= need : null;
+  const spent = sum(c.month.map((x) => x.spend)), plan = V2.plan.budget, bLeft = Math.max(0, plan - spent);
+  const bDays = Math.max(1, Math.round((Date.parse(V2.plan.end) - Date.parse(today)) / 86400000) + 1);
+  const t = row(today), tNew = newOn(today);
+  $('ov-title').textContent = 'Are we on track for ' + num(goal) + ' by ' + launchLabel + '?';
+  const fTile = kpiTile('Followers now', num(now), num(left) + ' to go · ' + daysTo + (daysTo === 1 ? ' day left' : ' days left')); const tr = el('div', 'track'), ti = el('i'); ti.style.width = Math.min(100, now / goal * 100).toFixed(1) + '%'; tr.appendChild(ti); fTile.appendChild(tr);
+  $('ov-tiles').replaceChildren(fTile,
+    kpiTile('Pace', left === 0 ? 'Goal reached' : on == null ? 'Not enough days yet' : on ? 'On track' : 'Behind', need != null && pace != null ? 'Need ' + num(need) + ' a day. Getting ' + num(pace) + ' a day over the last ' + fin.length + ' finished days.' : '', on == null ? '' : on || left === 0 ? 'good' : 'warn'),
+    kpiTile('November budget', inr(bLeft) + ' left', inr(spent) + ' spent of ' + inr(plan) + ' · ' + inr(bLeft / bDays) + ' a day for ' + bDays + (bDays === 1 ? ' day' : ' days')),
+    kpiTile('Today so far', inr(t.spend) + ' spent', (tNew != null ? '+' + num(tNew) + ' followers today · ' : '') + num(t.paid_follows) + ' credited to ads', 'now'));
+  // Road to the goal. Saved follower counts where they exist, and before that the count is worked backwards from Instagram's daily new followers.
+  const counts = {}; (V2.follower_counts || []).forEach((x) => { counts[x.date] = x.followers; });
+  const start = cmpAddDays(today, -13), firstSaved = Object.keys(counts).sort()[0];
+  if (firstSaved) { let cnt = counts[firstSaved], dt = firstSaved; while (dt > start) { const v = row(dt).new_followers; if (v == null) break; cnt -= v; dt = cmpAddDays(dt, -1); counts[dt] = cnt; } }
+  const span = []; for (let dt = start; dt <= V2.launch; dt = cmpAddDays(dt, 1)) span.push(dt);
+  const actual = span.map((dt) => dt <= today && counts[dt] != null ? counts[dt] : null);
+  const path = span.map((dt) => dt >= today && daysTo > 0 ? now + (goal - now) * Math.round((Date.parse(dt) - Date.parse(today)) / 86400000) / daysTo : null);
+  const k = (v) => v >= 1000 ? (v / 1000).toFixed(0) + 'k' : num(v);
+  $('ov-road-t').textContent = 'Road to ' + num(goal);
+  trend($('ov-road'), {labels: span.map(dayLabel), lines: [{values: path, color: css('--muted'), dash: true}, {values: actual, color: css('--blue')}], top: Math.ceil(goal * 1.05 / 4000) * 4000, ref: goal, refLabel: 'Goal ' + num(goal), fmt: (v) => v === actual.filter((x) => x != null).slice(-1)[0] ? num(v) : k(v), label: 'Line chart of the follower count by day with the path needed to reach the goal',
+    hover: (i) => actual[i] != null ? [num(actual[i]) + ' followers' + (span[i] < firstSaved ? ', worked back from daily new followers' : '')] : path[i] != null ? ['Path needed ' + num(path[i])] : null});
+  const eta = pace > 0 && left > 0 ? cmpAddDays(today, Math.ceil(left / pace)) : null;
+  $('ov-road-n').textContent = left === 0 ? 'The goal is reached.' : eta ? 'At the current pace the account reaches ' + num(goal) + ' around ' + dayLabel(eta) + '.' + (firstSaved > start ? ' The follower count is saved daily from ' + dayLabel(firstSaved) + '. Earlier points are worked back from Instagram’s daily new followers.' : '') : '';
+  // 14 day trends
+  const d14 = []; for (let i = 13; i >= 0; i--) d14.push(cmpAddDays(today, -i));
+  const nf = d14.map(newOn), sp = d14.map((dt) => row(dt).spend), lab = d14.map(dayLabel), cpf = d14.map((dt, i) => nf[i] > 0 ? sp[i] / nf[i] : null);
+  trend($('ov-new'), {labels: lab, bars: nf, ref: need, refLabel: need != null ? 'Needed ' + num(need) + ' a day' : '', fadeLast: true, fmt: num, label: 'Bar chart of new followers for each of the last 14 days with the number needed each day', hover: (i) => [nf[i] != null ? '+' + num(nf[i]) + ' followers' : 'Not reported yet', d14[i] >= (c.from || '9999') ? num(row(d14[i]).paid_follows) + ' credited to ads' : 'Ad credit not reported then']});
+  $('ov-new-n').textContent = 'The faded bar is today so far.' + (nf.some((v) => v == null) ? ' A missing bar means Instagram has not reported that day yet.' : '');
+  trend($('ov-spend'), {labels: lab, bars: sp, color: css('--paid'), fadeLast: true, fmt: inr, label: 'Bar chart of ad spend for each of the last 14 days', hover: (i) => [inr(sp[i]) + ' spent', num(row(d14[i]).visits) + ' profile visits from ads']});
+  trend($('ov-cpf'), {labels: lab, lines: [{values: cpf, color: css('--blue')}], fmt: inr2, label: 'Line chart of ad spend per new follower for each of the last 14 days', hover: (i) => cpf[i] != null ? [inr2(cpf[i]) + ' a new follower', inr(sp[i]) + ' spent, ' + num(nf[i]) + ' new followers'] : ['No follower number for this day']});
+  // Budget
+  const nov = []; for (let dt = V2.plan.start; dt <= V2.plan.end; dt = cmpAddDays(dt, 1)) nov.push(dt);
+  let run = 0; const cum = nov.map((dt) => { if (dt > today) return null; run += row(dt).spend; return run; }), even = nov.map((_, i) => plan * (i + 1) / nov.length);
+  $('ov-bud-l').textContent = 'Even pace to ' + inr(plan);
+  const rk = (v) => v >= 1000 ? '₹' + (v / 1000).toFixed(0) + 'k' : inr(v);
+  trend($('ov-bud'), {labels: nov.map(dayLabel), lines: [{values: even, color: css('--muted'), dash: true}, {values: cum, color: css('--paid')}], top: Math.ceil(plan * 1.05 / 4000) * 4000, fmt: (v) => v === run ? inr(v) : rk(v), label: 'Line chart of budget spent so far this month against an even pace', hover: (i) => [cum[i] != null ? inr(cum[i]) + ' spent so far' : 'Not reached yet', 'Even pace ' + inr(even[i])]});
+  // Last 7 days
+  const lvl = (v) => v == null || need == null ? 'x' : v >= need ? 'g' : v >= need * 0.8 ? 'm' : 'b';
+  $('ov-days').replaceChildren(...d14.slice(-7).reverse().map((dt) => {
+    const r = row(dt), v = newOn(dt), trw = el('tr', dt === today ? 't' : ''), n = (text) => el('td', 'n', text), f = el('td', 'n');
+    f.appendChild(el('span', 'cc ' + lvl(v), v != null ? '+' + num(v) : 'n/a'));
+    trw.append(el('td', '', cmpWeekday(dt) + ' ' + dayLabel(dt) + (dt === today ? ' · so far' : '')), f, n(c.from && dt >= c.from ? num(r.paid_follows) : 'n/a'), n(inr(r.spend)), n(v > 0 ? inr2(r.spend / v) : '—'), n(num(r.visits)));
+    return trw;
+  }));
+  const key = (cls, text) => { const sp2 = el('span'), i = el('i'); i.className = 'cc ' + cls; i.style.padding = '0'; i.style.minWidth = '14px'; sp2.append(i, document.createTextNode(text)); return sp2; };
+  $('ov-key').replaceChildren(key('g', need != null ? 'At or above the ' + num(need) + ' a day needed' : 'At or above the pace needed'), key('m', 'Up to 20% short'), key('b', 'More than 20% short'));
 }
-['of-q', 'of-type', 'of-from', 'of-to', 'of-reach', 'of-likes'].forEach((id) => $(id).addEventListener('input', drawPosts));
-$('of-clear').addEventListener('click', () => { ['of-q', 'of-type', 'of-from', 'of-to', 'of-reach', 'of-likes'].forEach((id) => { $(id).value = ''; }); postSort.length = 0; postSort.push({k: 'reach', dir: -1}); drawPosts(); });
-$('of-csv').addEventListener('click', () => {
-  const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const lines = [COLS.map((c) => esc(c[1])).concat(esc('Link')).join(',')].concat(filteredPosts().map((p) => COLS.map(([k]) => esc(k === 'title' ? (p.caption || p.title) : k === 'rate' && p.rate != null ? p.rate.toFixed(2) : k === 'avg_watch_ms' && p.avg_watch_ms != null ? (p.avg_watch_ms / 1000).toFixed(1) : p[k])).concat(esc(p.link)).join(',')));
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\n')], {type: 'text/csv'})); a.download = 'mysootra-organic-posts.csv'; document.body.appendChild(a); a.click(); a.remove();
+
+// ---------- Content: growth of organic posts ----------
+let POSTS = [], ctDays = 7, ctSort = {k: 'date', dir: -1}, pdOpenId = null, pdFrom = null;
+const ctEng = (p) => (p.likes || 0) + (p.comments || 0) + (p.shares || 0) + (p.saved || 0);
+const ctName = (p) => { const w = (p.caption || '').replace(/\s+/g, ' ').trim().split(' ').filter((t) => t && t[0] !== '#' && t[0] !== '@'); return w.length ? w.slice(0, 6).join(' ').replace(/[,.!?:;]+$/, '') : p.type + ' of ' + dayLabel(p.date); };
+const ctMedian = (a) => { const s = a.slice().sort((x, y) => x - y), n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : 0; };
+const ctLevel = (v, med) => med === 0 && v === 0 ? 'x' : v > med && v >= med * 1.25 ? 'g' : v < med && v <= med * 0.75 ? 'b' : 'm';
+const CT_COLS = [['name', 'Post', false, false], ['views', 'Views', true, true], ['reach', 'Reach', true, true], ['likes', 'Likes', true, true], ['shares', 'Shares', true, true], ['saved', 'Saves', true, true], ['comments', 'Comments', true, false], ['rate', 'Engagement rate', true, false], ['watch', 'Avg watch', true, false]];
+function ctWindow() {
+  const today = V2.today, since = cmpAddDays(today, -(ctDays - 1)), prev = cmpAddDays(today, -(2 * ctDays - 1));
+  const all = POSTS.map((p) => Object.assign({}, p, {name: ctName(p), eng: ctEng(p), rate: p.reach ? ctEng(p) / p.reach * 100 : null, watch: p.avg_watch_ms != null ? p.avg_watch_ms / 1000 : null}));
+  const cur = all.filter((p) => p.date >= since && p.date <= today).sort((a, b) => a.posted_at < b.posted_at ? -1 : 1), prv = all.filter((p) => p.date >= prev && p.date < since);
+  const med = {}; ['views', 'reach', 'likes', 'shares', 'saved', 'comments', 'eng'].forEach((k) => { med[k] = ctMedian(cur.map((p) => p[k] || 0)); });
+  med.rate = ctMedian(cur.filter((p) => p.rate != null).map((p) => p.rate)); med.watch = ctMedian(cur.filter((p) => p.watch != null).map((p) => p.watch));
+  return {all, cur, prv, med, since, prev, today};
+}
+function drawContent() {
+  if (!V2) return;
+  POSTS = (V2.media || []).map((m) => Object.assign({}, m, {date: m.posted_at.slice(0, 10)}));
+  const w = ctWindow(), cur = w.cur, prv = w.prv, tot = (L, k) => sum(L.map((p) => p[k] || 0));
+  document.querySelectorAll('#ct-seg button').forEach((b) => b.classList.toggle('on', Number(b.dataset.n) === ctDays));
+  $('ct-title').textContent = 'Content growth, last ' + ctDays + ' days';
+  const chg = (a, b) => { if (!b) return 'Nothing in the ' + ctDays + ' days before'; const pc = (a - b) / b * 100, sp = el('span', pc >= 0 ? 'up' : 'dn', (pc >= 0 ? '▲ ' : '▼ ') + Math.abs(Math.round(pc)) + '%'); return [sp, document.createTextNode(' vs the ' + ctDays + ' days before (' + num(b) + ')')]; };
+  const tile = (label, k, cls) => kpiTile(label, num(tot(cur, k)), chg(tot(cur, k), tot(prv, k)), cls);
+  $('ct-tiles').replaceChildren(kpiTile('Posts published', String(cur.length), chg(cur.length, prv.length), 'now'), tile('Views', 'views'), tile('Reach', 'reach'), tile('Likes, comments, shares, saves', 'eng'), tile('Shares', 'shares'));
+  $('ct-note').textContent = 'Organic posts published ' + dayLabel(w.since) + ' to ' + dayLabel(w.today) + ', compared with posts published in the ' + ctDays + ' days before that. Each number is the post’s total so far, so the newest posts have had less time to grow. Ads are not counted here.';
+  $('ct-none').hidden = cur.length > 0; $('ct-body').hidden = !cur.length;
+  if (!cur.length) return;
+  const lab = cur.map((p) => dayLabel(p.date)), title = (i) => cur[i].name + ' · ' + dayLabel(cur[i].date);
+  trend($('ct-views'), {labels: lab, bars: cur.map((p) => p.views || 0), ref: w.med.views, refLabel: 'Typical ' + num(w.med.views), labelAll: true, fmt: num, tipTitle: title, label: 'Bar chart of views for each post in the order posted', hover: (i) => [num(cur[i].views) + ' views', num(cur[i].reach) + ' reached']});
+  trend($('ct-rate'), {labels: lab, lines: [{values: cur.map((p) => p.rate), color: css('--blue')}], fmt: (v) => v.toFixed(1) + '%', tipTitle: title, label: 'Line chart of engagement rate for each post in the order posted', hover: (i) => cur[i].rate != null ? [cur[i].rate.toFixed(1) + '% engagement rate', num(cur[i].eng) + ' likes, comments, shares and saves on ' + num(cur[i].reach) + ' reached'] : ['No reach reported']});
+  const reels = cur.filter((p) => p.watch != null);
+  trend($('ct-watch'), {labels: reels.map((p) => dayLabel(p.date)), bars: reels.map((p) => p.watch), labelAll: true, fmt: (v) => Math.round(v) + ' s', tipTitle: (i) => reels[i].name + ' · ' + dayLabel(reels[i].date), label: 'Bar chart of average watch time for each reel in the order posted', hover: (i) => [reels[i].watch.toFixed(1) + ' seconds average watch', num(reels[i].views) + ' views']});
+  const weeks = []; for (let i = 7; i >= 0; i--) { const a = cmpAddDays(w.today, -(7 * i + 6)), b = cmpAddDays(w.today, -7 * i), L = w.all.filter((p) => p.date >= a && p.date <= b); weeks.push({a, b, n: L.length, views: tot(L, 'views')}); }
+  const kk = (v) => v >= 1000 ? (v / 1000).toFixed(1) + 'k' : num(v);
+  trend($('ct-weeks'), {labels: weeks.map((x) => dayLabel(x.a)), bars: weeks.map((x) => x.views), labelAll: true, fmt: kk, tipTitle: (i) => dayLabel(weeks[i].a) + ' to ' + dayLabel(weeks[i].b), label: 'Bar chart of views by the week the posts were published, last 8 weeks', hover: (i) => [num(weeks[i].views) + ' views', weeks[i].n + (weeks[i].n === 1 ? ' post' : ' posts')]});
+  $('ct-weeks-n').textContent = 'Each bar is a week, labelled by its first day. This chart always shows 8 weeks, whatever the switch says. Posts each week: ' + weeks.map((x) => x.n).join(' · ') + '.';
+  // Board
+  $('ct-board-t').textContent = 'Every post in these ' + ctDays + ' days';
+  $('ct-head').replaceChildren(...CT_COLS.map(([k, label, right]) => { const th = el('th', right ? 'n' : ''), b = el('button', '', label); b.type = 'button'; const sk = k === 'name' ? 'date' : k; b.addEventListener('click', () => { ctSort = ctSort.k === sk ? {k: sk, dir: -ctSort.dir} : {k: sk, dir: -1}; drawContent(); }); th.appendChild(b); if (ctSort.k === sk) th.appendChild(el('span', 'ord', ctSort.dir > 0 ? '↑' : '↓')); return th; }));
+  const rows = cur.slice().sort((a, b) => { const x = ctSort.k === 'date' ? a.posted_at : a[ctSort.k], y2 = ctSort.k === 'date' ? b.posted_at : b[ctSort.k]; if (x == null) return 1; if (y2 == null) return -1; return (x < y2 ? -1 : x > y2 ? 1 : 0) * ctSort.dir; });
+  $('ct-rows').replaceChildren(...rows.map((p) => {
+    const tr = el('tr'); tr.tabIndex = 0; tr.setAttribute('role', 'button'); tr.setAttribute('aria-label', 'Open details for ' + p.name);
+    const open = () => pdOpen(p.id, tr); tr.addEventListener('click', open); tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    CT_COLS.forEach(([k, , right, coloured]) => {
+      const td = el('td', right ? 'n' : '');
+      if (k === 'name') { td.append(el('b', '', p.name), el('small', '', p.type + ' · ' + cmpWeekday(p.date) + ' ' + dayLabel(p.date))); }
+      else if (coloured) td.appendChild(el('span', 'cc ' + ctLevel(p[k] || 0, w.med[k]), num(p[k] || 0)));
+      else td.textContent = k === 'rate' ? (p.rate != null ? p.rate.toFixed(1) + '%' : '—') : k === 'watch' ? (p.watch != null ? Math.round(p.watch) + ' s' : '—') : num(p[k] || 0);
+      tr.appendChild(td);
+    });
+    return tr;
+  }));
+  const key = (cls, text) => { const sp = el('span'), i = el('i'); i.className = 'cc ' + cls; i.style.padding = '0'; i.style.minWidth = '14px'; sp.append(i, document.createTextNode(text)); return sp; };
+  const hint = el('span', '', 'Click a row to open that post'); hint.style.marginLeft = 'auto';
+  $('ct-key').replaceChildren(key('g', '25% or more above the typical post in these days'), key('m', 'Around typical'), key('b', '25% or more below'), hint);
+  if (pdOpenId) pdFill(pdOpenId);
+}
+// Post detail panel
+function pdFill(id) {
+  const w = ctWindow(), p = w.all.find((x) => x.id === id); if (!p) { pdClose(); return; }
+  $('pd-name').replaceChildren(document.createTextNode(p.name), el('span', 'tag', p.type));
+  const meta = $('pd-meta'), a = el('a', '', 'Open on Instagram'); a.href = p.link; a.target = '_blank'; a.rel = 'noopener';
+  meta.replaceChildren(document.createTextNode('Posted ' + cmpWeekday(p.date) + ' ' + dayLabel(p.date) + ' · '), a);
+  const tile = (k, v, sub) => { const x = el('div'); x.append(el('span', '', k), el('b', '', v), el('small', '', sub)); return x; };
+  $('pd-tiles').replaceChildren(tile('Views', num(p.views), num(p.reach) + ' people reached'), tile('Engagement', num(p.eng), p.rate != null ? p.rate.toFixed(1) + '% of people reached' : 'no reach reported'), tile('Shares and saves', num((p.shares || 0) + (p.saved || 0)), num(p.shares || 0) + ' shares, ' + num(p.saved || 0) + ' saves'), tile('Average watch', p.watch != null ? Math.round(p.watch) + ' s' : '—', p.watch != null ? 'per view' : 'only reported for reels'));
+  const inWin = w.cur.some((x) => x.id === id);
+  $('pd-cmp-t').textContent = 'Against the typical post, last ' + ctDays + ' days';
+  const rowsDef = [['Views', p.views, w.med.views, num], ['Reach', p.reach, w.med.reach, num], ['Likes', p.likes, w.med.likes, num], ['Comments', p.comments, w.med.comments, num], ['Shares', p.shares, w.med.shares, num], ['Saves', p.saved, w.med.saved, num], ['Engagement rate', p.rate, w.med.rate, (v) => v.toFixed(1) + '%'], ['Average watch', p.watch, w.med.watch, (v) => Math.round(v) + ' s']];
+  $('pd-cmp').replaceChildren(...rowsDef.map(([label, v, med, f]) => { const tr = el('tr'), d = el('td', 'n'); if (v == null || !med) d.textContent = '—'; else { const pc = (v - med) / med * 100; if (Math.round(pc) === 0) d.textContent = 'Same'; else d.appendChild(el('span', pc >= 0 ? 'up' : 'dn', (pc >= 0 ? '▲ ' : '▼ ') + Math.abs(Math.round(pc)) + '%')); } tr.append(el('td', '', label), el('td', 'n', v == null ? '—' : f(v || 0)), el('td', 'n', f(med || 0)), d); return tr; }));
+  $('pd-cmp-n').textContent = 'Typical is the middle post of the ' + w.cur.length + ' published in the last ' + ctDays + ' days.' + (inWin ? '' : ' This post is older than that window.');
+  $('pd-cap').textContent = p.caption || 'No caption.';
+}
+function pdOpen(id, fromEl) { pdOpenId = id; pdFrom = fromEl || null; $('pd-back').hidden = false; document.body.style.overflow = 'hidden'; pdFill(id); $('pd-drawer').scrollTop = 0; $('pd-close').focus(); }
+function pdClose() { if (!pdOpenId) return; pdOpenId = null; $('pd-back').hidden = true; document.body.style.overflow = ''; if (pdFrom && document.body.contains(pdFrom)) pdFrom.focus(); pdFrom = null; }
+$('pd-close').addEventListener('click', pdClose);
+$('pd-back').addEventListener('click', (e) => { if (e.target === $('pd-back')) pdClose(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pdOpenId) pdClose(); });
+document.querySelectorAll('#ct-seg button').forEach((b) => b.addEventListener('click', () => { ctDays = Number(b.dataset.n); drawContent(); }));
+$('ct-csv').addEventListener('click', () => {
+  const w = ctWindow(), esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const cols = [['Post', (p) => p.caption || p.name], ['Type', (p) => p.type], ['Posted', (p) => p.date], ['Views', (p) => p.views], ['Reach', (p) => p.reach], ['Likes', (p) => p.likes], ['Comments', (p) => p.comments], ['Shares', (p) => p.shares], ['Saves', (p) => p.saved], ['Engagement rate %', (p) => p.rate != null ? p.rate.toFixed(2) : ''], ['Avg watch seconds', (p) => p.watch != null ? p.watch.toFixed(1) : ''], ['Link', (p) => p.link]];
+  const lines = [cols.map((c) => esc(c[0])).join(',')].concat(w.cur.map((p) => cols.map((c) => esc(c[1](p))).join(',')));
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\n')], {type: 'text/csv'})); a.download = 'mysootra-organic-posts-last-' + ctDays + '-days.csv'; document.body.appendChild(a); a.click(); a.remove();
 });
 
 function drawPeriod() {
@@ -1429,7 +1486,7 @@ async function rpGenerate(day, force) {
 $('rp-go').addEventListener('click', () => rpGenerate($('rp-date').value, false));
 $('rp-regen').addEventListener('click', () => { if (rpOpen) rpGenerate(rpOpen, true); });
 
-const TITLES = {overview: 'Overview', spend: 'Spend', followers: 'Followers', content: 'Content', analyse: 'Compare live ads', reports: 'Daily reports', decisions: 'Decision center'};
+const TITLES = {overview: 'Overview', spend: 'Spend', followers: 'Followers', content: 'Content', analyse: 'Compare live ads', reports: 'Daily reports'};
 function route() {
   const v = TITLES[location.hash.slice(1)] ? location.hash.slice(1) : 'overview';
   Object.keys(TITLES).forEach((k) => { $('v-' + k).hidden = k !== v; });

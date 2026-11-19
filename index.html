@@ -193,6 +193,7 @@ a.btn{text-decoration:none;display:inline-block}
 .ov-days td,.ct-board td{font-variant-numeric:tabular-nums} .ov-days tr.t td{color:var(--muted)} .ov-days .cc,.ct-board .cc{display:inline-block;min-width:54px;padding:4px 8px;text-align:center} table.ov-days{min-width:0} .ov-days th,.ov-days td{padding-left:6px;padding-right:6px;white-space:nowrap} .ov-days tr.t .cc{outline:1.5px dashed #8A8FA0;outline-offset:-1.5px}
 .ct-board tbody tr{cursor:pointer} .ct-board tbody tr:hover td{background:var(--soft)} .ct-board tbody tr:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
 .ct-board td b{font-weight:500;display:block} .ct-board td small{display:block;font-size:12px;color:var(--muted)} .ct-board th button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer} .ct-board th button:hover{color:var(--blue)}
+#ct-body{display:flex;flex-direction:column;gap:16px}
 .pd-cap{white-space:pre-wrap;margin:0;font-size:14px;line-height:1.55} #pd-meta a{color:var(--blue)}
 @media (max-width:1200px){.ov-tiles,.ov-tiles.five{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){.ov-tiles,.ov-tiles.five{grid-template-columns:1fr}}
@@ -1104,7 +1105,7 @@ function trend(host, o) {
     svg.appendChild(svgEl('polyline', attrs));
     if (!l.dash) { const e = pts[pts.length - 1]; svg.appendChild(svgEl('circle', {cx: e[0], cy: e[1], r: 4.5, fill: l.color, stroke: css('--panel'), 'stroke-width': 2})); svg.appendChild(svgEl('text', {class: 'v', x: e[0] - 8, y: e[1] - 10, 'text-anchor': 'end'}, o.fmt(e[2]))); }
   });
-  if (o.ref != null) { svg.appendChild(svgEl('line', {x1: m.l, x2: W - m.r, y1: y(o.ref), y2: y(o.ref), stroke: css('--ink'), 'stroke-width': 1.5, 'stroke-dasharray': '5 4'})); if (o.refLabel) svg.appendChild(svgEl('text', {class: 'r', x: m.l + 6, y: y(o.ref) - 6}, o.refLabel)); }
+  if (o.ref != null) { svg.appendChild(svgEl('line', {x1: m.l, x2: W - m.r, y1: y(o.ref), y2: y(o.ref), stroke: css('--ink'), 'stroke-width': 1.5, 'stroke-dasharray': '5 4'})); if (o.refLabel) svg.appendChild(svgEl('text', o.refRight ? {class: 'r', x: W - m.r - 4, y: y(o.ref) - 6, 'text-anchor': 'end'} : {class: 'r', x: m.l + 6, y: y(o.ref) - 6}, o.refLabel)); }
   host.appendChild(svg);
   const tip = el('div', 'tip'); tip.hidden = true; host.appendChild(tip);
   o.labels.forEach((lab, i) => {
@@ -1206,7 +1207,7 @@ function drawContent() {
   $('ct-none').hidden = cur.length > 0; $('ct-body').hidden = !cur.length;
   if (!cur.length) return;
   const lab = cur.map((p) => dayLabel(p.date)), title = (i) => cur[i].name + ' · ' + dayLabel(cur[i].date);
-  trend($('ct-views'), {labels: lab, bars: cur.map((p) => p.views || 0), ref: w.med.views, refLabel: 'Typical ' + num(w.med.views), labelAll: true, fmt: num, tipTitle: title, label: 'Bar chart of views for each post in the order posted', hover: (i) => [num(cur[i].views) + ' views', num(cur[i].reach) + ' reached']});
+  trend($('ct-views'), {labels: lab, bars: cur.map((p) => p.views || 0), ref: w.med.views, refLabel: 'Typical ' + num(w.med.views), refRight: true, labelAll: true, fmt: num, tipTitle: title, label: 'Bar chart of views for each post in the order posted', hover: (i) => [num(cur[i].views) + ' views', num(cur[i].reach) + ' reached']});
   trend($('ct-rate'), {labels: lab, lines: [{values: cur.map((p) => p.rate), color: css('--blue')}], fmt: (v) => v.toFixed(1) + '%', tipTitle: title, label: 'Line chart of engagement rate for each post in the order posted', hover: (i) => cur[i].rate != null ? [cur[i].rate.toFixed(1) + '% engagement rate', num(cur[i].eng) + ' likes, comments, shares and saves on ' + num(cur[i].reach) + ' reached'] : ['No reach reported']});
   const reels = cur.filter((p) => p.watch != null);
   trend($('ct-watch'), {labels: reels.map((p) => dayLabel(p.date)), bars: reels.map((p) => p.watch), labelAll: true, fmt: (v) => Math.round(v) + ' s', tipTitle: (i) => reels[i].name + ' · ' + dayLabel(reels[i].date), label: 'Bar chart of average watch time for each reel in the order posted', hover: (i) => [reels[i].watch.toFixed(1) + ' seconds average watch', num(reels[i].views) + ' views']});
